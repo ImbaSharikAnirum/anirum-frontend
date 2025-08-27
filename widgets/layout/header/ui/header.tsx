@@ -16,7 +16,9 @@ export function Header() {
         
         <div className="flex flex-1 items-center justify-between">
           <div className="flex items-center gap-8">
-            <h1 className="text-xl font-semibold">Anirum</h1>
+            <Link href="/" className="text-xl font-semibold hover:text-gray-600 transition-colors">
+              Anirum
+            </Link>
             
             <nav className={`hidden items-center gap-2 ${open ? 'lg:flex' : 'md:flex'}`}>
               <Button variant="ghost" asChild>
@@ -33,10 +35,10 @@ export function Header() {
           
           <div className="flex items-center gap-1 md:gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Вход</Link>
+              <Link href="/auth/login">Вход</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href="/register">Регистрация</Link>
+              <Link href="/auth/register">Регистрация</Link>
             </Button>
           </div>
         </div>

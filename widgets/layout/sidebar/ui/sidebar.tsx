@@ -11,15 +11,7 @@ import {
   SidebarMenuButton,
   useSidebar
 } from "@/components/ui/sidebar"
-import { Home, Users, BarChart3, Search, Settings } from "lucide-react"
-
-const items = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Users", url: "/users", icon: Users },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Search", url: "/search", icon: Search },
-  { title: "Settings", url: "/settings", icon: Settings },
-]
+import { Home, Users, BarChart3, Search, Settings, DollarSign, BookOpen, MessageSquare, CheckCircle, Plus } from "lucide-react"
 
 const navigationItems = [
   { title: "Курсы", url: "/courses", icon: Home },
@@ -27,12 +19,30 @@ const navigationItems = [
   { title: "Гайды", url: "/guides", icon: Search },
 ]
 
+const managerItems = [
+  { title: "Финансы", url: "/dashboard/manager/finance", icon: DollarSign },
+  { title: "Чат", url: "/dashboard/manager/chat", icon: MessageSquare },
+  { title: "Команда", url: "/dashboard/manager/team", icon: Users },
+  { title: "Курсы на проверку", url: "/dashboard/manager/courses", icon: CheckCircle },
+  { title: "Создать курс", url: "/courses/create", icon: Plus },
+]
+
+const teacherItems = [
+  { title: "Финансы", url: "/dashboard/teacher/finance", icon: DollarSign },
+  { title: "Мои курсы", url: "/dashboard/teacher/my-courses", icon: BookOpen },
+  { title: "Создать курс", url: "/courses/create", icon: Plus },
+]
+
 export function AppSidebar() {
   const { open } = useSidebar()
+  
+  // Здесь можно будет добавить логику определения роли пользователя
+  const userRole = 'guest' // Пока по умолчанию
   
   return (
     <Sidebar>
       <SidebarContent>
+        {/* Основная навигация - всем */}
         <SidebarGroup className={`hidden ${open ? 'md:block lg:hidden' : 'sm:block md:hidden'}`}>
           <SidebarGroupLabel>Навигация</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -51,11 +61,31 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         
+        {/* Панель менеджера */}
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Менеджер</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {managerItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Панель преподавателя */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Преподаватель</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {teacherItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>

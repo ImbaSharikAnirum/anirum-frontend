@@ -21,7 +21,7 @@ export function Footer() {
             <Link href="/company" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Реквизиты компании
             </Link>
-            <Link href="/become-teacher" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/apply-teacher" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Стать преподавателем
             </Link>
           </div>
