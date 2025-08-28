@@ -1,0 +1,1 @@
+export { CoursesTeacherFilter } from './ui/courses-teacher-filter'
