@@ -14,12 +14,6 @@ export class BaseAPI {
 
   constructor(baseURL?: string) {
     this.baseURL = baseURL || process.env.NEXT_PUBLIC_API_URL || 'https://anirum.up.railway.app/api'
-    
-    // Debug: показываем какой URL используется
-    if (process.env.NODE_ENV === 'development') {
-      console.log('API Base URL:', this.baseURL)
-      console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
-    }
   }
 
   protected async request<T>(

@@ -2,12 +2,14 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
+import { cookies } from 'next/headers'
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Header } from "@/widgets/layout/header"
 import { AppSidebar } from "@/widgets/layout/sidebar"
 import { Footer } from "@/widgets/layout/footer"
 import { MobileNav } from "@/widgets/layout/mobile-nav"
 import { UserProvider } from "@/entities/user"
+import { ConditionalLayout } from "@/widgets/layout/conditional-layout"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -16,11 +18,14 @@ export const metadata: Metadata = {
   description: 'Custom platform built with Next.js',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
+  
   return (
     <html lang="en">
       <head>
@@ -40,17 +45,9 @@ export default function RootLayout({
         </Script>
         
         <UserProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <Header />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-            </SidebarInset>
-            <MobileNav />
-          </SidebarProvider>
+          <ConditionalLayout defaultOpen={defaultOpen}>
+            {children}
+          </ConditionalLayout>
         </UserProvider>
       </body>
     </html>
