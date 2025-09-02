@@ -7,6 +7,7 @@ import { Header } from "@/widgets/layout/header"
 import { AppSidebar } from "@/widgets/layout/sidebar"
 import { Footer } from "@/widgets/layout/footer"
 import { MobileNav } from "@/widgets/layout/mobile-nav"
+import { UserProvider } from "@/entities/user"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,17 +39,19 @@ export default function RootLayout({
           `}
         </Script>
         
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </SidebarInset>
-          <MobileNav />
-        </SidebarProvider>
+        <UserProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </SidebarInset>
+            <MobileNav />
+          </SidebarProvider>
+        </UserProvider>
       </body>
     </html>
   )

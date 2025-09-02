@@ -2,10 +2,18 @@
 
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { useUser } from "@/entities/user"
+import { AuthButtons } from "./AuthButtons"
+import { UserMenu } from "./UserMenu"
 import Link from "next/link"
 
 export function Header() {
   const { open } = useSidebar()
+  const { user, isAuthenticated, clearAuth } = useUser()
+
+  const handleLogout = () => {
+    clearAuth()
+  }
   
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,12 +42,11 @@ export function Header() {
           </div>
           
           <div className="flex items-center gap-1 md:gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/auth/login">Вход</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/auth/signup">Регистрация</Link>
-            </Button>
+            {isAuthenticated && user ? (
+              <UserMenu user={user} onLogout={handleLogout} />
+            ) : (
+              <AuthButtons />
+            )}
           </div>
         </div>
       </div>
