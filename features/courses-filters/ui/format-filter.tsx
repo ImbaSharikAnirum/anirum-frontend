@@ -56,7 +56,7 @@ const cities = [
   "Баку, Азербайджан"
 ]
 
-export function CoursesFormatFilter() {
+export function FormatFilter() {
   const [open, setOpen] = useState(false)
   const [selectedFormat, setSelectedFormat] = useState<typeof formats[0] | null>(null)
   const [locationQuery, setLocationQuery] = useState("")

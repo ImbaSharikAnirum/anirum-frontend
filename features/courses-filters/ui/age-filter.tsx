@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function CoursesAgeFilter() {
+export function AgeFilter() {
   const [open, setOpen] = useState(false)
   const [age, setAge] = useState("")
 

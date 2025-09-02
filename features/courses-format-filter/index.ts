@@ -1,1 +1,0 @@
-export { CoursesFormatFilter } from './ui/courses-format-filter'

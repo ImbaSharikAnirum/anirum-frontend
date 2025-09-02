@@ -1,1 +1,0 @@
-export { CoursesDirectionFilter } from './ui/courses-direction-filter'

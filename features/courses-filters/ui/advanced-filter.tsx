@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -21,20 +22,37 @@ import { TimeSlotsSelector } from "@/shared/ui/time-slots-selector"
 
 
 
+interface AdvancedFilterProps {
+  variant?: 'default' | 'icon-only'
+  mobile?: boolean
+}
 
-export function CoursesAdvancedFilter() {
+export function AdvancedFilter({ variant = 'default', mobile = false }: AdvancedFilterProps = {}) {
   const [open, setOpen] = useState(false)
-  const [selectedDays, setSelectedDays] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState([0, 10000])
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState("")
   
+  // Применённые фильтры (постоянные)
   const [appliedFilters, setAppliedFilters] = useState({
     days: [] as string[],
     price: [0, 10000] as number[],
     timeSlot: "",
   })
+  
+  // Временные состояния для диалога
+  const [tempSelectedDays, setTempSelectedDays] = useState<string[]>([])
+  const [tempPriceRange, setTempPriceRange] = useState([0, 10000])
+  const [tempSelectedTimeSlot, setTempSelectedTimeSlot] = useState("")
 
 
+
+  // Инициализация временных состояний при открытии диалога
+  const handleDialogOpen = (isOpen: boolean) => {
+    if (isOpen) {
+      setTempSelectedDays(appliedFilters.days)
+      setTempPriceRange(appliedFilters.price)
+      setTempSelectedTimeSlot(appliedFilters.timeSlot)
+    }
+    setOpen(isOpen)
+  }
 
   // Функция подсчета курсов с учетом всех фильтров
   const countCoursesWithFilters = (days: string[], price: number[], timeSlot: string) => {
@@ -51,17 +69,17 @@ export function CoursesAdvancedFilter() {
 
   const handleApplyFilters = () => {
     setAppliedFilters({
-      days: selectedDays,
-      price: priceRange,
-      timeSlot: selectedTimeSlot,
+      days: tempSelectedDays,
+      price: tempPriceRange,
+      timeSlot: tempSelectedTimeSlot,
     })
     setOpen(false)
   }
 
   const handleResetFilters = () => {
-    setSelectedDays([])
-    setPriceRange([0, 10000])
-    setSelectedTimeSlot("")
+    setTempSelectedDays([])
+    setTempPriceRange([0, 10000])
+    setTempSelectedTimeSlot("")
     setAppliedFilters({
       days: [],
       price: [0, 10000],
@@ -76,13 +94,15 @@ export function CoursesAdvancedFilter() {
   return (
     <div>
       {/* Кнопка дополнительных фильтров */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogOpen}>
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-between"
+            className={variant === 'icon-only' ? "w-12 h-12 p-0" : "w-full justify-between"}
           >
-            {hasActiveFilters ? (
+            {variant === 'icon-only' ? (
+              <Filter className={`h-4 w-4 ${hasActiveFilters ? 'text-blue-600' : ''}`} />
+            ) : hasActiveFilters ? (
               <>
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
@@ -121,42 +141,50 @@ export function CoursesAdvancedFilter() {
             )}
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className={mobile 
+          ? "w-screen h-screen max-w-none max-h-screen overflow-y-scroll m-0 p-0 rounded-none flex flex-col" 
+          : "max-w-2xl max-h-[80vh] overflow-y-auto"
+        }>
+          <DialogHeader className={mobile ? "p-4 " : ""}>
             <DialogTitle>Дополнительные фильтры</DialogTitle>
+            <DialogDescription className="sr-only">
+              Выберите дополнительные параметры для фильтрации курсов: дни недели, ценовой диапазон и время занятий
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className={mobile ? "flex-1 p-4 space-y-4 overflow-y-auto" : "space-y-6"}>
             {/* Дни недели */}
             <WeekDaysSelector 
-              selectedDays={selectedDays}
-              onDaysChange={setSelectedDays}
+              selectedDays={tempSelectedDays}
+              onDaysChange={setTempSelectedDays}
             />
 
             {/* Ценовой диапазон */}
             <PriceSliderWithHistogram 
-              value={priceRange}
-              onValueChange={setPriceRange}
+              value={tempPriceRange}
+              onValueChange={setTempPriceRange}
               minValue={0}
               maxValue={10000}
             />
 
             {/* Время занятий */}
             <TimeSlotsSelector 
-              selectedTimeSlot={selectedTimeSlot}
-              onTimeSlotChange={setSelectedTimeSlot}
+              selectedTimeSlot={tempSelectedTimeSlot}
+              onTimeSlotChange={setTempSelectedTimeSlot}
             />
 
 
           </div>
 
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={handleResetFilters}>
-              Сбросить
-            </Button>
-            <Button onClick={handleApplyFilters} className="flex-1">
-              Показать {countCoursesWithFilters(selectedDays, priceRange, selectedTimeSlot)} курсов
-            </Button>
+          <DialogFooter className={mobile ? "flex-shrink-0 p-4" : ""}>
+            <div className={mobile ? "flex gap-3 w-full" : "flex gap-2"}>
+              <Button variant="outline" className={mobile ? "flex-1" : ""} onClick={handleResetFilters}>
+                Сбросить
+              </Button>
+              <Button className="flex-1" onClick={handleApplyFilters}>
+                Показать {countCoursesWithFilters(tempSelectedDays, tempPriceRange, tempSelectedTimeSlot)} курсов
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

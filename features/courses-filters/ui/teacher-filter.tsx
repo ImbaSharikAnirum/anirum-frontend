@@ -34,7 +34,7 @@ const teachers = [
   { value: "andrey-pavlov", label: "Андрей Павлов" },
 ]
 
-export function CoursesTeacherFilter() {
+export function TeacherFilter() {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState("")
 
@@ -95,7 +95,7 @@ export function CoursesTeacherFilter() {
         <PopoverContent className="w-80 p-0">
           <Command>
             <CommandInput placeholder="Поиск преподавателя..." />
-            <CommandList>
+            <CommandList className="max-h-40">
               <CommandEmpty>Преподаватель не найден</CommandEmpty>
               <CommandGroup>
                 {teachers.map((teacher) => (

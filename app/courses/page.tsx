@@ -3,7 +3,7 @@ import { CoursesCatalog } from '@/widgets/courses-catalog'
 
 export default function CoursesPage() {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="container mx-auto px-4 py-4 space-y-4">
       {/* Фильтры курсов - сверху */}
       <CoursesFilters />
       

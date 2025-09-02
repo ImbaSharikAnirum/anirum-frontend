@@ -8,36 +8,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { courseDirections, CourseDirection } from "../model/filter-data"
 
-// Направления с изображениями
-const directions = [
-  {
-    id: "sketching",
-    name: "Скетчинг",
-    image: "https://cdnb.artstation.com/p/assets/images/images/091/248/689/large/liang-mark-oil-3.jpg?1756260267"
-  },
-  {
-    id: "2d-drawing", 
-    name: "2D рисование",
-    image: "https://cdna.artstation.com/p/assets/images/images/091/245/334/large/horace-hsu-t1-final.jpg?1756246948"
-  },
-  {
-    id: "3d-modeling",
-    name: "3D моделирование", 
-    image: "https://cdnb.artstation.com/p/assets/images/images/091/217/307/4k/wu-shenyou-2025-lin.jpg?1756177199"
-  },
-  {
-    id: "animation",
-    name: "Анимация",
-    image: "https://cdnb.artstation.com/p/assets/images/images/091/201/023/large/baz-2.jpg?1756136309"
-  }
-]
-
-export function CoursesDirectionFilter() {
+export function DirectionFilter() {
   const [open, setOpen] = useState(false)
-  const [selectedDirection, setSelectedDirection] = useState<typeof directions[0] | null>(null)
+  const [selectedDirection, setSelectedDirection] = useState<CourseDirection | null>(null)
 
-  const handleDirectionSelect = (direction: typeof directions[0]) => {
+  const handleDirectionSelect = (direction: CourseDirection) => {
     setSelectedDirection(direction)
     setOpen(false)
   }
@@ -91,7 +68,7 @@ export function CoursesDirectionFilter() {
         <PopoverContent className="w-80 p-0">
           <div className="p-4">
             <div className="grid grid-cols-2 gap-3">
-              {directions.map((direction) => (
+              {courseDirections.map((direction) => (
                 <button
                   key={direction.id}
                   onClick={() => handleDirectionSelect(direction)}

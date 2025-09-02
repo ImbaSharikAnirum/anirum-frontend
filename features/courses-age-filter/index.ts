@@ -1,1 +1,0 @@
-export { CoursesAgeFilter } from './ui/courses-age-filter'
