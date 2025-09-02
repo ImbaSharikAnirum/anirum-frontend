@@ -38,7 +38,7 @@ export function Header() {
               <Link href="/auth/login">Вход</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href="/auth/register">Регистрация</Link>
+              <Link href="/auth/signup">Регистрация</Link>
             </Button>
           </div>
         </div>

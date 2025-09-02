@@ -27,7 +27,7 @@ export function ForgotPasswordForm({
             autoComplete="email" 
           />
         </div>
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full whitespace-normal leading-tight py-3 h-auto">
           Отправить ссылку для восстановления
         </Button>
       </div>
