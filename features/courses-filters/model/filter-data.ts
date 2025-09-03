@@ -6,23 +6,23 @@ export const courseDirections: Direction[] = [
   {
     id: "sketching",
     name: "Скетчинг",
-    image: "https://cdnb.artstation.com/p/assets/images/images/091/248/689/large/liang-mark-oil-3.jpg?1756260267"
+    image: "/directions/scetching.jpg"
   },
   {
-    id: "2d-drawing", 
+    id: "drawing2d", 
     name: "2D рисование",
-    image: "https://cdna.artstation.com/p/assets/images/images/091/245/334/large/horace-hsu-t1-final.jpg?1756246948"
+    image: "/directions/2D.png"
   },
   {
-    id: "3d-modeling",
+    id: "modeling3d",
     name: "3D моделирование", 
-    image: "https://cdnb.artstation.com/p/assets/images/images/091/217/307/4k/wu-shenyou-2025-lin.jpg?1756177199"
+    image: "/directions/3D.png"
   },
   {
     id: "animation",
     name: "Анимация",
-    image: "https://cdnb.artstation.com/p/assets/images/images/091/201/023/large/baz-2.jpg?1756136309"
-  }
+    image: "/directions/animation.jpg"
+  },
 ]
 
 // Форматы курсов

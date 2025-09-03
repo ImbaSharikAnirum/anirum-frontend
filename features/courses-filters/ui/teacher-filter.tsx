@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronsUpDown, User } from "lucide-react"
+import { Check, ChevronsUpDown, User, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,36 +17,41 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { useTeachers } from "@/entities/user"
 
-// Список преподавателей
-const teachers = [
-  { value: "anna-petrova", label: "Анна Петрова" },
-  { value: "mikhail-ivanov", label: "Михаил Иванов" },
-  { value: "elena-sidorova", label: "Елена Сидорова" },
-  { value: "dmitry-kozlov", label: "Дмитрий Козлов" },
-  { value: "olga-morozova", label: "Ольга Морозова" },
-  { value: "artem-volkov", label: "Артем Волков" },
-  { value: "maria-novikova", label: "Мария Новикова" },
-  { value: "sergey-fedorov", label: "Сергей Федоров" },
-  { value: "tatyana-lebedeva", label: "Татьяна Лебедева" },
-  { value: "nikolay-orlov", label: "Николай Орлов" },
-  { value: "ekaterina-sokolova", label: "Екатерина Соколова" },
-  { value: "andrey-pavlov", label: "Андрей Павлов" },
-]
+interface TeacherFilterProps {
+  defaultValue?: number | null
+  onTeacherChange?: (teacherId: number | null) => void
+}
 
-export function TeacherFilter() {
+export function TeacherFilter({ defaultValue, onTeacherChange }: TeacherFilterProps) {
   const [open, setOpen] = useState(false)
-  const [value, setValue] = useState("")
+  const [value, setValue] = useState(() => {
+    return defaultValue ? defaultValue.toString() : ""
+  })
+  const { teachers, loading, error } = useTeachers()
 
-  const selectedTeacher = teachers.find((teacher) => teacher.value === value)
+  // Преобразуем данные для совместимости с существующим интерфейсом
+  const teacherOptions = teachers.map(teacher => ({
+    value: teacher.id.toString(),
+    label: teacher.username
+  }))
+
+  const selectedTeacher = teacherOptions.find((teacher) => teacher.value === value)
 
   const handleSelect = (currentValue: string) => {
-    setValue(currentValue === value ? "" : currentValue)
+    const newValue = currentValue === value ? "" : currentValue
+    setValue(newValue)
     setOpen(false)
+    
+    // Вызываем коллбэк с number ID или null
+    const teacherId = newValue ? parseInt(newValue) : null
+    onTeacherChange?.(teacherId)
   }
 
   const handleClear = () => {
     setValue("")
+    onTeacherChange?.(null)
   }
 
   return (
@@ -86,8 +91,19 @@ export function TeacherFilter() {
               </>
             ) : (
               <>
-                <span>Преподаватель</span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                <span>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Загрузка...
+                    </>
+                  ) : error ? (
+                    "Ошибка загрузки"
+                  ) : (
+                    "Преподаватель"
+                  )}
+                </span>
+                {!loading && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
               </>
             )}
           </Button>
@@ -96,24 +112,37 @@ export function TeacherFilter() {
           <Command>
             <CommandInput placeholder="Поиск преподавателя..." />
             <CommandList className="max-h-40">
-              <CommandEmpty>Преподаватель не найден</CommandEmpty>
-              <CommandGroup>
-                {teachers.map((teacher) => (
-                  <CommandItem
-                    key={teacher.value}
-                    value={teacher.value}
-                    onSelect={handleSelect}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === teacher.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {teacher.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              {loading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="ml-2">Загрузка преподавателей...</span>
+                </div>
+              ) : error ? (
+                <div className="px-2 py-4 text-sm text-red-500">
+                  Ошибка: {error}
+                </div>
+              ) : (
+                <>
+                  <CommandEmpty>Преподаватель не найден</CommandEmpty>
+                  <CommandGroup>
+                    {teacherOptions.map((teacher) => (
+                      <CommandItem
+                        key={teacher.value}
+                        value={teacher.value}
+                        onSelect={handleSelect}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value === teacher.value ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {teacher.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

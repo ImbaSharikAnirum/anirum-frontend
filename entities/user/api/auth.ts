@@ -65,4 +65,5 @@ export class UserAuthAPI extends BaseAPI {
 }
 
 // Экспортируем экземпляр API
+
 export const userAuthAPI = new UserAuthAPI()

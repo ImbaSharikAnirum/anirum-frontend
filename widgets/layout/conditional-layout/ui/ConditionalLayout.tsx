@@ -12,6 +12,7 @@ import { AppSidebar } from "@/widgets/layout/sidebar"
 import { Footer } from "@/widgets/layout/footer"
 import { MobileNav } from "@/widgets/layout/mobile-nav"
 import { useRole } from "@/shared/lib/hooks/useRole"
+import { useUser } from "@/entities/user"
 
 interface ConditionalLayoutProps {
   children: ReactNode
@@ -20,11 +21,15 @@ interface ConditionalLayoutProps {
 
 export function ConditionalLayout({ children, defaultOpen = true }: ConditionalLayoutProps) {
   const { isStaff } = useRole()
+  const { isLoading, isAuthenticated } = useUser()
+
+  // Не показываем сайдбар во время загрузки, чтобы избежать мерцания
+  const shouldShowSidebar = !isLoading && isAuthenticated && isStaff
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       {/* Условно показываем сайдбар только для staff */}
-      {isStaff && <AppSidebar />}
+      {shouldShowSidebar && <AppSidebar />}
       
       <SidebarInset>
         <Header />
@@ -34,8 +39,7 @@ export function ConditionalLayout({ children, defaultOpen = true }: ConditionalL
         <Footer />
       </SidebarInset>
       
-      {/* Мобильную навигацию тоже показываем только для staff */}
-      {isStaff && <MobileNav />}
+     <MobileNav />
     </SidebarProvider>
   )
 }

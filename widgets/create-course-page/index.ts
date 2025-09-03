@@ -1,0 +1,1 @@
+export { CreateCoursePage } from './ui/CreateCoursePage'

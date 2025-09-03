@@ -10,13 +10,29 @@ import {
 } from "@/components/ui/popover"
 import { courseDirections, CourseDirection } from "../model/filter-data"
 
-export function DirectionFilter() {
+interface DirectionFilterProps {
+  defaultValue?: string
+  onDirectionChange?: (direction: string) => void
+}
+
+export function DirectionFilter({ defaultValue, onDirectionChange }: DirectionFilterProps) {
   const [open, setOpen] = useState(false)
-  const [selectedDirection, setSelectedDirection] = useState<CourseDirection | null>(null)
+  const [selectedDirection, setSelectedDirection] = useState<CourseDirection | null>(() => {
+    if (defaultValue) {
+      return courseDirections.find(d => d.id === defaultValue) || null
+    }
+    return null
+  })
 
   const handleDirectionSelect = (direction: CourseDirection) => {
     setSelectedDirection(direction)
     setOpen(false)
+    onDirectionChange?.(direction.id)
+  }
+
+  const handleClearDirection = () => {
+    setSelectedDirection(null)
+    onDirectionChange?.('')
   }
 
   return (
@@ -26,31 +42,31 @@ export function DirectionFilter() {
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-between"
+            className="w-full justify-between pr-2"
           >
             {selectedDirection ? (
               <>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <img 
                     src={selectedDirection.image} 
                     alt={selectedDirection.name}
-                    className="w-5 h-4 object-cover rounded"
+                    className="w-5 h-4 object-cover rounded flex-shrink-0"
                   />
-                  <span>{selectedDirection.name}</span>
+                  <span className="truncate">{selectedDirection.name}</span>
                 </div>
                 <span
                   onClick={(e) => {
                     e.stopPropagation()
-                    setSelectedDirection(null)
+                    handleClearDirection()
                   }}
-                  className="text-gray-400 hover:text-gray-600 ml-2 cursor-pointer"
+                  className="text-gray-400 hover:text-gray-600 ml-2 cursor-pointer flex-shrink-0 w-4 h-4 flex items-center justify-center"
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       e.stopPropagation()
-                      setSelectedDirection(null)
+                      handleClearDirection()
                     }
                   }}
                 >

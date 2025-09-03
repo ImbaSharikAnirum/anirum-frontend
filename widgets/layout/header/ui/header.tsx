@@ -7,6 +7,7 @@ import { useRole } from "@/shared/lib/hooks/useRole"
 import { AuthButtons } from "./AuthButtons"
 import { UserMenu } from "./UserMenu"
 import Link from "next/link"
+import Image from "next/image"
 
 export function Header() {
   const { open } = useSidebar()
@@ -28,8 +29,14 @@ export function Header() {
         
         <div className="flex flex-1 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-semibold hover:text-gray-600 transition-colors">
-              Anirum
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Image 
+                src="/logo.svg" 
+                alt="Anirum" 
+                width={32} 
+                height={32}
+                className="w-20 h-8"
+              />
             </Link>
             
             <nav className={`hidden items-center gap-2 ${open ? 'lg:flex' : 'md:flex'}`}>

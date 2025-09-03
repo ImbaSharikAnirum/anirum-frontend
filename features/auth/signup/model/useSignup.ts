@@ -23,8 +23,11 @@ export function useSignup() {
     try {
       const response = await userAuthAPI.register(credentials)
       
+      // Получаем полные данные пользователя с ролью
+      const userWithRole = await userAuthAPI.getCurrentUser(response.jwt)
+      
       // Сохраняем данные пользователя в store
-      setAuth(response.user, response.jwt)
+      setAuth(userWithRole, response.jwt)
       
       // Перенаправляем на главную страницу
       router.push('/')
