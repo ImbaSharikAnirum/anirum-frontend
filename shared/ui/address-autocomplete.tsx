@@ -43,7 +43,6 @@ export function AddressAutocomplete({
         if (inputRef.current && !autocompleteRef.current) {
           const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
             types: ['address'],
-            language: 'ru',
             componentRestrictions: { country: ['ru', 'kz', 'by', 'ua'] },
             fields: ['formatted_address', 'address_components', 'geometry']
           })
