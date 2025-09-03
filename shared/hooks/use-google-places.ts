@@ -54,7 +54,7 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
       const div = document.createElement('div')
       const map = new window.google.maps.Map(div)
       const places = new window.google.maps.places.PlacesService(map)
-      setPlacesService(places)
+      setPlacesService(places as google.maps.places.PlacesService)
     } else {
       // Загружаем Google Maps API если не загружен
       const script = document.createElement('script')
@@ -69,7 +69,7 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
           const div = document.createElement('div')
           const map = new window.google.maps.Map(div)
           const places = new window.google.maps.places.PlacesService(map)
-          setPlacesService(places)
+          setPlacesService(places as google.maps.places.PlacesService)
         }
       }
       document.head.appendChild(script)
@@ -96,9 +96,9 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
       service.getPlacePredictions(request, (predictions, status) => {
         setIsLoading(false)
         
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
           setPredictions(predictions.slice(0, 5)) // Ограничиваем 5 результатами
-        } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
           setPredictions([])
         } else {
           setError('Ошибка при загрузке вариантов')
@@ -127,7 +127,7 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
         }
 
         placesService.getDetails(requestEn, (placeEn, statusEn) => {
-          if (statusEn === window.google.maps.places.PlacesServiceStatus.OK && placeEn) {
+          if (statusEn === google.maps.places.PlacesServiceStatus.OK && placeEn) {
             // Извлекаем английские компоненты
             let countryEn = ''
             let cityEn = ''
@@ -162,7 +162,7 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
               let cityRu = ''
               let addressRu = displayDescription // Используем то что пользователь видел при поиске
 
-              if (statusRu === window.google.maps.places.PlacesServiceStatus.OK && placeRu) {
+              if (statusRu === google.maps.places.PlacesServiceStatus.OK && placeRu) {
                 addressRu = placeRu.formatted_address || displayDescription
                 
                 placeRu.address_components?.forEach((component) => {
