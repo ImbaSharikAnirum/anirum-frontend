@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader } from '@googlemaps/js-api-loader'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { loadGoogleMaps } from '@/shared/lib/google-maps-loader'
 
 interface AddressAutocompleteProps {
   value: string
@@ -29,15 +29,8 @@ export function AddressAutocomplete({
   useEffect(() => {
     const initAutocomplete = async () => {
       try {
-        const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-          version: 'weekly',
-          libraries: ['places'],
-          language: 'ru',
-          region: 'RU'
-        })
-
-        await loader.load()
+        // Используем единый загрузчик
+        await loadGoogleMaps()
         setIsLoaded(true)
 
         if (inputRef.current && !autocompleteRef.current) {

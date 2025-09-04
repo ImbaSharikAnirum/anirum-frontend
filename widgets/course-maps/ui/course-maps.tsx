@@ -10,6 +10,7 @@ import { Course } from "@/entities/course/model/types";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { loadGoogleMaps } from "@/shared/lib/google-maps-loader";
 
 interface CourseMapsProps {
   course: Course;
@@ -36,52 +37,14 @@ export function CourseMaps({ course }: CourseMapsProps) {
     return null;
   }
 
-  const loadGoogleMaps = async () => {
+  const loadGoogleMapsAndInit = async () => {
     try {
       setIsLoading(true);
       setMapError(null);
 
-      // Проверяем, загружен ли уже Google Maps
-      if (window.google && window.google.maps) {
-        initializeMap();
-        return;
-      }
-
-      // Проверяем, нет ли уже загружающегося скрипта Google Maps
-      const existingScript = document.querySelector(
-        'script[src*="maps.googleapis.com/maps/api/js"]'
-      );
-      
-      if (existingScript) {
-        // Если скрипт уже загружается, ждем его загрузки
-        const checkGoogleMaps = () => {
-          if (window.google && window.google.maps) {
-            initializeMap();
-          } else {
-            // Повторяем проверку через 100ms
-            setTimeout(checkGoogleMaps, 100);
-          }
-        };
-        checkGoogleMaps();
-        return;
-      }
-
-      // Загружаем Google Maps API
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-
-      script.onload = () => {
-        initializeMap();
-      };
-
-      script.onerror = () => {
-        setMapError("Не удалось загрузить карту");
-        setIsLoading(false);
-      };
-
-      document.head.appendChild(script);
+      // Используем единый загрузчик
+      await loadGoogleMaps();
+      initializeMap();
     } catch (error) {
       setMapError("Ошибка при загрузке карты");
       setIsLoading(false);
@@ -146,7 +109,7 @@ export function CourseMaps({ course }: CourseMapsProps) {
   };
 
   useEffect(() => {
-    loadGoogleMaps();
+    loadGoogleMapsAndInit();
   }, [course.coordinates, course.googlePlaceId]);
 
   return (

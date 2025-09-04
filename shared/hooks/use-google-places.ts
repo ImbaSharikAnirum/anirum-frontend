@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
+import { loadGoogleMaps } from '@/shared/lib/google-maps-loader'
 
 interface PlacePrediction {
   place_id: string
@@ -46,33 +47,33 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
 
   // Инициализация Google Places API
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.google?.maps?.places) {
-      const autocompleteService = new window.google.maps.places.AutocompleteService()
-      setService(autocompleteService)
-      
-      // Создаем div для PlacesService
-      const div = document.createElement('div')
-      const map = new window.google.maps.Map(div)
-      const places = new window.google.maps.places.PlacesService(map)
-      setPlacesService(places as google.maps.places.PlacesService)
-    } else {
-      // Загружаем Google Maps API если не загружен
-      const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
-      script.async = true
-      script.onload = () => {
-        if (window.google?.maps?.places) {
-          const autocompleteService = new window.google.maps.places.AutocompleteService()
-          setService(autocompleteService)
-          
-          // Создаем div для PlacesService
-          const div = document.createElement('div')
-          const map = new window.google.maps.Map(div)
-          const places = new window.google.maps.places.PlacesService(map)
-          setPlacesService(places as google.maps.places.PlacesService)
-        }
+    const initServices = () => {
+      if (window.google?.maps?.places) {
+        const autocompleteService = new window.google.maps.places.AutocompleteService()
+        setService(autocompleteService)
+        
+        // Создаем div для PlacesService
+        const div = document.createElement('div')
+        const map = new window.google.maps.Map(div)
+        const places = new window.google.maps.places.PlacesService(map)
+        setPlacesService(places as google.maps.places.PlacesService)
       }
-      document.head.appendChild(script)
+    }
+
+    if (typeof window !== 'undefined') {
+      if (window.google?.maps?.places) {
+        initServices()
+      } else {
+        // Используем единый загрузчик
+        loadGoogleMaps()
+          .then(() => {
+            initServices()
+          })
+          .catch((error) => {
+            console.error('Ошибка загрузки Google Maps:', error)
+            setError('Ошибка загрузки карт')
+          })
+      }
     }
   }, [])
 
