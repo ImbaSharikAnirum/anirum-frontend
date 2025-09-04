@@ -1,0 +1,1 @@
+export { CourseLocation } from './ui/course-location'

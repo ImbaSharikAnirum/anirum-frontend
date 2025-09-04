@@ -1,0 +1,1 @@
+export { CourseTeacherInfo } from './ui/course-teacher-info'

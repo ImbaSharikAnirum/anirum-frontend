@@ -61,18 +61,11 @@ export function CourseForm() {
 
   const handleInputChange = (field: string, value: string | boolean | Date | number | null | undefined) => {
     const newFormData = { ...formData, [field]: value }
-    console.log(`handleInputChange - ${field}:`, value)
-    console.log('Весь formData:', newFormData)
     setFormData(newFormData)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    console.log('=== ДАННЫЕ КУРСА ===')
-    console.log('formData:', formData)
-    console.log('selectedDays:', selectedDays)
-    console.log('==================')
     
     try {
       await createCourse(formData, selectedDays, imageFiles)
@@ -103,7 +96,6 @@ export function CourseForm() {
               defaultLocation={formData.address}
               onFormatChange={(isOnline) => handleInputChange('isOnline', isOnline)}
               onLocationChange={(locationData) => {
-                console.log('Получены данные локации:', locationData)
                 setFormData(prev => {
                   const newFormData = {
                     ...prev,

@@ -10,6 +10,7 @@ import { Footer } from "@/widgets/layout/footer"
 import { MobileNav } from "@/widgets/layout/mobile-nav"
 import { UserProvider } from "@/entities/user"
 import { ConditionalLayout } from "@/widgets/layout/conditional-layout"
+import { QueryProvider } from "@/shared/providers/query-provider"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -44,11 +45,13 @@ export default async function RootLayout({
           `}
         </Script>
         
-        <UserProvider>
-          <ConditionalLayout defaultOpen={defaultOpen}>
-            {children}
-          </ConditionalLayout>
-        </UserProvider>
+        <QueryProvider>
+          <UserProvider>
+            <ConditionalLayout defaultOpen={defaultOpen}>
+              {children}
+            </ConditionalLayout>
+          </UserProvider>
+        </QueryProvider>
       </body>
     </html>
   )

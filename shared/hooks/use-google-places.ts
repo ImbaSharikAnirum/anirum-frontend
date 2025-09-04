@@ -202,10 +202,6 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
                 } : undefined
               }
 
-              console.log('Получены данные места:', {
-                english: { country: countryEn, city: cityEn, address: placeEn.formatted_address },
-                russian: { country: countryRu, city: cityRu, address: addressRu }
-              })
 
               resolve(details)
             })

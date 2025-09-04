@@ -1,0 +1,1 @@
+export { CourseImages } from './ui/course-images'
