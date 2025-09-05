@@ -15,12 +15,15 @@ export interface CourseFilters {
   courseType?: 'club' | 'course' | 'intensive' | 'individual'
   weekdays?: string[]  // Дни недели ['monday', 'tuesday', ...]
   priceRange?: [number, number]  // Диапазон цен [min, max]
+  timeSlot?: 'morning' | 'afternoon' | 'evening'  // Временные слоты
 }
+
+import { convertTimeSlotToMoscow } from '@/shared/lib/timezone'
 
 /**
  * Преобразует фильтры в параметры для API
  */
-export function buildApiFilters(filters: CourseFilters): Record<string, any> {
+export function buildApiFilters(filters: CourseFilters, userTimezone?: string): Record<string, any> {
   const apiFilters: Record<string, any> = {}
 
   if (filters.direction) {
@@ -69,6 +72,17 @@ export function buildApiFilters(filters: CourseFilters): Record<string, any> {
     apiFilters.pricePerLesson = {
       $gte: minPrice,
       $lte: maxPrice
+    }
+  }
+
+  if (filters.timeSlot && userTimezone) {
+    // Конвертируем временной слот пользователя в московское время
+    const moscowTimeRange = convertTimeSlotToMoscow(filters.timeSlot, userTimezone)
+    
+    // Фильтр по normalizedStartTime (курсы с нормализованным московским временем)
+    apiFilters.normalizedStartTime = {
+      $gte: moscowTimeRange.startTime,
+      $lt: moscowTimeRange.endTime
     }
   }
 

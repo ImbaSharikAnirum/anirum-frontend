@@ -81,8 +81,8 @@ export function CourseForm() {
         <div className="md:flex-shrink-0 md:w-120">
           <FileUpload 
             onFilesChange={setImageFiles}
-            maxFiles={5}
-            minFiles={0}
+            maxFiles={10}
+            minFiles={5}
             maxSizeMB={10}
           />
         </div>
@@ -346,26 +346,13 @@ export function CourseForm() {
             </div>
             
             {formData.inventoryRequired && (
-              <div className="space-y-4">
-                <div>
-                  <Label className="mb-2 block">Описание необходимого инвентаря</Label>
-                  <Textarea
-                    value={formData.inventoryDescription}
-                    onChange={(e) => handleInputChange('inventoryDescription', e.target.value)}
-                    placeholder="Опишите необходимые материалы и инструменты..."
-                  />
-                </div>
-                <div>
-                  <Label className="mb-2 block">Цена аренды инвентаря</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.rentalPrice}
-                    onChange={(e) => handleInputChange('rentalPrice', e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
+              <div>
+                <Label className="mb-2 block">Описание необходимого инвентаря</Label>
+                <Textarea
+                  value={formData.inventoryDescription}
+                  onChange={(e) => handleInputChange('inventoryDescription', e.target.value)}
+                  placeholder="Опишите необходимые материалы и инструменты..."
+                />
               </div>
             )}
           </div>

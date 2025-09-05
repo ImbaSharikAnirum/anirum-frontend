@@ -5,6 +5,7 @@ import { CourseCard } from "@/shared/ui/course-card";
 import { courseAPI } from "@/entities/course/api/courseApi";
 import { Course } from "@/entities/course/model/types";
 import { CourseFilters, buildApiFilters, filterCourses } from "@/entities/course/lib/filters";
+import { useUserTimezone } from "@/shared/hooks/useUserTimezone";
 
 interface CoursesCatalogProps {
   filters?: CourseFilters;
@@ -12,6 +13,7 @@ interface CoursesCatalogProps {
 }
 
 export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCatalogProps) {
+  const { timezone } = useUserTimezone();
   const [courses, setCourses] = useState<Course[]>([]);
   const [coursesCount, setCoursesCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +27,7 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
         setIsLoading(true);
         setError(null);
         
-        const apiFilters = buildApiFilters(filters);
+        const apiFilters = buildApiFilters(filters, timezone);
         
         const result = await courseAPI.getCourses({
           page: 1,
@@ -62,7 +64,7 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
     return () => {
       isCancelled = true;
     };
-  }, [filters]);
+  }, [filters, timezone]);
 
   const handleCourseClick = (course: any) => {
     // Переход на страницу курса

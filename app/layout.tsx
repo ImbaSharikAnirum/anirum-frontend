@@ -11,6 +11,7 @@ import { MobileNav } from "@/widgets/layout/mobile-nav"
 import { UserProvider } from "@/entities/user"
 import { ConditionalLayout } from "@/widgets/layout/conditional-layout"
 import { QueryProvider } from "@/shared/providers/query-provider"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -52,6 +53,7 @@ export default async function RootLayout({
             </ConditionalLayout>
           </UserProvider>
         </QueryProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   )

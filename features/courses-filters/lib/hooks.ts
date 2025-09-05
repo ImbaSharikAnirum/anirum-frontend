@@ -51,6 +51,10 @@ export function useCoursesFilters(initialFilters: CourseFilters = {}) {
     updateFilter('priceRange', priceRange)
   }, [updateFilter])
 
+  const setTimeSlot = useCallback((timeSlot: 'morning' | 'afternoon' | 'evening' | undefined) => {
+    updateFilter('timeSlot', timeSlot)
+  }, [updateFilter])
+
   const setCity = useCallback((city: string | undefined) => {
     updateFilter('city', city)
   }, [updateFilter])
@@ -88,6 +92,7 @@ export function useCoursesFilters(initialFilters: CourseFilters = {}) {
     setCourseType,
     setWeekdays,
     setPriceRange,
+    setTimeSlot,
     clearFilters,
     clearFilter,
     updateFilter

@@ -202,7 +202,7 @@ interface FileUploadProps {
 export function FileUpload({ 
   onFilesChange, 
   maxFiles = 10, 
-  minFiles = 0, 
+  minFiles = 5, 
   maxSizeMB = 5 
 }: FileUploadProps) {
   const maxSize = maxSizeMB * 1024 * 1024

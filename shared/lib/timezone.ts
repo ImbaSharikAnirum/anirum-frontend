@@ -5,45 +5,67 @@
 /**
  * Конвертирует время из одной временной зоны в другую
  * @param time - время в формате HH:MM
- * @param fromTimezone - исходная временная зона
+ * @param fromTimezone - исходная временная зона  
  * @param toTimezone - целевая временная зона (по умолчанию Москва)
  * @returns время в целевой временной зоне в формате HH:MM:SS.SSS
  */
 export function convertTimezone(
-  time: string, 
-  fromTimezone: string, 
+  time: string,
+  fromTimezone: string,
   toTimezone: string = 'Europe/Moscow'
 ): string {
-  // Создаем произвольную дату для конвертации (используем сегодня)
+  // Используем сегодняшнюю дату для корректного учета DST
   const today = new Date().toISOString().split('T')[0]
+  const [hours, minutes] = time.split(':').map(Number)
   
-  // Создаем Date объект с исходной временной зоной
-  const sourceDate = new Date(`${today}T${time}:00`)
+  // Создаем дату с временем в исходной зоне используя Temporal API альтернативу
+  // Но пока Temporal не поддерживается везде, используем проверенный подход
   
-  // Получаем offset для исходной и целевой зон
-  const sourceOffset = getTimezoneOffset(fromTimezone, sourceDate)
-  const targetOffset = getTimezoneOffset(toTimezone, sourceDate)
+  // Создаем UTC дату и находим разность зон
+  const utcDate = new Date(`${today}T${time}:00.000Z`)
   
-  // Вычисляем разность в минутах
-  const offsetDiff = targetOffset - sourceOffset
+  // Получаем offset для обеих зон в минутах от UTC
+  const sourceOffset = getTimezoneOffsetMinutes(fromTimezone, utcDate)
+  const targetOffset = getTimezoneOffsetMinutes(toTimezone, utcDate) 
   
-  // Применяем разность
-  const convertedDate = new Date(sourceDate.getTime() + (offsetDiff * 60000))
+  // Вычисляем правильное UTC время исходя из локального времени источника
+  const sourceUtc = new Date(utcDate.getTime() - sourceOffset * 60000)
   
-  // Возвращаем время в формате HH:MM:SS.SSS
-  return convertedDate.toTimeString().split(' ')[0] + '.000'
+  // Конвертируем в целевую зону
+  const targetUtc = new Date(sourceUtc.getTime() + targetOffset * 60000)
+  
+  // Возвращаем в нужном формате
+  const targetTime = targetUtc.toISOString().substr(11, 8)
+  return targetTime + '.000'
 }
 
 /**
- * Получает offset для временной зоны в минутах
+ * Получает offset временной зоны относительно UTC в минутах
+ * Положительные значения = восточнее UTC, отрицательные = западнее
  */
-function getTimezoneOffset(timezone: string, date: Date): number {
-  // Создаем Intl.DateTimeFormat для получения offset
-  const utcDate = new Date(date.toLocaleString("en-US", {timeZone: "UTC"}))
-  const localDate = new Date(date.toLocaleString("en-US", {timeZone: timezone}))
+function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
+  // Создаем formatter для получения offset
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    timeZoneName: 'longOffset'
+  })
   
-  return (utcDate.getTime() - localDate.getTime()) / (1000 * 60)
+  const parts = formatter.formatToParts(date)
+  const offsetPart = parts.find(part => part.type === 'timeZoneName')?.value
+  
+  if (!offsetPart) return 0
+  
+  // Парсим offset формата GMT+03:00
+  const match = offsetPart.match(/GMT([+-])(\d{2}):(\d{2})/)
+  if (!match) return 0
+  
+  const sign = match[1] === '+' ? 1 : -1
+  const hours = parseInt(match[2], 10)
+  const minutes = parseInt(match[3], 10)
+  
+  return sign * (hours * 60 + minutes)
 }
+
 
 /**
  * Конвертирует время в московское время (упрощенная версия)
@@ -53,6 +75,35 @@ function getTimezoneOffset(timezone: string, date: Date): number {
  */
 export function convertToMoscow(time: string, fromTimezone: string): string {
   return convertTimezone(time, fromTimezone, 'Europe/Moscow')
+}
+
+/**
+ * Конвертирует временной слот пользователя в московское время для фильтрации
+ * @param timeSlot - временной слот ('morning', 'afternoon', 'evening')
+ * @param userTimezone - часовой пояс пользователя
+ * @returns объект с диапазоном времени в московской зоне
+ */
+export function convertTimeSlotToMoscow(
+  timeSlot: 'morning' | 'afternoon' | 'evening',
+  userTimezone: string
+): { startTime: string, endTime: string } {
+  // Определяем временные диапазоны для слотов в часовом поясе пользователя
+  const timeSlots = {
+    morning: { start: '09:00', end: '12:00' },
+    afternoon: { start: '12:00', end: '17:00' }, 
+    evening: { start: '17:00', end: '21:00' }
+  }
+  
+  const slot = timeSlots[timeSlot]
+  
+  // Конвертируем начальное и конечное время в московскую зону
+  const moscowStart = convertToMoscow(slot.start, userTimezone)
+  const moscowEnd = convertToMoscow(slot.end, userTimezone)
+  
+  return {
+    startTime: moscowStart.substring(0, 8), // Убираем .000
+    endTime: moscowEnd.substring(0, 8)
+  }
 }
 
 

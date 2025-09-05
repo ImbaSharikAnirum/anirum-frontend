@@ -88,11 +88,11 @@ export function CourseImages({ images, courseName }: CourseImagesProps) {
                   
                   {/* Кнопка "Смотреть все" на последнем изображении */}
                   {index === 3 && images.length > 5 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end justify-end p-4">
+                    <div className="absolute bottom-4 right-4">
                       <Button 
                         variant="secondary" 
                         size="sm"
-                        className="bg-white text-black hover:bg-gray-100"
+                        className="bg-white/90 backdrop-blur-sm text-black hover:bg-white shadow-lg"
                         onClick={(e) => {
                           e.stopPropagation()
                           setCurrentIndex(0)
