@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 
 interface MessengerInputProps {
   value?: string
-  onValueChange?: (value: string) => void
+  onValueChange?: (value: string | undefined) => void
   messenger?: 'whatsapp' | 'telegram'
   onMessengerChange?: (messenger: 'whatsapp' | 'telegram') => void
   telegramMode?: 'phone' | 'username'

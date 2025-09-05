@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 interface TelegramUsernameInputProps {
   value?: string
-  onValueChange?: (value: string) => void
+  onValueChange?: (value: string | undefined) => void
   placeholder?: string
   disabled?: boolean
   className?: string
