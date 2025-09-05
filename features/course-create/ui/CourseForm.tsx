@@ -24,6 +24,7 @@ import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useCreateCourse } from '../model/useCreateCourse'
+import { TimezoneFilter } from '@/shared/ui/timezone-filter'
 
 export function CourseForm() {
   const { createCourse, isLoading, error } = useCreateCourse()
@@ -32,7 +33,7 @@ export function CourseForm() {
   const [formData, setFormData] = useState({
     description: '',
     direction: '',
-    teacher: null as number | null,
+    teacher: null as string | null,
     startTime: '',
     endTime: '',
     startDate: undefined as Date | undefined,
@@ -88,30 +89,21 @@ export function CourseForm() {
         <div className="flex-1 space-y-6">
           <div className="flex flex-wrap gap-4">
             <DirectionFilter 
-              defaultValue={formData.direction}
+              value={formData.direction}
               onDirectionChange={(direction) => handleInputChange('direction', direction)}
             />
             <FormatFilter 
-              defaultIsOnline={formData.isOnline}
-              defaultLocation={formData.address}
-              onFormatChange={(isOnline) => handleInputChange('isOnline', isOnline)}
-              onLocationChange={(locationData) => {
-                setFormData(prev => {
-                  const newFormData = {
-                    ...prev,
-                    country: locationData.country,
-                    city: locationData.city,
-                    address: locationData.address,
-                    googlePlaceId: locationData.googlePlaceId || '',
-                    coordinates: locationData.coordinates || null
-                  }
-                  console.log('Обновляем formData с адресными данными:', newFormData)
-                  return newFormData
-                })
+              value={formData.isOnline === undefined ? undefined : (formData.isOnline ? 'online' : 'offline')}
+              cityValue={formData.city}
+              onFormatAndLocationChange={(format, city) => {
+                handleInputChange('isOnline', format === 'online' ? true : format === 'offline' ? false : undefined)
+                if (city) {
+                  handleInputChange('city', city)
+                }
               }}
             />
             <TeacherFilter 
-              defaultValue={formData.teacher}
+              value={formData.teacher}
               onTeacherChange={(teacherId) => handleInputChange('teacher', teacherId)}
             />
           </div>
@@ -244,18 +236,11 @@ export function CourseForm() {
             </div>
             <div className="w-auto">
               <Label className="mb-2 block">Часовой пояс</Label>
-              <Select value={formData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
-                <SelectTrigger className="w-auto">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Europe/Moscow">Москва (GMT+3)</SelectItem>
-                  <SelectItem value="Europe/Kazan">Казань (GMT+3)</SelectItem>
-                  <SelectItem value="Asia/Yakutsk">Якутск (GMT+9)</SelectItem>
-                  <SelectItem value="Asia/Vladivostok">Владивосток (GMT+10)</SelectItem>
-                  <SelectItem value="Asia/Almaty">Алматы (GMT+6)</SelectItem>
-                </SelectContent>
-              </Select>
+              <TimezoneFilter
+                value={formData.timezone}
+                onTimezoneChange={(value) => handleInputChange('timezone', value)}
+                className="w-auto min-w-[200px]"
+              />
             </div>
           </div>
 

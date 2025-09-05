@@ -11,18 +11,25 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function AgeFilter() {
+interface AgeFilterProps {
+  value?: number
+  onAgeChange?: (age: number | undefined) => void
+}
+
+export function AgeFilter({ value, onAgeChange }: AgeFilterProps) {
   const [open, setOpen] = useState(false)
-  const [age, setAge] = useState("")
+  const [localAge, setLocalAge] = useState("")
 
   const handleAgeApply = () => {
-    if (age.trim() && parseInt(age) > 0) {
+    if (localAge.trim() && parseInt(localAge) > 0) {
+      onAgeChange?.(parseInt(localAge))
       setOpen(false)
     }
   }
 
   const handleAgeReset = () => {
-    setAge("")
+    setLocalAge("")
+    onAgeChange?.(undefined)
   }
 
   return (
@@ -34,16 +41,16 @@ export function AgeFilter() {
             variant="outline"
             className="w-full justify-between"
           >
-            {age && parseInt(age) > 0 ? (
+            {value && value > 0 ? (
               <>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  <span>{age} лет</span>
+                  <span>{value} лет</span>
                 </div>
                 <span
                   onClick={(e) => {
                     e.stopPropagation()
-                    setAge("")
+                    handleAgeReset()
                   }}
                   className="text-gray-400 hover:text-gray-600 ml-2 cursor-pointer"
                   role="button"
@@ -52,7 +59,7 @@ export function AgeFilter() {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       e.stopPropagation()
-                      setAge("")
+                      handleAgeReset()
                     }
                   }}
                 >
@@ -77,8 +84,8 @@ export function AgeFilter() {
                 min="1"
                 max="100"
                 placeholder="Введите возраст"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
+                value={localAge}
+                onChange={(e) => setLocalAge(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleAgeApply()
@@ -87,7 +94,7 @@ export function AgeFilter() {
               />
               <Button
                 onClick={handleAgeApply}
-                disabled={!age.trim() || parseInt(age) <= 0}
+                disabled={!localAge.trim() || parseInt(localAge) <= 0}
                 className="w-full"
               >
                 Применить

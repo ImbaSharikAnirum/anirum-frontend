@@ -1,22 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { CourseDirection, CourseFormat } from "@/features/courses-filters"
 
 export function useMobileFilters() {
-  // Основные состояния фильтров
-  const [selectedDirection, setSelectedDirection] = useState<CourseDirection | null>(null)
-  const [selectedFormat, setSelectedFormat] = useState<CourseFormat | null>(null)
+  // Основные состояния фильтров (соответствуют основной системе)
+  const [selectedDirection, setSelectedDirection] = useState<string | null>(null)
+  const [selectedFormat, setSelectedFormat] = useState<'online' | 'offline' | null>(null)
   const [locationQuery, setLocationQuery] = useState("")
   const [age, setAge] = useState("")
-  const [selectedTeacher, setSelectedTeacher] = useState("")
+  const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null)
   
   // Временные состояния для диалога
-  const [tempSelectedDirection, setTempSelectedDirection] = useState<CourseDirection | null>(null)
-  const [tempSelectedFormat, setTempSelectedFormat] = useState<CourseFormat | null>(null)
+  const [tempSelectedDirection, setTempSelectedDirection] = useState<string | null>(null)
+  const [tempSelectedFormat, setTempSelectedFormat] = useState<'online' | 'offline' | null>(null)
   const [tempLocationQuery, setTempLocationQuery] = useState("")
   const [tempAge, setTempAge] = useState("")
-  const [tempSelectedTeacher, setTempSelectedTeacher] = useState("")
+  const [tempSelectedTeacher, setTempSelectedTeacher] = useState<string | null>(null)
   
   // Состояния раскрытия карточек
   const [directionExpanded, setDirectionExpanded] = useState(true)
@@ -34,7 +33,7 @@ export function useMobileFilters() {
   }
 
   // Обработчики для направлений
-  const handleDirectionSelect = (direction: CourseDirection) => {
+  const handleDirectionSelect = (direction: string) => {
     setTempSelectedDirection(direction)
     setDirectionExpanded(false)
     // Закрываем другие секции
@@ -51,9 +50,9 @@ export function useMobileFilters() {
   }
 
   // Обработчики для форматов
-  const handleFormatSelect = (format: CourseFormat) => {
+  const handleFormatSelect = (format: 'online' | 'offline') => {
     setTempSelectedFormat(format)
-    if (format.id === "online") {
+    if (format === "online") {
       setTempLocationQuery("")
       setFormatExpanded(false)
     }
@@ -86,8 +85,8 @@ export function useMobileFilters() {
   }
 
   // Обработчики для преподавателя
-  const handleTeacherSelect = (teacherValue: string) => {
-    setTempSelectedTeacher(teacherValue === tempSelectedTeacher ? "" : teacherValue)
+  const handleTeacherSelect = (teacherId: string | null) => {
+    setTempSelectedTeacher(teacherId === tempSelectedTeacher ? null : teacherId)
     setTeacherExpanded(false)
   }
 
@@ -113,7 +112,7 @@ export function useMobileFilters() {
     setTempSelectedFormat(null)
     setTempLocationQuery("")
     setTempAge("")
-    setTempSelectedTeacher("")
+    setTempSelectedTeacher(null)
     setDirectionExpanded(true)
     setFormatExpanded(false)
     setAgeExpanded(false)

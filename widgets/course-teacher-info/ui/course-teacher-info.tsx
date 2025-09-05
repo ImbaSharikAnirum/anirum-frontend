@@ -4,7 +4,8 @@
  */
 
 import { Card } from '@/components/ui/card'
-import Image from 'next/image'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { User } from 'lucide-react'
 import { Course } from '@/entities/course/model/types'
 
 interface CourseTeacherInfoProps {
@@ -12,7 +13,6 @@ interface CourseTeacherInfoProps {
 }
 
 export function CourseTeacherInfo({ course }: CourseTeacherInfoProps) {
-  console.log(course);
   return (
     <div className="">
       <div className="space-y-4">
@@ -20,14 +20,15 @@ export function CourseTeacherInfo({ course }: CourseTeacherInfoProps) {
         
         <Card className="flex items-center justify-center p-4 w-fit">
           <div className="text-center">
-            <div className="relative w-20 h-20 mx-auto mb-3">
-              <Image
-                src={course.teacher?.avatar ? (typeof course.teacher.avatar === 'string' ? course.teacher.avatar : course.teacher.avatar?.url || '/default-avatar.png') : '/default-avatar.png'}
+            <Avatar className="w-20 h-20 mx-auto mb-3">
+              <AvatarImage
+                src={course.teacher?.avatar ? (typeof course.teacher.avatar === 'string' ? course.teacher.avatar : course.teacher.avatar?.url) : undefined}
                 alt="Преподаватель"
-                fill
-                className="rounded-full object-cover"
               />
-            </div>
+              <AvatarFallback>
+                <User className="h-8 w-8" />
+              </AvatarFallback>
+            </Avatar>
             <p className="font-medium text-gray-900">
               {course.teacher?.name}  {course.teacher?.family}
             </p>

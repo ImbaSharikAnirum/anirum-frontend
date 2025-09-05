@@ -11,28 +11,24 @@ import {
 import { courseDirections, CourseDirection } from "../model/filter-data"
 
 interface DirectionFilterProps {
-  defaultValue?: string
-  onDirectionChange?: (direction: string) => void
+  value?: string
+  onDirectionChange?: (direction: string | undefined) => void
 }
 
-export function DirectionFilter({ defaultValue, onDirectionChange }: DirectionFilterProps) {
+export function DirectionFilter({ value, onDirectionChange }: DirectionFilterProps) {
   const [open, setOpen] = useState(false)
-  const [selectedDirection, setSelectedDirection] = useState<CourseDirection | null>(() => {
-    if (defaultValue) {
-      return courseDirections.find(d => d.id === defaultValue) || null
-    }
-    return null
-  })
+  
+  const selectedDirection = value 
+    ? courseDirections.find(d => d.id === value) || null 
+    : null
 
   const handleDirectionSelect = (direction: CourseDirection) => {
-    setSelectedDirection(direction)
     setOpen(false)
     onDirectionChange?.(direction.id)
   }
 
   const handleClearDirection = () => {
-    setSelectedDirection(null)
-    onDirectionChange?.('')
+    onDirectionChange?.(undefined)
   }
 
   return (

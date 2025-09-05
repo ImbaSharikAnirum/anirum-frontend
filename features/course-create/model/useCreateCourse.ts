@@ -21,7 +21,6 @@ export function useCreateCourse() {
 
     try {
       const result = await courseAPI.createCourse(formData, selectedDays, token, imageFiles)
-      console.log('Курс создан успешно:', result)
       return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'

@@ -6,6 +6,8 @@ export interface Course {
   status?: 'pending_approval' | 'approved'
   startTime: string
   endTime: string
+  normalizedStartTime?: string // Время в московской зоне для фильтрации
+  normalizedEndTime?: string   // Время в московской зоне для фильтрации  
   startDate: string
   endDate: string
   timezone: string
@@ -81,7 +83,7 @@ export interface User {
 export interface CreateCourseData {
   description: string
   direction: string
-  teacher: number | null
+  teacher: string | null
   startTime: string
   endTime: string
   startDate: Date | undefined

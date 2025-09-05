@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Filter, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,17 +18,37 @@ import { Input } from "@/components/ui/input"
 import { WeekDaysSelector } from "@/shared/ui/week-days-selector"
 import { PriceSliderWithHistogram } from "@/shared/ui/price-slider-with-histogram"
 import { TimeSlotsSelector } from "@/shared/ui/time-slots-selector"
+import { CourseFilters } from "@/entities/course/lib/filters"
 
-
-
+interface AdvancedFilters {
+  days: string[]
+  price: number[]
+  timeSlot: string
+}
 
 interface AdvancedFilterProps {
   variant?: 'default' | 'icon-only'
   mobile?: boolean
+  // Основные фильтры от родительского компонента
+  baseFilters?: CourseFilters
+  // Общее количество курсов с базовыми фильтрами (уже загружено)
+  baseCourseCount?: number
+  // Callback для получения count с расширенными фильтрами
+  onCountCourses?: (baseFilters: CourseFilters, advancedFilters: AdvancedFilters) => Promise<number>
+  // Callback для применения расширенных фильтров
+  onApplyAdvancedFilters?: (filters: AdvancedFilters) => void
 }
 
-export function AdvancedFilter({ variant = 'default', mobile = false }: AdvancedFilterProps = {}) {
+export function AdvancedFilter({ 
+  variant = 'default', 
+  mobile = false, 
+  baseFilters = {},
+  baseCourseCount = 0,
+  onCountCourses,
+  onApplyAdvancedFilters 
+}: AdvancedFilterProps) {
   const [open, setOpen] = useState(false)
+  const [coursesCount, setCoursesCount] = useState<number>(0)
   
   // Применённые фильтры (постоянные)
   const [appliedFilters, setAppliedFilters] = useState({
@@ -42,54 +62,93 @@ export function AdvancedFilter({ variant = 'default', mobile = false }: Advanced
   const [tempPriceRange, setTempPriceRange] = useState([0, 10000])
   const [tempSelectedTimeSlot, setTempSelectedTimeSlot] = useState("")
 
+  // Функция подсчета курсов с учетом всех фильтров
+  const updateCoursesCount = useCallback(async (days: string[], price: number[], timeSlot: string) => {
+    // Если нет расширенных фильтров, используем базовый count
+    const hasCustomPrice = !(price[0] === 0 && price[1] === 10000)
+    const hasAdvancedFilters = days.length > 0 || hasCustomPrice || timeSlot
+    
+    if (!hasAdvancedFilters) {
+      setCoursesCount(baseCourseCount)
+      return
+    }
 
+    // Если есть callback для подсчета - используем его
+    if (onCountCourses) {
+      const advancedFilters: AdvancedFilters = { days, price, timeSlot }
+      const count = await onCountCourses(baseFilters, advancedFilters)
+      setCoursesCount(count)
+    } else {
+      // Fallback - эстимация на основе базового count
+      let count = baseCourseCount || 0
+      if (count > 0) {
+        if (days.length > 0) count = Math.floor(count * 0.7) // Фильтр по дням недели
+        if (price[0] > 0 || price[1] < 10000) count = Math.floor(count * 0.8) // Ценовой фильтр
+        if (timeSlot) count = Math.floor(count * 0.75) // Временной фильтр
+        setCoursesCount(Math.max(1, count))
+      } else {
+        // Если нет базового count, показываем 0
+        setCoursesCount(0)
+      }
+    }
+  }, [baseFilters, baseCourseCount, onCountCourses])
 
-  // Инициализация временных состояний при открытии диалога
+  // Пересчитываем курсы при изменении временных фильтров с debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      updateCoursesCount(tempSelectedDays, tempPriceRange, tempSelectedTimeSlot)
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [tempSelectedDays, tempPriceRange, tempSelectedTimeSlot, updateCoursesCount])
+
+  // Инициализация при открытии диалога
   const handleDialogOpen = (isOpen: boolean) => {
     if (isOpen) {
       setTempSelectedDays(appliedFilters.days)
       setTempPriceRange(appliedFilters.price)
       setTempSelectedTimeSlot(appliedFilters.timeSlot)
+      // Сразу пересчитываем количество для текущих фильтров
+      updateCoursesCount(appliedFilters.days, appliedFilters.price, appliedFilters.timeSlot)
     }
     setOpen(isOpen)
   }
 
-  // Функция подсчета курсов с учетом всех фильтров
-  const countCoursesWithFilters = (days: string[], price: number[], timeSlot: string) => {
-    // Здесь будет логика подсчета курсов с учетом всех фильтров
-    // Пока используем мок-данные
-    let count = 147 // базовое количество курсов
-    
-    if (days.length > 0) count = Math.floor(count * 0.7) // уменьшаем на 30% за дни
-    if (price[0] > 0 || price[1] < 10000) count = Math.floor(count * 0.8) // уменьшаем на 20% за цену
-    if (timeSlot) count = Math.floor(count * 0.75) // уменьшаем на 25% за время
-    
-    return Math.max(1, count) // минимум 1 курс
-  }
-
   const handleApplyFilters = () => {
-    setAppliedFilters({
+    const newAdvancedFilters: AdvancedFilters = {
       days: tempSelectedDays,
       price: tempPriceRange,
       timeSlot: tempSelectedTimeSlot,
-    })
+    }
+    
+    setAppliedFilters(newAdvancedFilters)
+    
+    // Уведомляем родительский компонент о применении фильтров
+    onApplyAdvancedFilters?.(newAdvancedFilters)
+    
     setOpen(false)
   }
 
   const handleResetFilters = () => {
-    setTempSelectedDays([])
-    setTempPriceRange([0, 10000])
-    setTempSelectedTimeSlot("")
-    setAppliedFilters({
+    const resetFilters: AdvancedFilters = {
       days: [],
       price: [0, 10000],
       timeSlot: "",
-    })
+    }
+    
+    setTempSelectedDays([])
+    setTempPriceRange([0, 10000])
+    setTempSelectedTimeSlot("")
+    setAppliedFilters(resetFilters)
+    
+    // Применяем сброс фильтров и обновляем каталог курсов
+    onApplyAdvancedFilters?.(resetFilters)
   }
 
-  const hasActiveFilters = appliedFilters.days.length > 0 || 
-    appliedFilters.price[0] > 0 || appliedFilters.price[1] < 10000 ||
-    appliedFilters.timeSlot
+  // UI кнопки должен показывать текущие временные изменения, а не только примененные
+  const hasActiveFilters = tempSelectedDays.length > 0 || 
+    !(tempPriceRange[0] === 0 && tempPriceRange[1] === 10000) ||
+    tempSelectedTimeSlot
 
   return (
     <div>
@@ -108,9 +167,9 @@ export function AdvancedFilter({ variant = 'default', mobile = false }: Advanced
                   <Filter className="h-4 w-4" />
                   <span>Дополнительно ({
                     [
-                      appliedFilters.days.length > 0 && appliedFilters.days.length,
-                      (appliedFilters.price[0] > 0 || appliedFilters.price[1] < 10000) && "цена",
-                      appliedFilters.timeSlot && "время"
+                      tempSelectedDays.length > 0 && "дни",
+                      !(tempPriceRange[0] === 0 && tempPriceRange[1] === 10000) && "цена",
+                      tempSelectedTimeSlot && "время"
                     ].filter(Boolean).length
                   } активно)</span>
                 </div>
@@ -182,7 +241,7 @@ export function AdvancedFilter({ variant = 'default', mobile = false }: Advanced
                 Сбросить
               </Button>
               <Button className="flex-1" onClick={handleApplyFilters}>
-                Показать {countCoursesWithFilters(tempSelectedDays, tempPriceRange, tempSelectedTimeSlot)} курсов
+                Показать {coursesCount} курсов
               </Button>
             </div>
           </DialogFooter>

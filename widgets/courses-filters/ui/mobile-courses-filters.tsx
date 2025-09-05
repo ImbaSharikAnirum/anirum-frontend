@@ -20,9 +20,40 @@ import {
   MobileTeacherSelector,
   useMobileFilters
 } from "@/features/mobile-courses-filters"
+import { useCoursesFilters } from "@/features/courses-filters"
+
+// Маппинг направлений для отображения
+const directionDisplayNames: Record<string, string> = {
+  "sketching": "Скетчинг",
+  "drawing2d": "2D рисование", 
+  "modeling3d": "3D моделирование",
+  "animation": "Анимация"
+}
+
+function getDirectionDisplayName(directionId: string): string {
+  return directionDisplayNames[directionId] || directionId
+}
 
 
-export function MobileCoursesFilters() {
+interface MobileCoursesFiltersProps {
+  filters: any
+  coursesCount?: number
+  setDirection: (direction: string | undefined) => void
+  setFormatAndLocation: (format: 'online' | 'offline' | undefined, city?: string) => void
+  setAge: (age: number | undefined) => void
+  setTeacher: (teacherId: string | null) => void
+  clearFilters: () => void
+}
+
+export function MobileCoursesFilters({
+  filters,
+  coursesCount,
+  setDirection,
+  setFormatAndLocation,
+  setAge,
+  setTeacher,
+  clearFilters
+}: MobileCoursesFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   
   const {
@@ -50,21 +81,53 @@ export function MobileCoursesFilters() {
     toggleAgeExpanded,
     handleTeacherSelect,
     toggleTeacherExpanded,
-    applyFilters,
-    resetFilters,
+    applyFilters: applyMobileFilters,
+    resetFilters: resetMobileFilters,
   } = useMobileFilters()
 
   // Инициализация временных состояний при открытии диалога
   const handleDialogOpen = (open: boolean) => {
     if (open) {
       initializeTempStates()
+      // Дополнительно синхронизируем с основными фильтрами
+      // TODO: Можно добавить логику синхронизации основных фильтров с мобильными состояниями
     }
     setFiltersOpen(open)
   }
 
   const handleApplyFilters = () => {
-    applyFilters()
+    // Применяем фильтры из мобильного диалога к основной системе
+    
+    // Всегда обновляем направление (даже если null)
+    setDirection(tempSelectedDirection || undefined)
+    
+    // Всегда обновляем формат и локацию
+    if (tempSelectedFormat) {
+      setFormatAndLocation(tempSelectedFormat, tempLocationQuery || undefined)
+    } else {
+      setFormatAndLocation(undefined, undefined)
+    }
+    
+    // Всегда обновляем возраст
+    if (tempAge && parseInt(tempAge) > 0) {
+      setAge(parseInt(tempAge))
+    } else {
+      setAge(undefined)
+    }
+    
+    // Всегда обновляем преподавателя  
+    setTeacher(tempSelectedTeacher)
+    
+    // Применяем к локальным состояниям мобильного компонента
+    applyMobileFilters()
     setFiltersOpen(false)
+  }
+
+  const handleResetFilters = () => {
+    // Сбрасываем основные фильтры
+    clearFilters()
+    // Сбрасываем мобильные временные состояния
+    resetMobileFilters()
   }
 
   return (
@@ -76,15 +139,21 @@ export function MobileCoursesFilters() {
             <Filter className="h-4 w-4 mr-2" />
             <div className="flex flex-col items-start text-sm">
               <div className="flex items-center gap-1">
-                <span>{selectedDirection ? selectedDirection.name : "Чему обучиться?"}</span>
+                <span>{
+                  filters.direction 
+                    ? getDirectionDisplayName(filters.direction)
+                    : selectedDirection 
+                      ? getDirectionDisplayName(selectedDirection)
+                      : "Чему обучиться?"
+                }</span>
               </div>
               <div className="flex items-center gap-1 text-xs text-gray-600">
                 <span>•</span>
                 <span>
-                  {selectedFormat ? selectedFormat.name : "Формат"}
+                  {filters.format ? (filters.format === 'online' ? 'Онлайн' : 'Оффлайн') : (selectedFormat === 'online' ? 'Онлайн' : selectedFormat === 'offline' ? 'Оффлайн' : "Формат")}
                 </span>
                 <span>•</span>
-                <span>{age && parseInt(age) > 0 ? `${age} лет` : "Возраст"}</span>
+                <span>{filters.age ? `${filters.age} лет` : (age && parseInt(age) > 0 ? `${age} лет` : "Возраст")}</span>
               </div>
             </div>
           </Button>
@@ -104,7 +173,7 @@ export function MobileCoursesFilters() {
               <div className="space-y-6">
                 {/* Направление */}
                 <MobileDirectionSelector
-                  selectedDirection={selectedDirection}
+                  selectedDirection={filters.direction || null}
                   tempSelectedDirection={tempSelectedDirection}
                   expanded={directionExpanded}
                   onDirectionSelect={handleDirectionSelect}
@@ -113,9 +182,9 @@ export function MobileCoursesFilters() {
 
                 {/* Формат */}
                 <MobileFormatSelector
-                  selectedFormat={selectedFormat}
+                  selectedFormat={filters.format || null}
                   tempSelectedFormat={tempSelectedFormat}
-                  locationQuery={""}
+                  locationQuery={filters.city || ""}
                   tempLocationQuery={tempLocationQuery}
                   expanded={formatExpanded}
                   onFormatSelect={handleFormatSelect}
@@ -126,7 +195,7 @@ export function MobileCoursesFilters() {
 
                 {/* Возраст */}
                 <MobileAgeSelector
-                  age={age}
+                  age={filters.age ? filters.age.toString() : ""}
                   tempAge={tempAge}
                   expanded={ageExpanded}
                   onAgeChange={setTempAge}
@@ -136,7 +205,7 @@ export function MobileCoursesFilters() {
 
                 {/* Преподаватель */}
                 <MobileTeacherSelector
-                  selectedTeacher={""}
+                  selectedTeacher={filters.teacherId || null}
                   tempSelectedTeacher={tempSelectedTeacher}
                   expanded={teacherExpanded}
                   onTeacherSelect={handleTeacherSelect}
@@ -150,7 +219,7 @@ export function MobileCoursesFilters() {
             {/* Футер */}
             <DialogFooter className="flex-shrink-0 p-4 border-t">
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="flex-1" onClick={resetFilters}>
+                <Button variant="outline" className="flex-1" onClick={handleResetFilters}>
                   Сбросить
                 </Button>
                 <Button className="flex-1" onClick={handleApplyFilters}>
@@ -163,7 +232,12 @@ export function MobileCoursesFilters() {
       </Dialog> 
 
       {/* Дополнительные фильтры */}
-      <AdvancedFilter variant="icon-only" mobile={true} />
+      <AdvancedFilter 
+        variant="icon-only" 
+        mobile={true}
+        baseFilters={filters}
+        baseCourseCount={coursesCount}
+      />
     </div>
   )
 }

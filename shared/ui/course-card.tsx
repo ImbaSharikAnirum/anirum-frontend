@@ -110,7 +110,31 @@ export function CourseCard({ course, className, onClick }: CourseCardProps) {
     return `${course.city}`
   }
 
+  const getAgeRangeText = () => {
+    const startAge = course.startAge
+    const endAge = course.endAge
+    
+    if (!startAge && !endAge) {
+      return null // Нет ограничений по возрасту
+    }
+    
+    if (startAge && endAge) {
+      return `${startAge}-${endAge} лет`
+    }
+    
+    if (startAge && !endAge) {
+      return `от ${startAge} лет`
+    }
+    
+    if (!startAge && endAge) {
+      return `до ${endAge} лет`
+    }
+    
+    return null
+  }
+
   const formattedWeekdays = formatWeekdays(course.weekdays)
+  const ageRangeText = getAgeRangeText()
 
   return (
     <>
@@ -200,6 +224,9 @@ export function CourseCard({ course, className, onClick }: CourseCardProps) {
             })()}
           </div>
           <div>{formattedWeekdays}</div>
+          {ageRangeText && (
+            <div>{ageRangeText}</div>
+          )}
         </div>
 
     

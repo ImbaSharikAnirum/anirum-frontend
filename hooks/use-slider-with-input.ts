@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useState, useEffect } from "react"
 
 type UseSliderWithInputProps = {
   minValue?: number
@@ -19,6 +19,18 @@ export function useSliderWithInput({
   const [inputValues, setInputValues] = useState(
     initialValue.map((v) => v.toString())
   )
+
+  // Синхронизация с внешними изменениями initialValue
+  useEffect(() => {
+    // Проверяем, действительно ли значения изменились, чтобы избежать лишних обновлений
+    const valuesChanged = sliderValue.length !== initialValue.length || 
+      sliderValue.some((value, index) => value !== initialValue[index])
+    
+    if (valuesChanged) {
+      setSliderValue(initialValue)
+      setInputValues(initialValue.map((v) => v.toString()))
+    }
+  }, [initialValue, sliderValue])
 
   const showReset =
     sliderValue.length === defaultValue.length &&

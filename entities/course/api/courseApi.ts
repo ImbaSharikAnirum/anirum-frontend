@@ -1,5 +1,6 @@
 import { BaseAPI } from '@/shared/api/base'
 import { Course, CreateCourseData } from '../model/types'
+import { convertToMoscow } from '@/shared/lib/timezone'
 
 interface StrapiResponse<T> {
   data: T[]
@@ -18,6 +19,12 @@ interface StrapiSingleResponse<T> {
   meta: {}
 }
 
+interface PriceStats {
+  min: number
+  max: number
+  histogram: { priceRange: [number, number], count: number }[]
+}
+
 export class CourseAPI extends BaseAPI {
   /**
    * Получение списка курсов с фильтрацией и пагинацией
@@ -28,6 +35,7 @@ export class CourseAPI extends BaseAPI {
     sort?: string[]
     filters?: Record<string, any>
     populate?: string[]
+    withCount?: boolean
   }): Promise<{ courses: Course[], meta: any }> {
     const searchParams = new URLSearchParams()
     
@@ -46,19 +54,47 @@ export class CourseAPI extends BaseAPI {
     if (params?.filters) {
       Object.entries(params.filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          searchParams.append(`filters[${key}][$eq]`, value.toString())
+          // Специальная обработка для сложных фильтров
+          if (typeof value === 'object') {
+            Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+              if (typeof nestedValue === 'object' && nestedValue) {
+                // Для сложных фильтров типа teacher: { documentId: { $eq: 'value' } }
+                Object.entries(nestedValue).forEach(([operator, operatorValue]) => {
+                  if (operatorValue != null) {
+                    searchParams.append(`filters[${key}][${nestedKey}][${operator}]`, String(operatorValue))
+                  }
+                })
+              } else if (nestedValue != null) {
+                // Для простых операторов типа pricePerLesson: { $gte: 200, $lte: 10000 }
+                searchParams.append(`filters[${key}][${nestedKey}]`, String(nestedValue))
+              }
+            })
+          } else {
+            // Для простых фильтров
+            const stringValue = typeof value === 'boolean' ? value.toString() : value.toString()
+            searchParams.append(`filters[${key}][$eq]`, stringValue)
+          }
         }
       })
     }
     
     // Популяция связанных данных (изображения, преподаватель)
-    const populate = params?.populate || ['images', 'teacher']
+    const populate = params?.populate || [
+      'images',
+      'teacher.avatar'
+    ]
     populate.forEach((field, index) => {
       searchParams.append(`populate[${index}]`, field)
     })
 
+    // Включить count если запрошено
+    if (params?.withCount) {
+      searchParams.append('withCount', 'true')
+    }
+
     const queryString = searchParams.toString()
-    const endpoint = `/courses?populate[0]=images&populate[1]=teacher.avatar`
+    const endpoint = `/courses?${queryString}`
+    
     
     const response = await this.request<StrapiResponse<Course>>(endpoint)
     
@@ -74,13 +110,19 @@ export class CourseAPI extends BaseAPI {
   async getCourse(documentId: string, populate?: string[]): Promise<Course> {
     const searchParams = new URLSearchParams()
     
-    const defaultPopulate = populate || ['images', 'teacher.avatar']
+    const defaultPopulate = populate || [
+      'images', 
+      'teacher.avatar'
+    ]
+    
+    
     defaultPopulate.forEach((field, index) => {
       searchParams.append(`populate[${index}]`, field)
     })
 
     const queryString = searchParams.toString()
-    const endpoint = `/courses/${documentId}?populate[0]=images&populate[1]=teacher.avatar`
+    const endpoint = `/courses/${documentId}?${queryString}`
+    
     
     const response = await this.request<StrapiSingleResponse<Course>>(endpoint)
     return response.data
@@ -121,7 +163,17 @@ export class CourseAPI extends BaseAPI {
       imageIds = await this.uploadImages(imageFiles, token)
     }
 
-  // Шаг 2: Создать курс с привязанными изображениями
+  // Шаг 2: Вычислить нормализованное время в московской зоне
+  const normalizedStartTime = formData.startTime && formData.timezone 
+    ? convertToMoscow(formData.startTime, formData.timezone)
+    : null
+  const normalizedEndTime = formData.endTime && formData.timezone
+    ? convertToMoscow(formData.endTime, formData.timezone) 
+    : null
+
+
+
+  // Шаг 3: Создать курс с привязанными изображениями
   const courseData = {
     data: {
       description: formData.description,
@@ -129,6 +181,8 @@ export class CourseAPI extends BaseAPI {
       teacher: formData.teacher,
       startTime: formData.startTime ? `${formData.startTime}:00.000` : null,
       endTime: formData.endTime ? `${formData.endTime}:00.000` : null,
+      normalizedStartTime,
+      normalizedEndTime,
       startDate: formData.startDate ? formData.startDate.toISOString().split('T')[0] : null,
       endDate: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
       timezone: formData.timezone,
@@ -161,6 +215,63 @@ export class CourseAPI extends BaseAPI {
       headers: this.getAuthHeaders(token),
       body: JSON.stringify(courseData)
     }).then(result => result.data)
+  }
+
+  /**
+   * Получение статистики цен для построения гистограммы
+   */
+  async getPriceStats(filters?: Record<string, any>): Promise<PriceStats> {
+    const searchParams = new URLSearchParams()
+    
+    // Добавляем фильтры
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach((v, index) => {
+            searchParams.append(`filters[${key}][${index}]`, v.toString())
+          })
+        } else if (typeof value === 'object' && value !== null) {
+          Object.entries(value).forEach(([op, opValue]) => {
+            searchParams.append(`filters[${key}][${op}]`, opValue.toString())
+          })
+        } else {
+          searchParams.append(`filters[${key}]`, value.toString())
+        }
+      })
+    }
+
+    // Запрос всех курсов для построения статистики
+    searchParams.append('pagination[pageSize]', '100')
+    
+    const response = await this.request<StrapiResponse<Course>>(`/courses?${searchParams.toString()}`)
+    
+    const prices = response.data.map(course => course.pricePerLesson).filter(price => price != null && price > 0)
+    
+    if (prices.length === 0) {
+      return {
+        min: 0,
+        max: 10000,
+        histogram: []
+      }
+    }
+    
+    const min = Math.min(...prices)
+    const max = Math.max(...prices)
+    const tickCount = 30
+    const step = (max - min) / tickCount || 1 // Избегаем деления на ноль
+    
+    const histogram = Array(tickCount).fill(0).map((_, index) => {
+      const rangeMin = min + index * step
+      const rangeMax = min + (index + 1) * step
+      const count = prices.filter(price => price >= rangeMin && price < rangeMax).length
+      
+      return {
+        priceRange: [rangeMin, rangeMax] as [number, number],
+        count
+      }
+    })
+    
+    return { min, max, histogram }
   }
 }
 

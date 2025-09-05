@@ -26,7 +26,7 @@ export default function CoursePage() {
       try {
         const result = await courseAPI.getCourse(courseId, [
           "images",
-          "teacher",
+          "teacher.avatar",
         ]);
         setCourse(result);
       } catch (err) {

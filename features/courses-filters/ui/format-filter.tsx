@@ -13,16 +13,9 @@ import {
 import { useGooglePlaces } from "@/shared/hooks/use-google-places"
 
 interface FormatFilterProps {
-  onFormatChange?: (isOnline: boolean) => void
-  onLocationChange?: (locationData: {
-    country: string
-    city: string
-    address: string
-    googlePlaceId?: string
-    coordinates?: { lat: number; lng: number }
-  }) => void
-  defaultIsOnline?: boolean | undefined
-  defaultLocation?: string
+  value?: 'online' | 'offline'
+  cityValue?: string
+  onFormatAndLocationChange?: (format: 'online' | 'offline' | undefined, city?: string) => void
 }
 
 // Форматы курсов
@@ -42,17 +35,13 @@ const formats = [
 ]
 
 
-export function FormatFilter({ onFormatChange, onLocationChange, defaultIsOnline, defaultLocation }: FormatFilterProps = {}) {
+export function FormatFilter({ value, cityValue, onFormatAndLocationChange }: FormatFilterProps) {
   const [open, setOpen] = useState(false)
-  const [selectedFormat, setSelectedFormat] = useState<typeof formats[0] | null>(() => {
-    // Инициализируем на основе defaultIsOnline
-    if (defaultIsOnline === true) return formats.find(f => f.id === "online") || null
-    if (defaultIsOnline === false) return formats.find(f => f.id === "offline") || null
-    return null
-  })
-  const [locationQuery, setLocationQuery] = useState(defaultLocation || "")
-  const [shortLocationName, setShortLocationName] = useState("") // Короткое название для UI
+  const [locationQuery, setLocationQuery] = useState("")
+  const [shortLocationName, setShortLocationName] = useState("") 
   const { predictions, isLoading, error, searchPlaces, clearPredictions, getPlaceDetails } = useGooglePlaces()
+
+  const selectedFormat = value ? formats.find(f => f.id === value) || null : null
 
   // Функция для извлечения короткого названия (город)
   const getShortLocationName = (fullAddress: string) => {
@@ -66,23 +55,13 @@ export function FormatFilter({ onFormatChange, onLocationChange, defaultIsOnline
     return parts.slice(0, 2).join(', ')
   }
 
-  // Синхронизация с пропсами
+  // Синхронизация с cityValue для отображения
   useEffect(() => {
-    if (defaultIsOnline === true && selectedFormat?.id !== "online") {
-      setSelectedFormat(formats.find(f => f.id === "online") || null)
-    } else if (defaultIsOnline === false && selectedFormat?.id !== "offline") {
-      setSelectedFormat(formats.find(f => f.id === "offline") || null)
-    } else if (defaultIsOnline === undefined && selectedFormat !== null) {
-      setSelectedFormat(null)
+    if (cityValue && value === 'offline' && !shortLocationName) {
+      setShortLocationName(cityValue)
+      setLocationQuery(cityValue)
     }
-  }, [defaultIsOnline])
-
-  // Убираю этот useEffect - он перезаписывает русский locationQuery английским defaultLocation
-  // useEffect(() => {
-  //   if (defaultLocation !== locationQuery) {
-  //     setLocationQuery(defaultLocation || "")
-  //   }
-  // }, [defaultLocation])
+  }, [cityValue, value, shortLocationName])
 
   // Дебаунс для поиска мест
   useEffect(() => {
@@ -99,31 +78,22 @@ export function FormatFilter({ onFormatChange, onLocationChange, defaultIsOnline
   }, [locationQuery, searchPlaces, clearPredictions])
 
   const handleFormatSelect = (format: typeof formats[0]) => {
-    setSelectedFormat(format)
-    const isOnline = format.id === "online"
+    const newFormat = format.id as 'online' | 'offline'
     
-    // Вызываем колбэк изменения формата
-    onFormatChange?.(isOnline)
-    
-    if (isOnline) {
+    if (newFormat === "online") {
       setLocationQuery("")
-      setShortLocationName("") // Очищаем короткое название
+      setShortLocationName("")
       clearPredictions()
       setOpen(false)
-      // Очищаем данные локации для онлайн формата
-      onLocationChange?.({
-        country: '',
-        city: '',
-        address: ''
-      })
+      onFormatAndLocationChange?.(newFormat, undefined)
+    } else {
+      onFormatAndLocationChange?.(newFormat, cityValue)
     }
   }
 
   const handleLocationSelect = async (prediction: any) => {
-    // Оставляем русское название из prediction
     const russianDescription = prediction.description
     setLocationQuery(russianDescription)
-    
     clearPredictions()
     setOpen(false)
 
@@ -131,17 +101,10 @@ export function FormatFilter({ onFormatChange, onLocationChange, defaultIsOnline
     if (prediction.place_id) {
       const details = await getPlaceDetails(prediction.place_id, russianDescription)
       if (details) {
-        // Используем короткое название города от Google для UI
         setShortLocationName(details.displayCity || details.city || getShortLocationName(russianDescription))
         
-        // Передаем английские данные для сохранения
-        onLocationChange?.({
-          country: details.country,
-          city: details.city,
-          address: details.address,
-          googlePlaceId: details.place_id,
-          coordinates: details.coordinates
-        })
+        // Передаем город для фильтрации
+        onFormatAndLocationChange?.('offline', details.city)
       }
     }
   }
@@ -169,15 +132,9 @@ export function FormatFilter({ onFormatChange, onLocationChange, defaultIsOnline
                 <span
                   onClick={(e) => {
                     e.stopPropagation()
-                    setSelectedFormat(null)
                     setLocationQuery("")
-                    setShortLocationName("") // Очищаем короткое название
-                    // Полностью очищаем все данные
-                    onLocationChange?.({
-                      country: '',
-                      city: '',
-                      address: ''
-                    })
+                    setShortLocationName("")
+                    onFormatAndLocationChange?.(undefined, undefined)
                   }}
                   className="text-gray-400 hover:text-gray-600 ml-2 cursor-pointer"
                   role="button"
@@ -186,15 +143,9 @@ export function FormatFilter({ onFormatChange, onLocationChange, defaultIsOnline
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       e.stopPropagation()
-                      setSelectedFormat(null)
                       setLocationQuery("")
-                      setShortLocationName("") // Очищаем короткое название
-                      // Полностью очищаем все данные
-                      onLocationChange?.({
-                        country: '',
-                        city: '',
-                        address: ''
-                      })
+                      setShortLocationName("")
+                      onFormatAndLocationChange?.(undefined, undefined)
                     }
                   }}
                 >

@@ -4,9 +4,16 @@ import { useState, useEffect } from "react";
 import { CourseCard } from "@/shared/ui/course-card";
 import { courseAPI } from "@/entities/course/api/courseApi";
 import { Course } from "@/entities/course/model/types";
+import { CourseFilters, buildApiFilters, filterCourses } from "@/entities/course/lib/filters";
 
-export function CoursesCatalog() {
+interface CoursesCatalogProps {
+  filters?: CourseFilters;
+  onCoursesCountChange?: (count: number) => void;
+}
+
+export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCatalogProps) {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesCount, setCoursesCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -18,15 +25,26 @@ export function CoursesCatalog() {
         setIsLoading(true);
         setError(null);
         
+        const apiFilters = buildApiFilters(filters);
+        
         const result = await courseAPI.getCourses({
           page: 1,
           pageSize: 25,
           sort: ['createdAt:desc'],
-          populate: ['images', 'teacher']
+          populate: ['images', 'teacher.avatar'],
+          filters: apiFilters,
+          withCount: true
         });
 
         if (!isCancelled) {
-          setCourses(result.courses);
+          // Применяем клиентскую фильтрацию для сложных фильтров (например, возраст)
+          const filteredCourses = filterCourses(result.courses, filters);
+          setCourses(filteredCourses);
+          // Устанавливаем общий count (до клиентской фильтрации)
+          const totalCount = result.meta?.pagination?.total || result.courses.length;
+          setCoursesCount(totalCount);
+          // Уведомляем родительский компонент
+          onCoursesCountChange?.(totalCount);
         }
       } catch (err) {
         if (!isCancelled) {
@@ -44,7 +62,7 @@ export function CoursesCatalog() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [filters]);
 
   const handleCourseClick = (course: any) => {
     // Переход на страницу курса

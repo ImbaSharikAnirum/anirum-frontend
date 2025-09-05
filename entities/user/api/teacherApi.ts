@@ -8,7 +8,10 @@ import { User } from '../model/types'
 
 export interface Teacher {
   id: number
-  username: string  
+  documentId?: string  // Strapi 5 documentId
+  username: string
+  name?: string
+  family?: string  
   email: string
   avatar?: {
     url: string
@@ -22,30 +25,12 @@ export class TeacherAPI extends BaseAPI {
    */
   async getTeachers(): Promise<Teacher[]> {
     try {
-      console.log('Пробуем новый teacher API: /teachers')
       const response = await this.request<Teacher[]>('/teachers')
       
-      console.log('Успешно получены преподаватели:', response)
       return Array.isArray(response) ? response : []
     } catch (error: any) {
-      console.error('Ошибка с новым teacher API:', error)
-      
-      // Fallback: если новый API не работает, возвращаем моковые данные для тестирования
-      console.warn('Используем моковые данные преподавателей для тестирования')
-      return [
-        {
-          id: 1,
-          username: 'teacher1',
-          email: 'teacher1@example.com',
-          avatar: null
-        },
-        {
-          id: 2,
-          username: 'teacher2', 
-          email: 'teacher2@example.com',
-          avatar: null
-        }
-      ]
+      console.error('Ошибка при загрузке преподавателей:', error)
+      throw error
     }
   }
 

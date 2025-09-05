@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Check, ChevronsUpDown, User, Loader2 } from "lucide-react"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,37 +21,35 @@ import {
 import { useTeachers } from "@/entities/user"
 
 interface TeacherFilterProps {
-  defaultValue?: number | null
-  onTeacherChange?: (teacherId: number | null) => void
+  value?: string | null
+  onTeacherChange?: (documentId: string | null) => void
 }
 
-export function TeacherFilter({ defaultValue, onTeacherChange }: TeacherFilterProps) {
+export function TeacherFilter({ value, onTeacherChange }: TeacherFilterProps) {
   const [open, setOpen] = useState(false)
-  const [value, setValue] = useState(() => {
-    return defaultValue ? defaultValue.toString() : ""
-  })
+  const stringValue = value || ""
   const { teachers, loading, error } = useTeachers()
 
-  // Преобразуем данные для совместимости с существующим интерфейсом
+  // Используем documentId для Strapi 5
   const teacherOptions = teachers.map(teacher => ({
-    value: teacher.id.toString(),
-    label: teacher.username
+    value: teacher.documentId || teacher.id.toString(),
+    label: `${teacher.name || teacher.username} ${teacher.family || ''}`.trim(),
+    name: teacher.name || teacher.username,
+    family: teacher.family || '',
+    avatar: teacher.avatar
   }))
 
-  const selectedTeacher = teacherOptions.find((teacher) => teacher.value === value)
+  const selectedTeacher = teacherOptions.find((teacher) => teacher.value === stringValue)
 
   const handleSelect = (currentValue: string) => {
-    const newValue = currentValue === value ? "" : currentValue
-    setValue(newValue)
+    const newValue = currentValue === stringValue ? "" : currentValue
     setOpen(false)
     
-    // Вызываем коллбэк с number ID или null
-    const teacherId = newValue ? parseInt(newValue) : null
-    onTeacherChange?.(teacherId)
+    // Вызываем коллбэк с documentId или null
+    onTeacherChange?.(newValue || null)
   }
 
   const handleClear = () => {
-    setValue("")
     onTeacherChange?.(null)
   }
 
@@ -67,7 +66,15 @@ export function TeacherFilter({ defaultValue, onTeacherChange }: TeacherFilterPr
             {selectedTeacher ? (
               <>
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage
+                      src={selectedTeacher.avatar ? (typeof selectedTeacher.avatar === 'string' ? selectedTeacher.avatar : selectedTeacher.avatar?.url) : undefined}
+                      alt="Преподаватель"
+                    />
+                    <AvatarFallback>
+                      <User className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
                   <span className="truncate max-w-32">{selectedTeacher.label}</span>
                 </div>
                 <span
@@ -131,13 +138,26 @@ export function TeacherFilter({ defaultValue, onTeacherChange }: TeacherFilterPr
                         value={teacher.value}
                         onSelect={handleSelect}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value === teacher.value ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {teacher.label}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage
+                                src={teacher.avatar ? (typeof teacher.avatar === 'string' ? teacher.avatar : teacher.avatar?.url) : undefined}
+                                alt="Преподаватель"
+                              />
+                              <AvatarFallback>
+                                <User className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{teacher.name} {teacher.family}</span>
+                          </div>
+                          <Check
+                            className={cn(
+                              "h-4 w-4 ml-2",
+                              stringValue === teacher.value ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </div>
                       </CommandItem>
                     ))}
                   </CommandGroup>
