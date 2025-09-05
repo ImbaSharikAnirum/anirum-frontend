@@ -26,6 +26,11 @@ export function PhoneNumberInput({
 }: PhoneNumberInputProps) {
   const id = useId()
 
+  const handleChange = (phoneValue?: string | undefined) => {
+    // Передаем значение как string
+    onValueChange?.(phoneValue)
+  }
+
   return (
     <div className={cn("", className)}>
       <RPNInput.default
@@ -37,7 +42,7 @@ export function PhoneNumberInput({
         id={id}
         placeholder={placeholder}
         value={value}
-        onChange={onValueChange}
+        onChange={handleChange}
         disabled={disabled}
       />
     </div>
