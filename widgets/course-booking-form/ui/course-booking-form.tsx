@@ -52,8 +52,8 @@ export function CourseBookingForm({ course }: CourseBookingFormProps) {
     if (!selectedMonthPricing) return;
     
     // Создаем URL с параметрами для страницы бронирования
-    // Формат: /courses/[courseId]/booking?month=2024-1&year=2024
-    const bookingUrl = `/courses/${course.documentId}/booking?month=${selectedMonthPricing.month}&year=${selectedMonthPricing.year}`;
+    // Преобразуем 0-based месяц в 1-based для URL
+    const bookingUrl = `/courses/${course.documentId}/booking?month=${selectedMonthPricing.month + 1}&year=${selectedMonthPricing.year}`;
     router.push(bookingUrl);
   };
 
