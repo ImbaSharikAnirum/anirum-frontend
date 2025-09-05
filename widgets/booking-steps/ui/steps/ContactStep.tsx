@@ -43,13 +43,15 @@ export function ContactStep({ onNext, onDataChange, initialData }: ContactStepPr
   }
 
   // Функция для установки значения контакта
-  const setCurrentContactValue = (value: string) => {
+  const setCurrentContactValue = (value: string | undefined) => {
+    const safeValue = value || ''
+    
     if (messenger === 'whatsapp') {
-      setWhatsappPhone(value)
+      setWhatsappPhone(safeValue)
       onDataChange({
         firstName,
         lastName,
-        whatsappPhone: value,
+        whatsappPhone: safeValue,
         telegramPhone,
         telegramUsername,
         messenger,
@@ -57,24 +59,24 @@ export function ContactStep({ onNext, onDataChange, initialData }: ContactStepPr
       })
     } else if (messenger === 'telegram') {
       if (telegramMode === 'phone') {
-        setTelegramPhone(value)
+        setTelegramPhone(safeValue)
         onDataChange({
           firstName,
           lastName,
           whatsappPhone,
-          telegramPhone: value,
+          telegramPhone: safeValue,
           telegramUsername,
           messenger,
           telegramMode
         })
       } else {
-        setTelegramUsername(value)
+        setTelegramUsername(safeValue)
         onDataChange({
           firstName,
           lastName,
           whatsappPhone,
           telegramPhone,
-          telegramUsername: value,
+          telegramUsername: safeValue,
           messenger,
           telegramMode
         })
