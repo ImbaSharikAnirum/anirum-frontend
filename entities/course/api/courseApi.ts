@@ -232,7 +232,9 @@ export class CourseAPI extends BaseAPI {
           })
         } else if (typeof value === 'object' && value !== null) {
           Object.entries(value).forEach(([op, opValue]) => {
-            searchParams.append(`filters[${key}][${op}]`, opValue.toString())
+            if (opValue != null) {
+              searchParams.append(`filters[${key}][${op}]`, String(opValue))
+            }
           })
         } else {
           searchParams.append(`filters[${key}]`, value.toString())
