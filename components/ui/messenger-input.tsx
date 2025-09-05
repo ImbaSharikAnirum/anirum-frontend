@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
+import { TelegramUsernameInput } from "@/components/ui/telegram-username-input"
 import { cn } from "@/lib/utils"
 
 interface MessengerInputProps {
@@ -57,7 +59,7 @@ export function MessengerInput({
     if (messenger === 'whatsapp') {
       return "+7 9123456789"
     } else if (messenger === 'telegram') {
-      return telegramMode === 'phone' ? "+7 9123456789" : "@username"
+      return telegramMode === 'phone' ? "+7 9123456789" : "username"
     }
     return "Введите контакт"
   }
@@ -110,13 +112,29 @@ export function MessengerInput({
       )}
 
       {/* Поле ввода */}
-      <Input
-        value={value}
-        onChange={(e) => onValueChange?.(e.target.value)}
-        placeholder={getPlaceholder()}
-        disabled={disabled}
-        {...props}
-      />
+      {(messenger === 'whatsapp' || (messenger === 'telegram' && telegramMode === 'phone')) ? (
+        <PhoneNumberInput
+          value={value}
+          onValueChange={onValueChange}
+          placeholder={getPlaceholder()}
+          disabled={disabled}
+        />
+      ) : messenger === 'telegram' && telegramMode === 'username' ? (
+        <TelegramUsernameInput
+          value={value}
+          onValueChange={onValueChange}
+          placeholder={getPlaceholder()}
+          disabled={disabled}
+        />
+      ) : (
+        <Input
+          value={value}
+          onChange={(e) => onValueChange?.(e.target.value)}
+          placeholder={getPlaceholder()}
+          disabled={disabled}
+          {...props}
+        />
+      )}
     </div>
   )
 }
