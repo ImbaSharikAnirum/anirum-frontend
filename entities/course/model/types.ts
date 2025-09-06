@@ -1,3 +1,5 @@
+import { Invoice } from '@/entities/invoice'
+
 export interface Course {
   id: number
   documentId: string // Strapi 5 добавляет documentId
@@ -33,6 +35,7 @@ export interface Course {
   coordinates?: { lat: number; lng: number } | null
   images?: (string | Media)[] // Поддержка и строк, и Strapi 5 медиа файлов
   teacher?: User // Связанный преподаватель
+  invoices?: Invoice[] // Связанные счета
   createdAt: string
   updatedAt: string
   publishedAt?: string

@@ -84,15 +84,6 @@ export function SuccessStep({ invoice, courseDirection, onClose }: SuccessStepPr
         >
           Посмотреть другие курсы
         </Button>
-        {onClose && (
-          <Button 
-            onClick={onClose}
-            variant="outline"
-            className="w-full"
-          >
-            Закрыть
-          </Button>
-        )}
       </div>
     </Card>
   )

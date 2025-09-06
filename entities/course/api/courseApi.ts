@@ -114,19 +114,31 @@ export class CourseAPI extends BaseAPI {
   /**
    * Получение курса по documentId (Strapi 5)
    */
-  async getCourse(documentId: string, populate?: string[]): Promise<Course> {
+  async getCourse(
+    documentId: string, 
+    populate?: string[],
+    filters?: {
+      invoicesMonth?: number;
+      invoicesYear?: number;
+    }
+  ): Promise<Course> {
     const searchParams = new URLSearchParams();
 
-    const defaultPopulate = populate || ["images", "teacher.avatar"];
+    const defaultPopulate = populate || ["images", "teacher.avatar", "invoices"];
 
     defaultPopulate.forEach((field, index) => {
       searchParams.append(`populate[${index}]`, field);
     });
 
+    // Пока используем простое populate без фильтров, фильтрацию делаем на клиенте
+
     const queryString = searchParams.toString();
     const endpoint = `/courses/${documentId}?${queryString}`;
 
+    console.log('API запрос:', endpoint);
+
     const response = await this.request<StrapiSingleResponse<Course>>(endpoint);
+    console.log('Ответ API:', response.data);
     return response.data;
   }
 

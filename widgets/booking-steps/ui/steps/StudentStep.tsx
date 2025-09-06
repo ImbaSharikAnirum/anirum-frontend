@@ -122,21 +122,11 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
 
   // Проверяем возраст при изменении данных студента
   useEffect(() => {
-    console.log('Age validation check:', { 
-      studentType, 
-      courseStartAge, 
-      courseEndAge,
-      selectedStudent: selectedStudent?.name,
-      studentBirthDate,
-      userBirthDate: user?.birth_date
-    })
     
     const currentAge = getCurrentStudentAge()
-    console.log('Current student age:', currentAge)
     
     if (currentAge !== null) {
       const validation = validateAge(currentAge)
-      console.log('Validation result:', validation)
       
       if (!validation.isValid && validation.message) {
         toast.error(validation.message)

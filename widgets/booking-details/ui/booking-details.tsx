@@ -30,13 +30,6 @@ export function BookingDetails({
 
   const nextClassDate = firstLesson || new Date(selectedYear, selectedMonth - 1, 1);
 
-  // Отладочная информация для сравнения
-  console.log('=== BookingDetails debugging ===')
-  console.log('Selected month/year:', selectedMonth, selectedYear)
-  console.log('Course start/end:', course.startDate, course.endDate)
-  console.log('Course weekdays:', course.weekdays)  
-  console.log('First lesson (nextClassDate):', nextClassDate)
-  console.log('Display date:', nextClassDate.toLocaleDateString("ru-RU"))
 
   // Рассчитываем длительность от выбранного месяца до окончания курса
   const startMonth = `${getMonthName(selectedMonth - 1)} ${selectedYear}`;
