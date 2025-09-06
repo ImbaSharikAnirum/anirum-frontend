@@ -39,6 +39,21 @@ export interface CreateInvoiceData {
   owner: string // documentId владельца
 }
 
+export interface TinkoffPaymentData {
+  users_permissions_user?: string // documentId пользователя
+  student?: string // documentId студента (если есть)
+  course: string // documentId курса (обязательно)
+  amount: number
+  currency: string
+  invoiceId?: string // documentId созданного invoice
+}
+
+export interface TinkoffPaymentResponse {
+  paymentUrl: string
+  orderId: string
+  message: string
+}
+
 interface StrapiResponse<T> {
   data: T
   meta: {}
@@ -86,6 +101,19 @@ export class InvoiceAPI extends BaseAPI {
     return this.request<{ data: Invoice[] }>('/invoices?populate=course,owner&sort=createdAt:desc', {
       headers: this.getAuthHeaders(token),
     }).then(response => response.data)
+  }
+
+  /**
+   * Создать платеж через Tinkoff
+   */
+  async createTinkoffPayment(data: TinkoffPaymentData): Promise<TinkoffPaymentResponse> {
+    return this.request<TinkoffPaymentResponse>('/invoices/tinkoff/payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
   }
 }
 

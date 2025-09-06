@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Course } from '@/entities/course/model/types'
 import { useUser } from '@/entities/user'
-import { invoiceAPI, type CreateInvoiceData } from '@/entities/invoice'
+import { invoiceAPI, type CreateInvoiceData, type TinkoffPaymentData } from '@/entities/invoice'
 import { studentAPI } from '@/entities/student'
 import { calculateCustomMonthPricing, getMonthLessonDates } from '@/shared/lib/course-pricing'
 import { getDirectionDisplayName } from '@/shared/lib/course-utils'
@@ -153,9 +153,24 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
 
       const invoice = await invoiceAPI.createInvoice(invoiceData, token)
       
-      // Сохраняем созданный инвойс и переходим к успешному этапу
-      setCreatedInvoice(invoice)
-      setCurrentStep('success')
+      // Создаем платеж через Tinkoff и перенаправляем на оплату
+      const paymentData: TinkoffPaymentData = {
+        users_permissions_user: user.documentId || user.id.toString(),
+        student: studentId || undefined,
+        course: course.documentId,
+        amount: monthPricing.totalPrice,
+        currency: 'RUB',
+        invoiceId: invoice.documentId
+      }
+      
+      const paymentResponse = await invoiceAPI.createTinkoffPayment(paymentData)
+      
+      if (paymentResponse.paymentUrl) {
+        // Перенаправляем на страницу оплаты Tinkoff
+        window.location.href = paymentResponse.paymentUrl
+      } else {
+        throw new Error('Не удалось создать ссылку на оплату')
+      }
       
     } catch (error) {
       alert('Ошибка при создании бронирования. Попробуйте еще раз.')
