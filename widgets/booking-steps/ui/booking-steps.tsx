@@ -25,6 +25,7 @@ export function BookingSteps({ course, className }: BookingStepsProps) {
   })
   const [studentData, setStudentData] = useState<StudentData>({
     studentType: null,
+    selectedStudent: null,
     studentFirstName: '',
     studentLastName: '',
     studentBirthDate: undefined
@@ -32,10 +33,31 @@ export function BookingSteps({ course, className }: BookingStepsProps) {
   
   const { user, isAuthenticated } = useUser()
 
-  // Проверяем авторизацию при загрузке
+  // Проверяем авторизацию и заполненность данных при загрузке
   useEffect(() => {
     if (isAuthenticated && user) {
-      setCurrentStep('contact')
+      // Проверяем заполненность контактных данных
+      const hasBasicData = user.name && user.family;
+      const hasMessenger = user.whatsapp_phone || user.telegram_phone || user.telegram_username;
+      
+      if (hasBasicData && hasMessenger) {
+        // Если все данные есть, пропускаем контактный этап
+        setCurrentStep('student');
+        
+        // Заполняем contactData из профиля пользователя
+        setContactData({
+          firstName: user.name || '',
+          lastName: user.family || '',
+          whatsappPhone: user.whatsapp_phone || '',
+          telegramPhone: user.telegram_phone || '',
+          telegramUsername: user.telegram_username || '',
+          messenger: user.whatsapp_phone ? 'whatsapp' : 'telegram',
+          telegramMode: user.telegram_username ? 'username' : 'phone'
+        });
+      } else {
+        // Иначе переходим на контактный этап
+        setCurrentStep('contact');
+      }
     }
   }, [isAuthenticated, user])
 
@@ -61,6 +83,8 @@ export function BookingSteps({ course, className }: BookingStepsProps) {
           onNext={() => setCurrentStep('confirmation')}
           onDataChange={setStudentData}
           initialData={studentData}
+          courseStartAge={course.startAge}
+          courseEndAge={course.endAge}
         />
       )}
       {currentStep === 'confirmation' && (

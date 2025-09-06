@@ -53,7 +53,7 @@ export default async function RootLayout({
             </ConditionalLayout>
           </UserProvider>
         </QueryProvider>
-        <Toaster richColors position="top-right" />
+        <Toaster position="top-right" />
       </body>
     </html>
   )

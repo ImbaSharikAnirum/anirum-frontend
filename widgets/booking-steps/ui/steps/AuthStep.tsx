@@ -149,7 +149,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
 
           <Button 
             type="submit"
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
+            className="w-full"
             disabled={isLoading}
           >
             {isLoading ? 'Входим...' : 'Войти'}
@@ -224,7 +224,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
 
           <Button 
             type="submit"
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
+            className="w-full"
             disabled={isLoading || password !== confirmPassword}
           >
             {isLoading ? 'Создаём аккаунт...' : 'Зарегистрироваться'}

@@ -107,6 +107,7 @@ export function BookingCard({ course, selectedMonth, selectedYear }: BookingCard
               <AvatarImage
                 src={course.teacher?.avatar ? (typeof course.teacher.avatar === 'string' ? course.teacher.avatar : course.teacher.avatar?.url) : undefined}
                 alt="Преподаватель"
+                 className="object-cover"
               />
               <AvatarFallback>
                 <User className="h-5 w-5" />

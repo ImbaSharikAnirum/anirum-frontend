@@ -13,6 +13,7 @@ import {
 import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { TelegramUsernameInput } from "@/components/ui/telegram-username-input"
 import { cn } from "@/lib/utils"
+import { MessageCircle, Send } from "lucide-react"
 
 interface MessengerInputProps {
   value?: string
@@ -30,12 +31,12 @@ const messengers = [
   {
     value: 'whatsapp',
     label: 'WhatsApp',
-    icon: '📱'
+    icon: <MessageCircle className="h-4 w-4" />
   },
   {
     value: 'telegram', 
     label: 'Telegram',
-    icon: '✈️'
+    icon: <Send className="h-4 w-4" />
   }
 ]
 

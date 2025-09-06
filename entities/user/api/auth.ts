@@ -10,7 +10,8 @@ import type {
   LoginCredentials, 
   RegisterCredentials, 
   ForgotPasswordData, 
-  ResetPasswordData 
+  ResetPasswordData,
+  UpdateUserData
 } from '../model/types'
 
 export class UserAuthAPI extends BaseAPI {
@@ -59,6 +60,17 @@ export class UserAuthAPI extends BaseAPI {
   async resetPassword(data: ResetPasswordData): Promise<AuthSession> {
     return this.request<AuthSession>('/auth/reset-password', {
       method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Обновление профиля пользователя
+   */
+  async updateUser(userId: number, data: UpdateUserData, token: string): Promise<User> {
+    return this.request<User>(`/users/${userId}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
       body: JSON.stringify(data),
     })
   }

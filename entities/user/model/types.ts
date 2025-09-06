@@ -13,6 +13,12 @@ export interface User {
   createdAt: string
   updatedAt: string
   role?: UserRole
+  name?: string
+  family?: string
+  whatsapp_phone?: string
+  telegram_username?: string
+  telegram_phone?: string
+  birth_date?: string
 }
 
 export interface UserRole {
@@ -46,4 +52,13 @@ export interface ResetPasswordData {
   code: string
   password: string
   passwordConfirmation: string
+}
+
+export interface UpdateUserData {
+  name?: string
+  family?: string
+  whatsapp_phone?: string
+  telegram_username?: string
+  telegram_phone?: string
+  birth_date?: string
 }

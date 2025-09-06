@@ -24,6 +24,7 @@ export function CourseTeacherInfo({ course }: CourseTeacherInfoProps) {
               <AvatarImage
                 src={course.teacher?.avatar ? (typeof course.teacher.avatar === 'string' ? course.teacher.avatar : course.teacher.avatar?.url) : undefined}
                 alt="Преподаватель"
+                className="object-cover"
               />
               <AvatarFallback>
                 <User className="h-8 w-8" />

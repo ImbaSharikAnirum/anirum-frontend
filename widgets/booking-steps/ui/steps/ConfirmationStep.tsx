@@ -29,11 +29,11 @@ export function ConfirmationStep({ contactData, studentData, onBack, onConfirm }
   }
 
   // Функция для вычисления возраста по дате рождения
-  const calculateAge = (birthDate: Date | undefined) => {
+  const calculateAge = (birthDate: Date | string | undefined) => {
     if (!birthDate) return ''
     
     const today = new Date()
-    const birth = birthDate
+    const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
     
@@ -44,10 +44,16 @@ export function ConfirmationStep({ contactData, studentData, onBack, onConfirm }
     return age.toString()
   }
 
+  // Функция для получения возраста пользователя
+  const getUserAge = () => {
+    if (!user?.birth_date) return ''
+    return calculateAge(user.birth_date)
+  }
+
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-medium mb-4">Подтверждение бронирования</h3>
-      <p className="text-sm text-gray-600 mb-6">
+    <Card className="p-6 gap-2">
+      <h3 className="text-lg font-medium">Подтверждение бронирования</h3>
+      <p className="text-sm text-gray-600 mb-4">
         Проверьте данные и подтвердите бронирование.
       </p>
 
@@ -71,8 +77,26 @@ export function ConfirmationStep({ contactData, studentData, onBack, onConfirm }
           <h4 className="font-medium text-gray-900 mb-2">Ученик</h4>
           <div className="text-sm text-gray-600 space-y-1">
             {studentData.studentType === 'myself' ? (
-              <p>Записываюсь сам/сама</p>
-            ) : (
+              <>
+                <p><span className="font-medium">Имя:</span> {contactData.firstName} {contactData.lastName}</p>
+                {user?.birth_date && (
+                  <>
+                    <p><span className="font-medium">Дата рождения:</span> {format(new Date(user.birth_date), "dd MMMM yyyy", { locale: ru })}</p>
+                    <p><span className="font-medium">Возраст:</span> {getUserAge()} лет</p>
+                  </>
+                )}
+              </>
+            ) : studentData.studentType === 'existing' && studentData.selectedStudent ? (
+              <>
+                <p><span className="font-medium">Имя:</span> {studentData.selectedStudent.name} {studentData.selectedStudent.family}</p>
+                {studentData.selectedStudent.age && (
+                  <>
+                    <p><span className="font-medium">Дата рождения:</span> {format(new Date(studentData.selectedStudent.age), "dd MMMM yyyy", { locale: ru })}</p>
+                    <p><span className="font-medium">Возраст:</span> {calculateAge(studentData.selectedStudent.age)} лет</p>
+                  </>
+                )}
+              </>
+            ) : studentData.studentType === 'new' ? (
               <>
                 <p><span className="font-medium">Имя:</span> {studentData.studentFirstName} {studentData.studentLastName}</p>
                 {studentData.studentBirthDate && (
@@ -82,6 +106,8 @@ export function ConfirmationStep({ contactData, studentData, onBack, onConfirm }
                   </>
                 )}
               </>
+            ) : (
+              <p className="text-gray-400">Студент не выбран</p>
             )}
           </div>
         </div>
@@ -97,7 +123,7 @@ export function ConfirmationStep({ contactData, studentData, onBack, onConfirm }
           Назад
         </Button>
         <Button 
-          className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+          className="flex-1"
           onClick={onConfirm}
         >
           Подтвердить бронирование

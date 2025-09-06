@@ -114,7 +114,7 @@ export function CourseBookingForm({ course }: CourseBookingFormProps) {
 
       {/* Кнопка бронирования */}
       <Button 
-        className="w-full bg-red-600 hover:bg-red-700 text-white"
+        className="w-full "
         onClick={handleBooking}
         disabled={!selectedMonthPricing || !selectedMonthPricing.isAvailable}
       >
