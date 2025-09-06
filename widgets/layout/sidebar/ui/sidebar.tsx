@@ -12,6 +12,7 @@ import {
   useSidebar
 } from "@/components/ui/sidebar"
 import { Home, Users, BarChart3, Search, Settings, DollarSign, BookOpen, MessageSquare, CheckCircle, Plus } from "lucide-react"
+import { useRole } from '@/shared/lib/hooks/useRole'
 
 const navigationItems = [
   { title: "Курсы", url: "/courses", icon: Home },
@@ -35,9 +36,7 @@ const teacherItems = [
 
 export function AppSidebar() {
   const { open } = useSidebar()
-  
-  // Здесь можно будет добавить логику определения роли пользователя
-  const userRole = 'guest' // Пока по умолчанию
+  const { isManager, isTeacher, isAuthenticated } = useRole()
   
   return (
     <Sidebar>
@@ -62,7 +61,8 @@ export function AppSidebar() {
         </SidebarGroup>
         
         {/* Панель менеджера */}
-        <SidebarGroup>
+        {isManager && (
+          <SidebarGroup>
           <SidebarGroupLabel>Менеджер</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -79,9 +79,11 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
         
         {/* Панель преподавателя */}
-        <SidebarGroup>
+        {isTeacher && (
+          <SidebarGroup>
           <SidebarGroupLabel>Преподаватель</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -98,6 +100,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   )

@@ -25,9 +25,14 @@ import { ru } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useCreateCourse } from '../model/useCreateCourse'
 import { TimezoneFilter } from '@/shared/ui/timezone-filter'
+import { IncomeCalculator } from '@/widgets/income-calculator'
+import { useUser } from '@/entities/user'
+import { useRole } from '@/shared/lib/hooks/useRole'
 
 export function CourseForm() {
   const { createCourse, isLoading, error } = useCreateCourse()
+  const { user } = useUser()
+  const { isManager } = useRole()
   const [selectedDays, setSelectedDays] = useState<string[]>(['saturday'])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [formData, setFormData] = useState({
@@ -259,7 +264,7 @@ export function CourseForm() {
             </div>
             {formData.isOnline === false && (
               <div className="w-auto">
-                <Label className="mb-2 block">Цена аренды помещения</Label>
+                <Label className="mb-2 block">Цена аренды за занятие</Label>
                 <Input
                   type="number"
                   min="0"
@@ -287,25 +292,8 @@ export function CourseForm() {
             </div>
           </div>
 
-       
 
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <NumberSelector
-                selectedNumber={formData.minStudents}
-                onNumberChange={(number) => handleInputChange('minStudents', number)}
-                min={1}
-                max={10}
-                label="Минимум студентов"
-              />
-              <NumberSelector
-                selectedNumber={formData.maxStudents}
-                onNumberChange={(number) => handleInputChange('maxStudents', number)}
-                min={1}
-                max={10}
-                label="Максимум студентов"
-              />
-            </div>
             
             <div className="flex gap-4">
               <div className="w-auto">
@@ -377,10 +365,43 @@ export function CourseForm() {
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <NumberSelector
+              selectedNumber={formData.minStudents}
+              onNumberChange={(number) => handleInputChange('minStudents', number)}
+              min={1}
+              max={10}
+              label="Минимум студентов"
+            />
+            <NumberSelector
+              selectedNumber={formData.maxStudents}
+              onNumberChange={(number) => handleInputChange('maxStudents', number)}
+              min={1}
+              max={10}
+              label="Максимум студентов"
+            />
+          </div>
+
           {error && (
             <div className="text-red-600 text-sm">
               {error}
             </div>
+          )}
+
+          {/* Калькулятор доходов */}
+          {formData.pricePerLesson && parseFloat(formData.pricePerLesson) > 0 && selectedDays.length > 0 && (
+            <IncomeCalculator
+              pricePerLesson={parseFloat(formData.pricePerLesson) || 0}
+              minStudents={formData.minStudents}
+              maxStudents={formData.maxStudents}
+              selectedDays={selectedDays}
+              startDate={formData.startDate}
+              endDate={formData.endDate}
+              rentalPrice={parseFloat(formData.rentalPrice) || 0}
+              currency={formData.currency}
+              isOnline={formData.isOnline}
+              showCompanyProfit={isManager}
+            />
           )}
 
           <div className="flex gap-4 pt-4">

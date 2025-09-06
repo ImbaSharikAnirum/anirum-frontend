@@ -144,6 +144,7 @@ export function TeacherFilter({ value, onTeacherChange }: TeacherFilterProps) {
                               <AvatarImage
                                 src={teacher.avatar ? (typeof teacher.avatar === 'string' ? teacher.avatar : teacher.avatar?.url) : undefined}
                                 alt="Преподаватель"
+                                className="object-cover"
                               />
                               <AvatarFallback>
                                 <User className="h-3 w-3" />
