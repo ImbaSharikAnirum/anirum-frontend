@@ -83,7 +83,7 @@ export interface User {
 export interface CreateCourseData {
   description: string
   direction: string
-  teacher: string | null
+  teacher: string | null // documentId пользователя
   startTime: string
   endTime: string
   startDate: Date | undefined

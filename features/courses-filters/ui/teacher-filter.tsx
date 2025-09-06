@@ -27,25 +27,28 @@ interface TeacherFilterProps {
 
 export function TeacherFilter({ value, onTeacherChange }: TeacherFilterProps) {
   const [open, setOpen] = useState(false)
-  const stringValue = value || ""
   const { teachers, loading, error } = useTeachers()
 
-  // Используем documentId для Strapi 5
-  const teacherOptions = teachers.map(teacher => ({
-    value: teacher.documentId || teacher.id.toString(),
+  // Используем строго documentId для Strapi 5 relations
+  const teacherOptions = teachers.filter(teacher => teacher.documentId).map(teacher => ({
+    value: teacher.documentId!,
     label: `${teacher.name || teacher.username} ${teacher.family || ''}`.trim(),
     name: teacher.name || teacher.username,
     family: teacher.family || '',
     avatar: teacher.avatar
   }))
 
-  const selectedTeacher = teacherOptions.find((teacher) => teacher.value === stringValue)
+  const selectedTeacher = teacherOptions.find((teacher) => teacher.value === value)
 
   const handleSelect = (currentValue: string) => {
-    const newValue = currentValue === stringValue ? "" : currentValue
+    const selectedOption = teacherOptions.find(option => option.value.toString() === currentValue)
+    const newValue = selectedOption?.value === value ? null : selectedOption?.value
     setOpen(false)
     
-    // Вызываем коллбэк с documentId или null
+    // Логируем что передаем
+    console.log('TeacherFilter selected:', newValue, 'Type:', typeof newValue)
+    
+    // Вызываем коллбэк с documentId/id или null
     onTeacherChange?.(newValue || null)
   }
 
@@ -135,7 +138,7 @@ export function TeacherFilter({ value, onTeacherChange }: TeacherFilterProps) {
                     {teacherOptions.map((teacher) => (
                       <CommandItem
                         key={teacher.value}
-                        value={teacher.value}
+                        value={teacher.value.toString()}
                         onSelect={handleSelect}
                       >
                         <div className="flex items-center justify-between w-full">
@@ -155,7 +158,7 @@ export function TeacherFilter({ value, onTeacherChange }: TeacherFilterProps) {
                           <Check
                             className={cn(
                               "h-4 w-4 ml-2",
-                              stringValue === teacher.value ? "opacity-100" : "opacity-0"
+                              value === teacher.value ? "opacity-100" : "opacity-0"
                             )}
                           />
                         </div>

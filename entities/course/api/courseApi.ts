@@ -1,28 +1,28 @@
-import { BaseAPI } from '@/shared/api/base'
-import { Course, CreateCourseData } from '../model/types'
-import { convertToMoscow } from '@/shared/lib/timezone'
+import { BaseAPI } from "@/shared/api/base";
+import { Course, CreateCourseData } from "../model/types";
+import { convertToMoscow } from "@/shared/lib/timezone";
 
 interface StrapiResponse<T> {
-  data: T[]
+  data: T[];
   meta: {
     pagination: {
-      page: number
-      pageSize: number
-      pageCount: number
-      total: number
-    }
-  }
+      page: number;
+      pageSize: number;
+      pageCount: number;
+      total: number;
+    };
+  };
 }
 
 interface StrapiSingleResponse<T> {
-  data: T
-  meta: {}
+  data: T;
+  meta: {};
 }
 
 interface PriceStats {
-  min: number
-  max: number
-  histogram: { priceRange: [number, number], count: number }[]
+  min: number;
+  max: number;
+  histogram: { priceRange: [number, number]; count: number }[];
 }
 
 export class CourseAPI extends BaseAPI {
@@ -30,252 +30,271 @@ export class CourseAPI extends BaseAPI {
    * Получение списка курсов с фильтрацией и пагинацией
    */
   async getCourses(params?: {
-    page?: number
-    pageSize?: number
-    sort?: string[]
-    filters?: Record<string, any>
-    populate?: string[]
-    withCount?: boolean
-  }): Promise<{ courses: Course[], meta: any }> {
-    const searchParams = new URLSearchParams()
-    
+    page?: number;
+    pageSize?: number;
+    sort?: string[];
+    filters?: Record<string, any>;
+    populate?: string[];
+    withCount?: boolean;
+  }): Promise<{ courses: Course[]; meta: any }> {
+    const searchParams = new URLSearchParams();
+
     // Пагинация
-    if (params?.page) searchParams.append('pagination[page]', params.page.toString())
-    if (params?.pageSize) searchParams.append('pagination[pageSize]', params.pageSize.toString())
-    
+    if (params?.page)
+      searchParams.append("pagination[page]", params.page.toString());
+    if (params?.pageSize)
+      searchParams.append("pagination[pageSize]", params.pageSize.toString());
+
     // Сортировка
     if (params?.sort) {
       params.sort.forEach((sortField, index) => {
-        searchParams.append(`sort[${index}]`, sortField)
-      })
+        searchParams.append(`sort[${index}]`, sortField);
+      });
     }
-    
+
     // Фильтры
     if (params?.filters) {
       Object.entries(params.filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           // Специальная обработка для сложных фильтров
-          if (typeof value === 'object') {
+          if (typeof value === "object") {
             Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-              if (typeof nestedValue === 'object' && nestedValue) {
+              if (typeof nestedValue === "object" && nestedValue) {
                 // Для сложных фильтров типа teacher: { documentId: { $eq: 'value' } }
-                Object.entries(nestedValue).forEach(([operator, operatorValue]) => {
-                  if (operatorValue != null) {
-                    searchParams.append(`filters[${key}][${nestedKey}][${operator}]`, String(operatorValue))
+                Object.entries(nestedValue).forEach(
+                  ([operator, operatorValue]) => {
+                    if (operatorValue != null) {
+                      searchParams.append(
+                        `filters[${key}][${nestedKey}][${operator}]`,
+                        String(operatorValue)
+                      );
+                    }
                   }
-                })
+                );
               } else if (nestedValue != null) {
                 // Для простых операторов типа pricePerLesson: { $gte: 200, $lte: 10000 }
-                searchParams.append(`filters[${key}][${nestedKey}]`, String(nestedValue))
+                searchParams.append(
+                  `filters[${key}][${nestedKey}]`,
+                  String(nestedValue)
+                );
               }
-            })
+            });
           } else {
             // Для простых фильтров
-            const stringValue = typeof value === 'boolean' ? value.toString() : value.toString()
-            searchParams.append(`filters[${key}][$eq]`, stringValue)
+            const stringValue =
+              typeof value === "boolean" ? value.toString() : value.toString();
+            searchParams.append(`filters[${key}][$eq]`, stringValue);
           }
         }
-      })
+      });
     }
-    
+
     // Популяция связанных данных (изображения, преподаватель)
-    const populate = params?.populate || [
-      'images',
-      'teacher.avatar'
-    ]
+    const populate = params?.populate || ["images", "teacher.avatar"];
     populate.forEach((field, index) => {
-      searchParams.append(`populate[${index}]`, field)
-    })
+      searchParams.append(`populate[${index}]`, field);
+    });
 
     // Включить count если запрошено
     if (params?.withCount) {
-      searchParams.append('withCount', 'true')
+      searchParams.append("withCount", "true");
     }
 
-    const queryString = searchParams.toString()
-    const endpoint = `/courses?${queryString}`
-    
-    
-    const response = await this.request<StrapiResponse<Course>>(endpoint)
-    
+    const queryString = searchParams.toString();
+    const endpoint = `/courses?${queryString}`;
+
+    const response = await this.request<StrapiResponse<Course>>(endpoint);
+
     return {
       courses: response.data,
-      meta: response.meta
-    }
+      meta: response.meta,
+    };
   }
 
   /**
    * Получение курса по documentId (Strapi 5)
    */
   async getCourse(documentId: string, populate?: string[]): Promise<Course> {
-    const searchParams = new URLSearchParams()
-    
-    const defaultPopulate = populate || [
-      'images', 
-      'teacher.avatar'
-    ]
-    
-    
-    defaultPopulate.forEach((field, index) => {
-      searchParams.append(`populate[${index}]`, field)
-    })
+    const searchParams = new URLSearchParams();
 
-    const queryString = searchParams.toString()
-    const endpoint = `/courses/${documentId}?${queryString}`
-    
-    
-    const response = await this.request<StrapiSingleResponse<Course>>(endpoint)
-    return response.data
+    const defaultPopulate = populate || ["images", "teacher.avatar"];
+
+    defaultPopulate.forEach((field, index) => {
+      searchParams.append(`populate[${index}]`, field);
+    });
+
+    const queryString = searchParams.toString();
+    const endpoint = `/courses/${documentId}?${queryString}`;
+
+    const response = await this.request<StrapiSingleResponse<Course>>(endpoint);
+    return response.data;
   }
 
   /**
    * Загрузка изображений в Strapi 5
    */
   async uploadImages(files: File[], token: string): Promise<number[]> {
-    if (files.length === 0) return []
+    if (files.length === 0) return [];
 
-    const form = new FormData()
-    files.forEach(file => {
-      form.append('files', file, file.name)
-    })
+    const form = new FormData();
+    files.forEach((file) => {
+      form.append("files", file, file.name);
+    });
 
     const response = await fetch(`${this.baseURL}/upload`, {
-      method: 'POST',
+      method: "POST",
       headers: this.getAuthHeaders(token),
-      body: form
-    })
+      body: form,
+    });
 
     if (!response.ok) {
-      throw new Error('Ошибка при загрузке изображений')
+      throw new Error("Ошибка при загрузке изображений");
     }
 
-    const uploadedFiles = await response.json()
-    return uploadedFiles.map((file: any) => file.id)
+    const uploadedFiles = await response.json();
+    return uploadedFiles.map((file: any) => file.id);
   }
 
   /**
    * Создание курса
    */
-  async createCourse(formData: CreateCourseData, selectedDays: string[], token: string, imageFiles?: File[]): Promise<Course> {
+  async createCourse(
+    formData: CreateCourseData,
+    selectedDays: string[],
+    token: string,
+    imageFiles?: File[]
+  ): Promise<Course> {
     // Шаг 1: Загрузить изображения (если есть)
-    let imageIds: number[] = []
+    let imageIds: number[] = [];
     if (imageFiles && imageFiles.length > 0) {
-      imageIds = await this.uploadImages(imageFiles, token)
+      imageIds = await this.uploadImages(imageFiles, token);
     }
 
-  // Шаг 2: Вычислить нормализованное время в московской зоне
-  const normalizedStartTime = formData.startTime && formData.timezone 
-    ? convertToMoscow(formData.startTime, formData.timezone)
-    : null
-  const normalizedEndTime = formData.endTime && formData.timezone
-    ? convertToMoscow(formData.endTime, formData.timezone) 
-    : null
+    // Шаг 2: Вычислить нормализованное время в московской зоне
+    const normalizedStartTime =
+      formData.startTime && formData.timezone
+        ? convertToMoscow(formData.startTime, formData.timezone)
+        : null;
+    const normalizedEndTime =
+      formData.endTime && formData.timezone
+        ? convertToMoscow(formData.endTime, formData.timezone)
+        : null;
 
+    // Шаг 3: Создать курс с привязанными изображениями
+    const courseData = {
+      data: {
+        description: formData.description,
+        direction: formData.direction,
+        teacher: formData.teacher ? formData.teacher : null,
+        startTime: formData.startTime ? `${formData.startTime}:00.000` : null,
+        endTime: formData.endTime ? `${formData.endTime}:00.000` : null,
+        normalizedStartTime,
+        normalizedEndTime,
+        startDate: formData.startDate
+          ? formData.startDate.toISOString().split("T")[0]
+          : null,
+        endDate: formData.endDate
+          ? formData.endDate.toISOString().split("T")[0]
+          : null,
+        timezone: formData.timezone,
+        pricePerLesson: parseFloat(formData.pricePerLesson) || 0,
+        currency: formData.currency,
+        country: formData.country,
+        city: formData.city,
+        address: formData.address,
+        isOnline: formData.isOnline ?? false,
+        minStudents: formData.minStudents,
+        maxStudents: formData.maxStudents,
+        startAge: parseInt(formData.startAge) || null,
+        endAge: parseInt(formData.endAge) || null,
+        complexity: formData.complexity,
+        courseType: formData.courseType,
+        language: formData.language,
+        inventoryRequired: formData.inventoryRequired,
+        inventoryDescription: formData.inventoryDescription,
+        rentalPrice: parseFloat(formData.rentalPrice) || null,
+        software: formData.software,
+        weekdays: selectedDays,
+        googlePlaceId: formData.googlePlaceId,
+        coordinates: formData.coordinates,
+        images: imageIds, // Привязать загруженные изображения
+      },
+    };
 
-
-  // Шаг 3: Создать курс с привязанными изображениями
-  const courseData = {
-    data: {
-      description: formData.description,
-      direction: formData.direction,
-      teacher: formData.teacher,
-      startTime: formData.startTime ? `${formData.startTime}:00.000` : null,
-      endTime: formData.endTime ? `${formData.endTime}:00.000` : null,
-      normalizedStartTime,
-      normalizedEndTime,
-      startDate: formData.startDate ? formData.startDate.toISOString().split('T')[0] : null,
-      endDate: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
-      timezone: formData.timezone,
-      pricePerLesson: parseFloat(formData.pricePerLesson) || 0,
-      currency: formData.currency,
-      country: formData.country,
-      city: formData.city,
-      address: formData.address,
-      isOnline: formData.isOnline ?? false,
-      minStudents: formData.minStudents,
-      maxStudents: formData.maxStudents,
-      startAge: parseInt(formData.startAge) || null,
-      endAge: parseInt(formData.endAge) || null,
-      complexity: formData.complexity,
-      courseType: formData.courseType,
-      language: formData.language,
-      inventoryRequired: formData.inventoryRequired,
-      inventoryDescription: formData.inventoryDescription,
-      rentalPrice: parseFloat(formData.rentalPrice) || null,
-      software: formData.software,
-      weekdays: selectedDays,
-      googlePlaceId: formData.googlePlaceId,
-      coordinates: formData.coordinates,
-      images: imageIds // Привязать загруженные изображения
-    }
-  }
-
-    return this.request<{ data: Course }>('/courses', {
-      method: 'POST',
+    return this.request<{ data: Course }>("/courses", {
+      method: "POST",
       headers: this.getAuthHeaders(token),
-      body: JSON.stringify(courseData)
-    }).then(result => result.data)
+      body: JSON.stringify(courseData),
+    }).then((result) => result.data);
   }
 
   /**
    * Получение статистики цен для построения гистограммы
    */
   async getPriceStats(filters?: Record<string, any>): Promise<PriceStats> {
-    const searchParams = new URLSearchParams()
-    
+    const searchParams = new URLSearchParams();
+
     // Добавляем фильтры
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           value.forEach((v, index) => {
-            searchParams.append(`filters[${key}][${index}]`, v.toString())
-          })
-        } else if (typeof value === 'object' && value !== null) {
+            searchParams.append(`filters[${key}][${index}]`, v.toString());
+          });
+        } else if (typeof value === "object" && value !== null) {
           Object.entries(value).forEach(([op, opValue]) => {
             if (opValue != null) {
-              searchParams.append(`filters[${key}][${op}]`, String(opValue))
+              searchParams.append(`filters[${key}][${op}]`, String(opValue));
             }
-          })
+          });
         } else {
-          searchParams.append(`filters[${key}]`, value.toString())
+          searchParams.append(`filters[${key}]`, value.toString());
         }
-      })
+      });
     }
 
     // Запрос всех курсов для построения статистики
-    searchParams.append('pagination[pageSize]', '100')
-    
-    const response = await this.request<StrapiResponse<Course>>(`/courses?${searchParams.toString()}`)
-    
-    const prices = response.data.map(course => course.pricePerLesson).filter(price => price != null && price > 0)
-    
+    searchParams.append("pagination[pageSize]", "100");
+
+    const response = await this.request<StrapiResponse<Course>>(
+      `/courses?${searchParams.toString()}`
+    );
+
+    const prices = response.data
+      .map((course) => course.pricePerLesson)
+      .filter((price) => price != null && price > 0);
+
     if (prices.length === 0) {
       return {
         min: 0,
         max: 10000,
-        histogram: []
-      }
+        histogram: [],
+      };
     }
-    
-    const min = Math.min(...prices)
-    const max = Math.max(...prices)
-    const tickCount = 30
-    const step = (max - min) / tickCount || 1 // Избегаем деления на ноль
-    
-    const histogram = Array(tickCount).fill(0).map((_, index) => {
-      const rangeMin = min + index * step
-      const rangeMax = min + (index + 1) * step
-      const count = prices.filter(price => price >= rangeMin && price < rangeMax).length
-      
-      return {
-        priceRange: [rangeMin, rangeMax] as [number, number],
-        count
-      }
-    })
-    
-    return { min, max, histogram }
+
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const tickCount = 30;
+    const step = (max - min) / tickCount || 1; // Избегаем деления на ноль
+
+    const histogram = Array(tickCount)
+      .fill(0)
+      .map((_, index) => {
+        const rangeMin = min + index * step;
+        const rangeMax = min + (index + 1) * step;
+        const count = prices.filter(
+          (price) => price >= rangeMin && price < rangeMax
+        ).length;
+
+        return {
+          priceRange: [rangeMin, rangeMax] as [number, number],
+          count,
+        };
+      });
+
+    return { min, max, histogram };
   }
 }
 
 // Экспортируем экземпляр API
-export const courseAPI = new CourseAPI()
+export const courseAPI = new CourseAPI();

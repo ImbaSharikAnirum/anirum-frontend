@@ -54,7 +54,11 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
               selectedYear={year}
             />
             
-            <BookingSteps course={course} />
+            <BookingSteps 
+              course={course} 
+              selectedMonth={month}
+              selectedYear={year}
+            />
           </div>
 
           {/* Правая колонка (на десктопе) - карточка курса */}

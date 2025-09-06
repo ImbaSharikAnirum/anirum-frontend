@@ -74,7 +74,27 @@ export function CourseForm() {
     e.preventDefault()
     
     try {
-      await createCourse(formData, selectedDays, imageFiles)
+      // Определяем teacher на основе роли пользователя
+      const courseData = { ...formData }
+      
+      if (isManager) {
+        // Менеджер: обязательно должен выбрать преподавателя
+        if (!courseData.teacher) {
+          alert('Выберите преподавателя для курса')
+          return
+        }
+        // teacher уже установлен через TeacherFilter
+      } else {
+        // Преподаватель: автоматически устанавливаем его documentId как teacher
+        courseData.teacher = user?.documentId || null
+        if (!courseData.teacher) {
+          alert('Ошибка: не удалось получить documentId пользователя')
+          return
+        }
+      }
+      
+      
+      await createCourse(courseData, selectedDays, imageFiles)
     } catch (err) {
       // Ошибка уже обработана в хуке
     }
@@ -107,10 +127,12 @@ export function CourseForm() {
                 }
               }}
             />
-            <TeacherFilter 
-              value={formData.teacher}
-              onTeacherChange={(teacherId) => handleInputChange('teacher', teacherId)}
-            />
+            {isManager && (
+              <TeacherFilter 
+                value={formData.teacher}
+                onTeacherChange={(teacherId) => handleInputChange('teacher', teacherId)}
+              />
+            )}
           </div>
           <WeekDaysSelector 
             selectedDays={selectedDays}
@@ -255,10 +277,10 @@ export function CourseForm() {
               <Input
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={formData.pricePerLesson}
                 onChange={(e) => handleInputChange('pricePerLesson', e.target.value)}
-                placeholder="0.00"
+                placeholder="0"
                 className="w-32"
               />
             </div>
@@ -268,10 +290,10 @@ export function CourseForm() {
                 <Input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="1"
                   value={formData.rentalPrice}
                   onChange={(e) => handleInputChange('rentalPrice', e.target.value)}
-                  placeholder="0.00"
+                  placeholder="0"
                   className="w-32"
                 />
               </div>

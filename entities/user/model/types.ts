@@ -5,6 +5,7 @@
 
 export interface User {
   id: number
+  documentId?: string // Может быть в Strapi 5
   username: string
   email: string
   provider: string
