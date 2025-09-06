@@ -5,6 +5,7 @@ import { Course } from "@/entities/course/model/types";
 import {
   calculateCustomMonthPricing,
   getMonthName,
+  getMonthLessonDates,
 } from "@/shared/lib/course-pricing";
 
 interface BookingDetailsProps {
@@ -18,38 +19,24 @@ export function BookingDetails({
   selectedMonth,
   selectedYear,
 }: BookingDetailsProps) {
-  // Находим ближайший день начала в выбранном месяце на основе дней недели
-  const getNextClassDate = () => {
-    const weekdayMap: Record<string, number> = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
+  // Получаем первую дату занятия в выбранном месяце
+  const { firstLesson } = getMonthLessonDates(
+    selectedYear,
+    selectedMonth - 1, // Конвертируем в 0-based как ожидает функция
+    course.weekdays,
+    new Date(course.startDate),
+    new Date(course.endDate)
+  );
 
-    const targetWeekdays = course.weekdays
-      .map((day) => weekdayMap[day.toLowerCase()])
-      .filter((day) => day !== undefined);
-    const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
-    const monthEnd = new Date(selectedYear, selectedMonth, 0);
+  const nextClassDate = firstLesson || new Date(selectedYear, selectedMonth - 1, 1);
 
-    for (
-      let date = new Date(monthStart);
-      date <= monthEnd;
-      date.setDate(date.getDate() + 1)
-    ) {
-      if (targetWeekdays.includes(date.getDay())) {
-        return date;
-      }
-    }
-
-    return monthStart;
-  };
-
-  const nextClassDate = getNextClassDate();
+  // Отладочная информация для сравнения
+  console.log('=== BookingDetails debugging ===')
+  console.log('Selected month/year:', selectedMonth, selectedYear)
+  console.log('Course start/end:', course.startDate, course.endDate)
+  console.log('Course weekdays:', course.weekdays)  
+  console.log('First lesson (nextClassDate):', nextClassDate)
+  console.log('Display date:', nextClassDate.toLocaleDateString("ru-RU"))
 
   // Рассчитываем длительность от выбранного месяца до окончания курса
   const startMonth = `${getMonthName(selectedMonth - 1)} ${selectedYear}`;

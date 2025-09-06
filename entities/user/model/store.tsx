@@ -6,7 +6,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import type { User } from './types'
+import type { User, UpdateUserData } from './types'
 
 interface UserStore {
   user: User | null
@@ -18,6 +18,7 @@ interface UserStore {
   setAuth: (user: User, token: string) => void
   clearAuth: () => void
   setLoading: (loading: boolean) => void
+  updateUser: (data: UpdateUserData) => Promise<void>
 }
 
 const UserContext = createContext<UserStore | null>(null)
@@ -67,6 +68,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setIsLoading(loading)
   }
 
+  const updateUserData = async (data: UpdateUserData) => {
+    if (!user || !token) {
+      throw new Error('Пользователь не авторизован')
+    }
+
+    try {
+      // Импортируем API и обновляем данные на сервере
+      const { userAuthAPI } = await import('../api/auth')
+      const updatedUser = await userAuthAPI.updateUser(user.id, data, token)
+      
+      // Обновляем локальное состояние
+      setUser(updatedUser)
+    } catch (error) {
+      throw error
+    }
+  }
+
   const store: UserStore = {
     user,
     token,
@@ -76,6 +94,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setAuth,
     clearAuth,
     setLoading: setLoadingState,
+    updateUser: updateUserData,
   }
 
   return (

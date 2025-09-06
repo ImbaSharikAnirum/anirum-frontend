@@ -104,6 +104,62 @@ export function countLessonsInMonth(
 }
 
 /**
+ * Получает первую и последнюю дату занятий в конкретном месяце
+ */
+export function getMonthLessonDates(
+  year: number, 
+  month: number, // 0-based (0 = январь)
+  weekdays: string[],
+  courseStart: Date,
+  courseEnd: Date
+): { firstLesson: Date | null, lastLesson: Date | null } {
+  const monthStart = new Date(year, month, 1)
+  const monthEnd = new Date(year, month + 1, 0)
+  
+  // Ограничиваем диапазон датами курса
+  const effectiveStart = new Date(Math.max(monthStart.getTime(), courseStart.getTime()))
+  const effectiveEnd = new Date(Math.min(monthEnd.getTime(), courseEnd.getTime()))
+  
+  if (effectiveStart > effectiveEnd) {
+    return { firstLesson: null, lastLesson: null }
+  }
+  
+  // Маппинг английских дней недели в номера (0 = воскресенье)
+  const weekdayMap: Record<string, number> = {
+    'sunday': 0,
+    'monday': 1,
+    'tuesday': 2,
+    'wednesday': 3,
+    'thursday': 4,
+    'friday': 5,
+    'saturday': 6
+  }
+  
+  const targetWeekdays = weekdays.map(day => weekdayMap[day.toLowerCase()]).filter(day => day !== undefined)
+  
+  let firstLesson = null
+  let lastLesson = null
+  
+  // Начинаем с первого дня месяца и ищем занятия только в указанные дни недели
+  const searchStart = new Date(year, month, 1)
+  const searchEnd = new Date(Math.min(monthEnd.getTime(), effectiveEnd.getTime()))
+  const searchDate = new Date(searchStart)
+  
+  while (searchDate <= searchEnd) {
+    // Проверяем, что дата не раньше начала курса и в нужный день недели
+    if (searchDate >= effectiveStart && targetWeekdays.includes(searchDate.getDay())) {
+      if (!firstLesson) {
+        firstLesson = new Date(searchDate)
+      }
+      lastLesson = new Date(searchDate)
+    }
+    searchDate.setDate(searchDate.getDate() + 1)
+  }
+  
+  return { firstLesson, lastLesson }
+}
+
+/**
  * Получает название месяца на русском языке
  */
 export function getMonthName(month: number): string {

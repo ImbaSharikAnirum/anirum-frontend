@@ -22,6 +22,7 @@ import { format } from 'date-fns'
 import { useStudents, type Student, type CreateStudentData } from '@/entities/student'
 import { useUser } from '@/entities/user/model/store'
 import { toast } from 'sonner'
+import type { ContactData } from './ContactStep'
 
 interface StudentStepProps {
   onNext: () => void
@@ -29,6 +30,7 @@ interface StudentStepProps {
   initialData?: StudentData
   courseStartAge?: number | null
   courseEndAge?: number | null
+  contactData?: ContactData
 }
 
 export interface StudentData {
@@ -39,7 +41,7 @@ export interface StudentData {
   studentBirthDate: Date | undefined
 }
 
-export function StudentStep({ onNext, onDataChange, initialData, courseStartAge, courseEndAge }: StudentStepProps) {
+export function StudentStep({ onNext, onDataChange, initialData, courseStartAge, courseEndAge, contactData }: StudentStepProps) {
   const [studentType, setStudentType] = useState<'myself' | 'existing' | 'new' | null>(initialData?.studentType || null)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(initialData?.selectedStudent || null)
   const [studentFirstName, setStudentFirstName] = useState(initialData?.studentFirstName || '')
@@ -70,8 +72,10 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
   }
 
   const getUserAge = () => {
-    if (!user?.birth_date) return null
-    return calculateAge(user.birth_date)
+    // Проверяем сначала обновленные данные пользователя, потом локальные данные из контакт-формы
+    const birthDate = user?.birth_date || (contactData?.birthDate ? format(contactData.birthDate, 'yyyy-MM-dd') : null)
+    if (!birthDate) return null
+    return calculateAge(birthDate)
   }
 
   const validateAge = (age: number): { isValid: boolean; message?: string } => {
@@ -206,8 +210,11 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
       // После создания студента, переходим дальше
       setTimeout(() => onNext(), 500)
     } else if (studentType === 'myself') {
-      // Для "я сам/сама" проверяем, что у пользователя есть дата рождения в профиле
-      if (!user?.birth_date) {
+      // Для "я сам/сама" проверяем, что у пользователя есть дата рождения
+      // Либо в обновленном профиле, либо в локальных данных из контакт-формы
+      const birthDate = user?.birth_date || (contactData?.birthDate ? format(contactData.birthDate, 'yyyy-MM-dd') : null)
+      
+      if (!birthDate) {
         toast.error('Для записи на курс необходимо указать дату рождения в профиле')
         return
       }

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MessengerInput } from "@/components/ui/messenger-input";
 import { DatePicker } from "@/components/ui/date-picker";
-import { userAuthAPI } from "@/entities/user/api/auth";
 import { useUser } from "@/entities/user/model/store";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -56,7 +55,7 @@ export function ContactStep({
   );
   const [isLoading, setIsLoading] = useState(false);
   
-  const { user, token } = useUser();
+  const { user, token, updateUser } = useUser();
 
   // Функция для получения текущего значения контакта
   const getCurrentContactValue = () => {
@@ -168,8 +167,8 @@ export function ContactStep({
         birth_date: birthDate ? format(birthDate, 'yyyy-MM-dd') : undefined,
       };
       
-      // Обновляем профиль пользователя
-      await userAuthAPI.updateUser(user.id, updateData, token);
+      // Обновляем профиль пользователя через контекст (это обновит и локальное состояние)
+      await updateUser(updateData);
       
       // Показываем уведомление об успехе
       toast.success("Данные успешно сохранены");

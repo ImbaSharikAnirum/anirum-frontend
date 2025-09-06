@@ -35,8 +35,8 @@ export interface CreateInvoiceData {
   startDate: string
   endDate: string
   statusPayment: boolean
-  course: number // id курса
-  owner: number // id владельца
+  course: string // documentId курса
+  owner: string // documentId владельца
 }
 
 interface StrapiResponse<T> {

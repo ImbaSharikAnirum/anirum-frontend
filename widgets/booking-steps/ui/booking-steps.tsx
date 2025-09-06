@@ -5,8 +5,10 @@ import { Course } from '@/entities/course/model/types'
 import { useUser } from '@/entities/user'
 import { invoiceAPI, type CreateInvoiceData } from '@/entities/invoice'
 import { studentAPI } from '@/entities/student'
-import { calculateCustomMonthPricing } from '@/shared/lib/course-pricing'
-import { AuthStep, ContactStep, StudentStep, ConfirmationStep, type ContactData, type StudentData } from './steps'
+import { calculateCustomMonthPricing, getMonthLessonDates } from '@/shared/lib/course-pricing'
+import { getDirectionDisplayName } from '@/shared/lib/course-utils'
+import { AuthStep, ContactStep, StudentStep, ConfirmationStep, SuccessStep, type ContactData, type StudentData } from './steps'
+import type { Invoice } from '@/entities/invoice'
 
 interface BookingStepsProps {
   course: Course
@@ -15,7 +17,7 @@ interface BookingStepsProps {
   className?: string
 }
 
-type BookingStep = 'auth' | 'contact' | 'student' | 'confirmation'
+type BookingStep = 'auth' | 'contact' | 'student' | 'confirmation' | 'success'
 
 export function BookingSteps({ course, selectedMonth, selectedYear, className }: BookingStepsProps) {
   const [currentStep, setCurrentStep] = useState<BookingStep>('auth')
@@ -35,8 +37,10 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
     studentLastName: '',
     studentBirthDate: undefined
   })
+  const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null)
   
   const { user, token, isAuthenticated } = useUser()
+
 
   // Проверяем авторизацию и заполненность данных при загрузке
   useEffect(() => {
@@ -109,15 +113,40 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         courseEndDate: course.endDate
       })
 
-      // 3. Определяем startDate и endDate для счета на основе выбранного месяца
-      const monthStart = new Date(selectedYear, selectedMonth - 1, 1)
-      const monthEnd = new Date(selectedYear, selectedMonth, 0)
-      
-      // Ограничиваем диапазон датами курса
+      // 3. Определяем startDate и endDate для счета на основе реальных дат занятий
       const courseStart = new Date(course.startDate)
       const courseEnd = new Date(course.endDate)
-      const effectiveStart = new Date(Math.max(monthStart.getTime(), courseStart.getTime()))
-      const effectiveEnd = new Date(Math.min(monthEnd.getTime(), courseEnd.getTime()))
+      const { firstLesson, lastLesson } = getMonthLessonDates(
+        selectedYear, 
+        selectedMonth - 1, // Конвертируем в 0-based как ожидает функция
+        course.weekdays, 
+        courseStart, 
+        courseEnd
+      )
+
+      if (!firstLesson || !lastLesson) {
+        throw new Error('В выбранном месяце нет занятий для данного курса')
+      }
+
+      // Отладочная информация
+      console.log('=== Debugging lesson dates ===')
+      console.log('Selected month/year:', selectedMonth, selectedYear)
+      console.log('Course start/end:', course.startDate, course.endDate) 
+      console.log('Course weekdays:', course.weekdays)
+      console.log('First lesson date:', firstLesson)
+      console.log('Last lesson date:', lastLesson)
+      // Функция для корректного форматирования даты без смещения UTC
+      const formatDateForInvoice = (date: Date): string => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
+      console.log('Start date for invoice (OLD):', firstLesson.toISOString().split('T')[0])
+      console.log('Start date for invoice (FIXED):', formatDateForInvoice(firstLesson))
+      console.log('End date for invoice (OLD):', lastLesson.toISOString().split('T')[0])
+      console.log('End date for invoice (FIXED):', formatDateForInvoice(lastLesson))
 
       // 4. Создаем счет
       const invoiceData: CreateInvoiceData = {
@@ -125,16 +154,18 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         family: studentFamily,
         sum: monthPricing.totalPrice,
         currency: 'RUB', // По умолчанию RUB как в требованиях
-        startDate: effectiveStart.toISOString().split('T')[0],
-        endDate: effectiveEnd.toISOString().split('T')[0],
+        startDate: formatDateForInvoice(firstLesson),
+        endDate: formatDateForInvoice(lastLesson),
         statusPayment: false,
-        course: course.id,
-        owner: user.id
+        course: course.documentId,
+        owner: user.documentId || user.id.toString()
       }
 
       const invoice = await invoiceAPI.createInvoice(invoiceData, token)
       
-      alert(`Бронирование создано! Счет #${invoice.documentId} на сумму ${monthPricing.totalPrice} ${course.currency}`)
+      // Сохраняем созданный инвойс и переходим к успешному этапу
+      setCreatedInvoice(invoice)
+      setCurrentStep('success')
       
     } catch (error) {
       console.error('Ошибка создания бронирования:', error)
@@ -161,6 +192,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
           initialData={studentData}
           courseStartAge={course.startAge}
           courseEndAge={course.endAge}
+          contactData={contactData}
         />
       )}
       {currentStep === 'confirmation' && (
@@ -169,6 +201,13 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
           studentData={studentData}
           onBack={() => setCurrentStep('student')}
           onConfirm={handleConfirmBooking}
+        />
+      )}
+      {currentStep === 'success' && (
+        <SuccessStep 
+          invoice={createdInvoice || undefined}
+          courseDirection={getDirectionDisplayName(course.direction)}
+          onClose={() => setCurrentStep('auth')} // Возвращаемся к началу для нового бронирования
         />
       )}
     </div>
