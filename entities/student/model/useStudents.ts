@@ -14,34 +14,37 @@ export function useStudents() {
   const [students, setStudents] = useState<Student[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isFetching, setIsFetching] = useState(false) // Флаг для предотвращения параллельных запросов
   
-  const { token, isAuthenticated } = useUser()
+  const { token, isAuthenticated, user } = useUser()
 
   // Загрузка студентов
   const fetchStudents = async () => {
-    if (!token || !isAuthenticated) {
-      setIsLoading(false)
+    if (!token || !isAuthenticated || !user || isFetching) {
+      if (!isFetching) setIsLoading(false)
       return
     }
 
     try {
+      setIsFetching(true)
       setIsLoading(true)
       setError(null)
-      const data = await studentAPI.getMyStudents(token)
+      const data = await studentAPI.getMyStudents(token, user.id)
       setStudents(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки студентов')
     } finally {
       setIsLoading(false)
+      setIsFetching(false)
     }
   }
 
   // Создание студента
   const createStudent = async (data: CreateStudentData): Promise<Student | null> => {
-    if (!token) return null
+    if (!token || !user) return null
 
     try {
-      const newStudent = await studentAPI.createStudent(data, token)
+      const newStudent = await studentAPI.createStudent(data, token, user.id)
       setStudents(prev => [newStudent, ...prev])
       return newStudent
     } catch (err) {
@@ -86,7 +89,7 @@ export function useStudents() {
   // Загружаем студентов при монтировании
   useEffect(() => {
     fetchStudents()
-  }, [token, isAuthenticated])
+  }, [token, isAuthenticated, user?.id]) // Зависим только от user.id, а не от всего объекта user
 
   return {
     students,

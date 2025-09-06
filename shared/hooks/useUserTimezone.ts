@@ -15,20 +15,23 @@ interface IPInfoResponse {
 
 const IPINFO_TOKEN = process.env.NEXT_PUBLIC_IPINFO_TOKEN
 
+// Глобальный кеш для предотвращения множественных запросов
+let globalTimezoneCache: TimezoneInfo | null = null
+let globalTimezonePromise: Promise<TimezoneInfo | null> | null = null
+
 export function useUserTimezone() {
-  const [userTimezone, setUserTimezone] = useState<TimezoneInfo | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [userTimezone, setUserTimezone] = useState<TimezoneInfo | null>(globalTimezoneCache)
+  const [loading, setLoading] = useState(!globalTimezoneCache)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
 
-    const detectTimezone = async () => {
+    const detectTimezone = async (): Promise<TimezoneInfo | null> => {
       try {
         // Fallback: используем локальный часовой пояс браузера
         const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
         const now = new Date()
-        const utcOffset = -now.getTimezoneOffset() / 60
         
         let detectedTimezone = browserTimezone
         
@@ -62,24 +65,58 @@ export function useUserTimezone() {
         const localDate = new Date(now.toLocaleString('en-US', { timeZone: detectedTimezone }))
         const offset = (utcDate.getTime() - localDate.getTime()) / (1000 * 60 * 60)
 
-        if (mounted) {
-          setUserTimezone({
-            timezone: detectedTimezone,
-            utcOffset: -offset,
-            abbr: timeZoneName,
-            isDst: now.getTimezoneOffset() !== new Date(now.getFullYear(), 0, 1).getTimezoneOffset()
-          })
-          setLoading(false)
+        return {
+          timezone: detectedTimezone,
+          utcOffset: -offset,
+          abbr: timeZoneName,
+          isDst: now.getTimezoneOffset() !== new Date(now.getFullYear(), 0, 1).getTimezoneOffset()
         }
       } catch (err) {
-        if (mounted) {
-          setError('Failed to detect timezone')
-          setLoading(false)
-        }
+        console.error('Failed to detect timezone:', err)
+        return null
       }
     }
 
-    detectTimezone()
+    // Если данные уже кешированы, используем их
+    if (globalTimezoneCache && mounted) {
+      setUserTimezone(globalTimezoneCache)
+      setLoading(false)
+      return
+    }
+
+    // Если уже есть активный запрос, ждем его
+    if (globalTimezonePromise) {
+      globalTimezonePromise.then(result => {
+        if (mounted) {
+          setUserTimezone(result)
+          setLoading(false)
+          if (!result) {
+            setError('Failed to detect timezone')
+          }
+        }
+      })
+      return
+    }
+
+    // Создаем новый запрос и кешируем промис
+    globalTimezonePromise = detectTimezone()
+    
+    globalTimezonePromise.then(result => {
+      if (result) {
+        globalTimezoneCache = result
+      }
+      
+      if (mounted) {
+        setUserTimezone(result)
+        setLoading(false)
+        if (!result) {
+          setError('Failed to detect timezone')
+        }
+      }
+    }).finally(() => {
+      // Очищаем промис после завершения
+      globalTimezonePromise = null
+    })
 
     return () => {
       mounted = false

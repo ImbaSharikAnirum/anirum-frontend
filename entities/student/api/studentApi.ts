@@ -5,13 +5,25 @@
 
 import { BaseAPI } from '@/shared/api/base'
 import type { Student, CreateStudentData, UpdateStudentData } from '../model/types'
+import type { User } from '@/entities/user/model/types'
 
 export class StudentAPI extends BaseAPI {
   /**
    * Получить всех студентов текущего пользователя
    */
-  async getMyStudents(token: string): Promise<Student[]> {
-    return this.request<{ data: Student[] }>('/students?populate=owner&sort=createdAt:desc', {
+  async getMyStudents(token: string, userId?: number): Promise<Student[]> {
+    let currentUserId = userId;
+    
+    // Если ID пользователя не передан, получаем его
+    if (!currentUserId) {
+      const currentUser = await this.request<User>('/users/me', {
+        headers: this.getAuthHeaders(token),
+      })
+      currentUserId = currentUser.id;
+    }
+
+    // Фильтруем студентов по owner
+    return this.request<{ data: Student[] }>(`/students?filters[owner][id][$eq]=${currentUserId}&populate=owner&sort=createdAt:desc`, {
       headers: this.getAuthHeaders(token),
     }).then(response => response.data)
   }
@@ -28,11 +40,27 @@ export class StudentAPI extends BaseAPI {
   /**
    * Создать нового студента
    */
-  async createStudent(data: CreateStudentData, token: string): Promise<Student> {
+  async createStudent(data: CreateStudentData, token: string, userId?: number): Promise<Student> {
+    let currentUserId = userId;
+    
+    // Если ID пользователя не передан, получаем его
+    if (!currentUserId) {
+      const currentUser = await this.request<User>('/users/me', {
+        headers: this.getAuthHeaders(token),
+      })
+      currentUserId = currentUser.id;
+    }
+
+    // Добавляем owner к данным студента
+    const studentData = {
+      ...data,
+      owner: currentUserId
+    }
+
     return this.request<{ data: Student }>('/students', {
       method: 'POST',
       headers: this.getAuthHeaders(token),
-      body: JSON.stringify({ data }),
+      body: JSON.stringify({ data: studentData }),
     }).then(response => response.data)
   }
 
