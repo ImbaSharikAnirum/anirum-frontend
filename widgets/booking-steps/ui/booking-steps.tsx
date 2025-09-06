@@ -160,7 +160,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         course: course.documentId,
         amount: monthPricing.totalPrice,
         currency: 'RUB',
-        invoiceId: invoice.documentId
+        invoiceId: invoice.id.toString() // Используем числовой ID для короткого orderId
       }
       
       const paymentResponse = await invoiceAPI.createTinkoffPayment(paymentData)

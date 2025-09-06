@@ -15,6 +15,9 @@ export interface Invoice {
   startDate: string
   endDate: string
   statusPayment: boolean
+  tinkoffOrderId?: string
+  paymentId?: string
+  paymentDate?: string
   course: {
     id: number
     documentId: string
