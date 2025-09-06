@@ -42,22 +42,6 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
   
   const { user, token, isAuthenticated } = useUser()
 
-  // Отладочная информация о курсе и инвойсах
-  useEffect(() => {
-    const monthInvoices = getInvoicesForMonth(course.invoices, selectedYear, selectedMonth)
-    console.log('=== КУРС И ИНВОЙСЫ ===')
-    console.log('Полный объект курса:', course)
-    console.log('Курс:', {
-      id: course.documentId,
-      minStudents: course.minStudents,
-      maxStudents: course.maxStudents,
-      всегоИнвойсов: course.invoices?.length || 0,
-      invoicesПоле: course.invoices
-    })
-    console.log('Выбранный месяц/год:', selectedMonth, selectedYear)
-    console.log('Инвойсы за месяц:', monthInvoices.length, monthInvoices)
-    console.log('Можно сразу оплачивать:', course.minStudents === 1 || monthInvoices.length >= course.minStudents)
-  }, [course, selectedMonth, selectedYear])
 
 
   // Проверяем авторизацию и заполненность данных при загрузке

@@ -135,10 +135,7 @@ export class CourseAPI extends BaseAPI {
     const queryString = searchParams.toString();
     const endpoint = `/courses/${documentId}?${queryString}`;
 
-    console.log('API запрос:', endpoint);
-
     const response = await this.request<StrapiSingleResponse<Course>>(endpoint);
-    console.log('Ответ API:', response.data);
     return response.data;
   }
 
