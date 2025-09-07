@@ -319,6 +319,7 @@ export class CourseAPI extends BaseAPI {
         inventoryDescription: formData.inventoryDescription,
         rentalPrice: parseFloat(formData.rentalPrice) || null,
         software: formData.software,
+        urlMessenger: formData.urlMessenger,
         weekdays: selectedDays,
         googlePlaceId: formData.googlePlaceId,
         coordinates: formData.coordinates,

@@ -61,6 +61,7 @@ export function CourseForm() {
     inventoryDescription: '',
     rentalPrice: '',
     software: '',
+    urlMessenger: '',
     googlePlaceId: '',
     coordinates: null as { lat: number; lng: number } | null
   })
@@ -373,6 +374,16 @@ export function CourseForm() {
               value={formData.software}
               onChange={(e) => handleInputChange('software', e.target.value)}
               placeholder="Adobe Photoshop, Blender, и т.д."
+            />
+          </div>
+
+          <div>
+            <Label className="mb-2 block">Ссылка на мессенджер</Label>
+            <Input
+              type="url"
+              value={formData.urlMessenger}
+              onChange={(e) => handleInputChange('urlMessenger', e.target.value)}
+              placeholder="https://t.me/your_group или https://wa.me/your_number"
             />
           </div>
 

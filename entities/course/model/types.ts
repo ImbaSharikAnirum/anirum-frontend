@@ -32,6 +32,7 @@ export interface Course {
   inventoryDescription: string
   rentalPrice: number | null
   software: string
+  urlMessenger?: string
   weekdays: string[]
   googlePlaceId?: string
   coordinates?: { lat: number; lng: number } | null
@@ -111,6 +112,7 @@ export interface CreateCourseData {
   inventoryDescription: string
   rentalPrice: string
   software: string
+  urlMessenger?: string
   googlePlaceId?: string
   coordinates?: { lat: number; lng: number } | null
 }

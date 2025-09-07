@@ -1,0 +1,1 @@
+export { ManagerCoursesTable } from './ui/ManagerCoursesTable'
