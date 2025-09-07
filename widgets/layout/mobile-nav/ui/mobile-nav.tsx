@@ -5,7 +5,6 @@ import {
   BookOpen,
   BarChart3,
   FileText,
-  MoreHorizontal,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -15,7 +14,6 @@ const tabs = [
   { name: "Курсы", href: "/courses", icon: BookOpen },
   { name: "Навыки", href: "/skills", icon: BarChart3 },
   { name: "Гайды", href: "/guides", icon: FileText },
-  { name: "Еще", href: "/more", icon: MoreHorizontal },
 ];
 
 export function MobileNav() {

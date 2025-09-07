@@ -181,7 +181,7 @@ export function CourseForm() {
             </Select>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <div className="w-auto">
               <Label className="mb-2 block">Дата начала</Label>
               <Popover>
@@ -242,7 +242,7 @@ export function CourseForm() {
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <div className="w-auto">
               <Label className="mb-2 block">Время начала</Label>
               <Input
@@ -426,13 +426,13 @@ export function CourseForm() {
             />
           )}
 
-          <div className="flex gap-4 pt-4">
+          <div className="flex flex-wrap gap-4 pt-4">
             <Button type="submit" size="lg" disabled={isLoading}>
               {isLoading ? 'Создание...' : 'Создать курс'}
             </Button>
-            <Button type="button" variant="outline" size="lg">
+            {/* <Button type="button" variant="outline" size="lg">
               Сохранить как черновик
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
