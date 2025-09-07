@@ -52,17 +52,17 @@ export function AttendanceCalendar({
     }))
 
     // Отправляем на сервер (пока заглушка)
-    if (newStatus !== 'unknown') {
-      try {
-        await updateAttendanceStatus(studentId, date, newStatus)
-      } catch (error) {
-        // В случае ошибки откатываем изменения
-        setAttendanceMap(prev => ({
-          ...prev,
-          [dateKey]: currentStatus
-        }))
-      }
-    }
+    // if (newStatus !== 'unknown') {
+    //   try {
+    //     await updateAttendanceStatus(studentId, date, newStatus)
+    //   } catch (error) {
+    //     // В случае ошибки откатываем изменения
+    //     setAttendanceMap(prev => ({
+    //       ...prev,
+    //       [dateKey]: currentStatus
+    //     }))
+    //   }
+    // }
   }
 
   const getStatusIcon = (date: Date) => {
