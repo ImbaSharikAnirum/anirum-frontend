@@ -74,10 +74,8 @@ export function useStudents() {
     if (!token) return false
 
     try {
-      console.log('Deleting student with documentId:', documentId)
       await studentAPI.deleteStudent(documentId, token)
       setStudents(prev => prev.filter(student => student.documentId !== documentId))
-      console.log('Student deleted successfully')
       return true
     } catch (err) {
       console.error('Delete student error:', err)

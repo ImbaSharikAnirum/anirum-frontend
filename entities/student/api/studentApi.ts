@@ -68,7 +68,6 @@ export class StudentAPI extends BaseAPI {
    * Обновить студента
    */
   async updateStudent(documentId: string, data: UpdateStudentData, token: string): Promise<Student> {
-    console.log('Updating student:', { documentId, data }) // Отладка
     return this.request<{ data: Student }>(`/students/${documentId}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(token),

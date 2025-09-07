@@ -32,8 +32,6 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
       year
     })
     
-    console.log('Загружен курс для бронирования:', course)
-    console.log('Загружены инвойсы за период:', monthlyInvoices)
     return (
       <div className="container mx-auto px-4 py-8">
         {/* На мобильных - заголовок сверху */}
