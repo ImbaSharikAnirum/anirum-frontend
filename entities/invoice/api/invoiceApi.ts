@@ -22,9 +22,9 @@ export interface Invoice {
     id: number
     documentId: string
   }
-  owner: {
-    id: number
-    documentId: string
+  owner?: {
+    id?: number
+    documentId?: string
   }
   createdAt: string
   updatedAt: string
@@ -40,6 +40,17 @@ export interface CreateInvoiceData {
   statusPayment: boolean
   course: string // documentId курса
   owner: string // documentId владельца
+}
+
+export interface UpdateInvoiceData {
+  name?: string
+  family?: string
+  sum?: number
+  currency?: string
+  startDate?: string
+  endDate?: string
+  statusPayment?: boolean
+  // НЕ включаем course и owner для обновления
 }
 
 export interface TinkoffPaymentData {
@@ -92,7 +103,7 @@ export class InvoiceAPI extends BaseAPI {
    * Получить счет по ID
    */
   async getInvoice(id: string, token: string): Promise<Invoice> {
-    return this.request<StrapiResponse<Invoice>>(`/invoices/${id}?populate=course,owner`, {
+    return this.request<StrapiResponse<Invoice>>(`/invoices/${id}`, {
       headers: this.getAuthHeaders(token),
     }).then(response => response.data)
   }
@@ -101,7 +112,7 @@ export class InvoiceAPI extends BaseAPI {
    * Получить все счета пользователя
    */
   async getMyInvoices(token: string): Promise<Invoice[]> {
-    return this.request<{ data: Invoice[] }>('/invoices?populate=course,owner&sort=createdAt:desc', {
+    return this.request<{ data: Invoice[] }>('/invoices?populate[course]=*&populate[owner]=*&sort=createdAt:desc', {
       headers: this.getAuthHeaders(token),
     }).then(response => response.data)
   }
@@ -139,6 +150,33 @@ export class InvoiceAPI extends BaseAPI {
     const endpoint = `/invoices?${queryString}`;
 
     return this.request<{ data: Invoice[] }>(endpoint).then(response => response.data);
+  }
+
+  /**
+   * Обновить счет
+   */
+  async updateInvoice(documentId: string, data: UpdateInvoiceData, token: string): Promise<Invoice> {
+    const invoiceData = {
+      data: {
+        ...data
+      }
+    }
+
+    return this.request<StrapiResponse<Invoice>>(`/invoices/${documentId}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(invoiceData)
+    }).then(response => response.data)
+  }
+
+  /**
+   * Удалить счет
+   */
+  async deleteInvoice(documentId: string, token: string): Promise<void> {
+    await this.request(`/invoices/${documentId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    })
   }
 
   /**

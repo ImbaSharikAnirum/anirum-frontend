@@ -41,6 +41,15 @@ export class BaseAPI {
       })
     }
 
+    // Проверяем, есть ли контент для парсинга
+    const contentLength = response.headers.get('content-length')
+    const contentType = response.headers.get('content-type')
+    
+    // Если нет контента или это не JSON, возвращаем undefined
+    if (contentLength === '0' || response.status === 204 || !contentType?.includes('application/json')) {
+      return undefined as T
+    }
+
     return response.json()
   }
 
