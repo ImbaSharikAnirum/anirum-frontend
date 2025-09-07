@@ -8,7 +8,7 @@ import { Navigation, Pagination } from 'swiper/modules'
 import { useUserTimezone } from '@/shared/hooks/useUserTimezone'
 import { formatCourseSchedule, getTimezoneAbbreviation } from '@/shared/lib/timezone-utils'
 import { getDirectionDisplayName, getCurrencySymbol, formatWeekdays, getStrapiImageUrl } from '@/shared/lib/course-utils'
-import { calculateNextMonthPricing, formatPrice } from '@/shared/lib/course-pricing'
+import { calculateCustomMonthPricing, calculateProRatedPricing, formatPrice } from '@/shared/lib/course-pricing'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRouter } from 'next/navigation'
 
@@ -65,8 +65,18 @@ export function CourseCard({ course, className, onClick }: CourseCardProps) {
   const { timezone: userTimezone, loading: timezoneLoading } = useUserTimezone()
   const router = useRouter()
 
-  // Рассчитываем стоимость для следующего месяца
-  const nextMonthPricing = calculateNextMonthPricing(course)
+  // Рассчитываем стоимость для текущего месяца с частичной оплатой
+  const currentDate = new Date()
+  const proRatedPricing = calculateProRatedPricing({
+    fromDate: currentDate,
+    year: currentDate.getFullYear(),
+    month: currentDate.getMonth(),
+    pricePerLesson: course.pricePerLesson,
+    currency: course.currency,
+    weekdays: course.weekdays,
+    courseStartDate: course.startDate,
+    courseEndDate: course.endDate
+  })
   
   const formatLessonPrice = (price: number) => {
     return formatPrice(price, course.currency)
@@ -238,15 +248,15 @@ export function CourseCard({ course, className, onClick }: CourseCardProps) {
               <span className="">{formatLessonPrice(course.pricePerLesson)}</span> за занятие
             </span>
           </div>
-          {nextMonthPricing.isAvailable && (
+          {proRatedPricing.remainingLessons > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-gray-500 underline text-sm cursor-help">
-                  Всего {formatPrice(nextMonthPricing.totalPrice, course.currency)}
+                  Всего {formatPrice(proRatedPricing.proRatedPrice, course.currency)}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" className="bg-gray-900 text-white border-0">
-                <p>{nextMonthPricing.monthName}: {nextMonthPricing.lessonsCount} занятий</p>
+                <p>{proRatedPricing.monthName}: {proRatedPricing.remainingLessons} занятий</p>
               </TooltipContent>
             </Tooltip>
           )}

@@ -86,6 +86,26 @@ export function buildApiFilters(filters: CourseFilters, userTimezone?: string): 
     }
   }
 
+  // Автоматический фильтр: показывать только активные курсы (не завершившиеся)
+  const today = new Date()
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  
+  // Правильный синтаксис для Strapi 5
+  apiFilters.$or = [
+    // Курсы, которые еще не закончились
+    { 
+      endDate: { 
+        $gte: todayString 
+      } 
+    },
+    // Или курсы без даты окончания (постоянные)
+    { 
+      endDate: { 
+        $null: true 
+      } 
+    }
+  ]
+
   // Возрастной фильтр - сложная логика, делаем только клиентскую фильтрацию
   // API фильтрация по возрасту не добавляется из-за сложности запроса
 

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { User } from 'lucide-react'
 import { Course } from '@/entities/course/model/types'
-import { calculateCustomMonthPricing, formatPrice } from '@/shared/lib/course-pricing'
+import { calculateCustomMonthPricing, calculateProRatedPricing, formatPrice } from '@/shared/lib/course-pricing'
 import { formatWeekdays, getDirectionDisplayName, getStrapiImageUrl } from '@/shared/lib/course-utils'
 import { formatCourseSchedule } from '@/shared/lib/timezone-utils'
 import { useUserTimezone } from '@/shared/hooks/useUserTimezone'
@@ -20,7 +20,7 @@ interface BookingCardProps {
 export function BookingCard({ course, selectedMonth, selectedYear }: BookingCardProps) {
   const { timezone: userTimezone, loading: timezoneLoading } = useUserTimezone()
 
-  // Рассчитываем данные для выбранного месяца
+  // Рассчитываем полные данные для выбранного месяца
   const monthlyPricing = calculateCustomMonthPricing({
     year: selectedYear,
     month: selectedMonth - 1, // Преобразуем в 0-based index
@@ -30,6 +30,29 @@ export function BookingCard({ course, selectedMonth, selectedYear }: BookingCard
     courseStartDate: course.startDate,
     courseEndDate: course.endDate
   })
+
+  // Рассчитываем оставшиеся занятия с сегодняшней даты
+  const proRatedPricing = calculateProRatedPricing({
+    fromDate: new Date(), // С сегодняшнего дня
+    year: selectedYear,
+    month: selectedMonth - 1,
+    pricePerLesson: course.pricePerLesson,
+    currency: course.currency,
+    weekdays: course.weekdays,
+    courseStartDate: course.startDate,
+    courseEndDate: course.endDate
+  })
+
+  // Используем pro-rated если есть пропущенные занятия, иначе полную цену
+  const displayPricing = proRatedPricing.isPartial ? proRatedPricing : {
+    ...monthlyPricing,
+    completedLessons: 0,
+    remainingLessons: monthlyPricing.lessonsCount,
+    isPartial: false,
+    proRatedPrice: monthlyPricing.totalPrice, // Добавляем недостающее свойство
+    fullPrice: monthlyPricing.totalPrice,
+    fromDate: new Date()
+  }
 
   const formatSchedule = () => {
     if (timezoneLoading) {
@@ -144,15 +167,15 @@ export function BookingCard({ course, selectedMonth, selectedYear }: BookingCard
           </div>
           
           <div className="flex justify-between">
-            <span>Занятий в {monthlyPricing.monthName.toLowerCase()}</span>
-            <span>{monthlyPricing.lessonsCount}</span>
+            <span>Занятий в {displayPricing.monthName.toLowerCase()}</span>
+            <span>{displayPricing.remainingLessons}</span>
           </div>
           
           <div className="flex justify-between">
             <span>
-              {formatPrice(course.pricePerLesson, course.currency)} × {monthlyPricing.lessonsCount} занятий
+              {formatPrice(course.pricePerLesson, course.currency)} × {displayPricing.remainingLessons} занятий
             </span>
-            <span>{formatPrice(monthlyPricing.totalPrice, course.currency)}</span>
+            <span>{formatPrice(displayPricing.proRatedPrice, course.currency)}</span>
           </div>
         </div>
 
@@ -160,7 +183,7 @@ export function BookingCard({ course, selectedMonth, selectedYear }: BookingCard
 
         <div className="flex justify-between font-medium">
           <span>Всего</span>
-          <span>{formatPrice(monthlyPricing.totalPrice, course.currency)}</span>
+          <span>{formatPrice(displayPricing.proRatedPrice, course.currency)}</span>
         </div>
       </div>
     </Card>

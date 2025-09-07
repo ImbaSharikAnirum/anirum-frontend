@@ -56,8 +56,25 @@ export class CourseAPI extends BaseAPI {
     if (params?.filters) {
       Object.entries(params.filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") {
-          // Специальная обработка для сложных фильтров
-          if (typeof value === "object") {
+          // Специальная обработка для $or массивов
+          if (key === "$or" && Array.isArray(value)) {
+            value.forEach((orCondition, index) => {
+              Object.entries(orCondition).forEach(([field, fieldValue]) => {
+                if (typeof fieldValue === "object" && fieldValue !== null) {
+                  Object.entries(fieldValue).forEach(([operator, operatorValue]) => {
+                    if (operatorValue !== null && operatorValue !== undefined) {
+                      searchParams.append(
+                        `filters[$or][${index}][${field}][${operator}]`,
+                        String(operatorValue)
+                      );
+                    }
+                  });
+                }
+              });
+            });
+          }
+          // Специальная обработка для других сложных фильтров
+          else if (typeof value === "object") {
             Object.entries(value).forEach(([nestedKey, nestedValue]) => {
               if (typeof nestedValue === "object" && nestedValue) {
                 // Для сложных фильтров типа teacher: { documentId: { $eq: 'value' } }

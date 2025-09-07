@@ -5,7 +5,7 @@ import { Course } from '@/entities/course/model/types'
 import { useUser } from '@/entities/user'
 import { invoiceAPI, type CreateInvoiceData, type TinkoffPaymentData } from '@/entities/invoice'
 import { studentAPI } from '@/entities/student'
-import { calculateCustomMonthPricing, getMonthLessonDates } from '@/shared/lib/course-pricing'
+import { calculateCustomMonthPricing, calculateProRatedPricing, getMonthLessonDates, getAllLessonDatesInMonth } from '@/shared/lib/course-pricing'
 import { getDirectionDisplayName } from '@/shared/lib/course-utils'
 import { getInvoicesForMonth } from '@/shared/lib/booking-utils'
 import { AuthStep, ContactStep, StudentStep, ConfirmationStep, SuccessStep, type ContactData, type StudentData } from './steps'
@@ -104,10 +104,11 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         studentId = newStudent.documentId
       }
 
-      // 2. Рассчитываем стоимость для выбранного месяца
-      const monthPricing = calculateCustomMonthPricing({
+      // 2. Рассчитываем частичную стоимость с сегодняшней даты
+      const proRatedPricing = calculateProRatedPricing({
+        fromDate: new Date(), // С сегодняшнего дня
         year: selectedYear,
-        month: selectedMonth - 1, // Convert to 0-based
+        month: selectedMonth - 1,
         pricePerLesson: course.pricePerLesson,
         currency: course.currency,
         weekdays: course.weekdays,
@@ -115,18 +116,29 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         courseEndDate: course.endDate
       })
 
-      // 3. Определяем startDate и endDate для счета на основе реальных дат занятий
+      if (proRatedPricing.remainingLessons === 0) {
+        throw new Error('В выбранном месяце нет оставшихся занятий для данного курса')
+      }
+
+      // 3. Определяем startDate (ближайшее занятие) и endDate для счета
       const courseStart = new Date(course.startDate)
       const courseEnd = new Date(course.endDate)
-      const { firstLesson, lastLesson } = getMonthLessonDates(
-        selectedYear, 
-        selectedMonth - 1, // Конвертируем в 0-based как ожидает функция
-        course.weekdays, 
-        courseStart, 
+      
+      // Получаем все даты занятий в месяце
+      const allLessonDates = getAllLessonDatesInMonth(
+        selectedYear,
+        selectedMonth - 1,
+        course.weekdays,
+        courseStart,
         courseEnd
       )
 
-      if (!firstLesson || !lastLesson) {
+      // Находим ближайшее будущее занятие и последнее занятие
+      const currentDate = new Date()
+      const nextLesson = allLessonDates.find(date => date >= currentDate) || allLessonDates[0]
+      const lastLesson = allLessonDates[allLessonDates.length - 1]
+
+      if (!nextLesson || !lastLesson) {
         throw new Error('В выбранном месяце нет занятий для данного курса')
       }
 
@@ -138,13 +150,13 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         return `${year}-${month}-${day}`
       }
 
-      // 4. Создаем счет
+      // 4. Создаем счет с частичной оплатой
       const invoiceData: CreateInvoiceData = {
         name: studentName,
         family: studentFamily,
-        sum: monthPricing.totalPrice,
+        sum: proRatedPricing.proRatedPrice, // Только за оставшиеся занятия
         currency: 'RUB', // По умолчанию RUB как в требованиях
-        startDate: formatDateForInvoice(firstLesson),
+        startDate: formatDateForInvoice(nextLesson), // Ближайшее занятие
         endDate: formatDateForInvoice(lastLesson),
         statusPayment: false,
         course: course.documentId,
@@ -158,7 +170,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
         users_permissions_user: user.documentId || user.id.toString(),
         student: studentId || undefined,
         course: course.documentId,
-        amount: monthPricing.totalPrice,
+        amount: proRatedPricing.proRatedPrice, // Только за оставшиеся занятия
         currency: 'RUB',
         invoiceId: invoice.documentId // Используем documentId для Strapi v5
       }

@@ -6,6 +6,7 @@ import {
   calculateCustomMonthPricing,
   getMonthName,
   getMonthLessonDates,
+  getAllLessonDatesInMonth,
 } from "@/shared/lib/course-pricing";
 
 interface BookingDetailsProps {
@@ -19,8 +20,8 @@ export function BookingDetails({
   selectedMonth,
   selectedYear,
 }: BookingDetailsProps) {
-  // Получаем первую дату занятия в выбранном месяце
-  const { firstLesson } = getMonthLessonDates(
+  // Получаем все даты занятий в выбранном месяце
+  const allLessonDates = getAllLessonDatesInMonth(
     selectedYear,
     selectedMonth - 1, // Конвертируем в 0-based как ожидает функция
     course.weekdays,
@@ -28,7 +29,11 @@ export function BookingDetails({
     new Date(course.endDate)
   );
 
-  const nextClassDate = firstLesson || new Date(selectedYear, selectedMonth - 1, 1);
+  // Находим ближайшее будущее занятие (которое еще не прошло)
+  const currentDate = new Date();
+  const nextClassDate = allLessonDates.find(date => date >= currentDate) 
+    || allLessonDates[0] // Если все занятия прошли, берем первое в месяце
+    || new Date(selectedYear, selectedMonth - 1, 1); // Fallback
 
 
   // Рассчитываем длительность от выбранного месяца до окончания курса
@@ -51,7 +56,7 @@ export function BookingDetails({
         <div className="space-y-1">
           <div className="font-medium">Даты:</div>
           <div className="text-md text-gray-600">
-            Старт обучения:{" "}
+            Ближайшее занятие:{" "}
             {nextClassDate.toLocaleDateString("ru-RU", {
               day: "numeric",
               month: "long",

@@ -387,3 +387,174 @@ export function getAverageMonthlyPrice(params: {
   const totalPrice = allMonths.reduce((sum, month) => sum + month.totalPrice, 0)
   return Math.round(totalPrice / allMonths.length)
 }
+
+/**
+ * Интерфейс для результата частичной оплаты
+ */
+export interface ProRatedPricing {
+  month: number
+  year: number
+  monthName: string
+  totalLessonsInMonth: number
+  completedLessons: number
+  remainingLessons: number
+  fullPrice: number
+  proRatedPrice: number
+  pricePerLesson: number
+  currency: string
+  isPartial: boolean
+  fromDate: Date
+}
+
+/**
+ * Подсчитывает оставшиеся занятия в месяце с определенной даты
+ */
+export function countRemainingLessonsFromDate(
+  fromDate: Date,
+  year: number, 
+  month: number, // 0-based (0 = январь)
+  weekdays: string[],
+  courseStart: Date,
+  courseEnd: Date
+): { total: number, completed: number, remaining: number } {
+  const monthStart = new Date(year, month, 1)
+  const monthEnd = new Date(year, month + 1, 0)
+  
+  // Ограничиваем диапазон датами курса
+  const effectiveStart = new Date(Math.max(monthStart.getTime(), courseStart.getTime()))
+  const effectiveEnd = new Date(Math.min(monthEnd.getTime(), courseEnd.getTime()))
+  
+  if (effectiveStart > effectiveEnd) {
+    return { total: 0, completed: 0, remaining: 0 }
+  }
+  
+  // Маппинг английских дней недели в номера (0 = воскресенье)
+  const weekdayMap: Record<string, number> = {
+    'sunday': 0,
+    'monday': 1,
+    'tuesday': 2,
+    'wednesday': 3,
+    'thursday': 4,
+    'friday': 5,
+    'saturday': 6
+  }
+  
+  const targetWeekdays = weekdays.map(day => weekdayMap[day.toLowerCase()]).filter(day => day !== undefined)
+  
+  let totalCount = 0
+  let completedCount = 0
+  let remainingCount = 0
+  
+  const currentDate = new Date(effectiveStart)
+  
+  while (currentDate <= effectiveEnd) {
+    if (targetWeekdays.includes(currentDate.getDay())) {
+      totalCount++
+      
+      if (currentDate < fromDate) {
+        completedCount++
+      } else {
+        remainingCount++
+      }
+    }
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  
+  return { 
+    total: totalCount, 
+    completed: completedCount, 
+    remaining: remainingCount 
+  }
+}
+
+/**
+ * Рассчитывает частичную стоимость курса (pro-rated) с определенной даты
+ */
+export function calculateProRatedPricing(params: {
+  fromDate: Date // С какой даты начинается оплата
+  year: number
+  month: number // 0-based (0 = январь)
+  pricePerLesson: number
+  currency: string
+  weekdays: string[]
+  courseStartDate: string // ISO string
+  courseEndDate: string // ISO string
+}): ProRatedPricing {
+  const startDate = new Date(params.courseStartDate)
+  const endDate = new Date(params.courseEndDate)
+  
+  // Подсчитываем все занятия и оставшиеся
+  const lessonCounts = countRemainingLessonsFromDate(
+    params.fromDate,
+    params.year,
+    params.month,
+    params.weekdays,
+    startDate,
+    endDate
+  )
+  
+  const fullPrice = lessonCounts.total * params.pricePerLesson
+  const proRatedPrice = lessonCounts.remaining * params.pricePerLesson
+  
+  return {
+    month: params.month,
+    year: params.year,
+    monthName: getMonthName(params.month),
+    totalLessonsInMonth: lessonCounts.total,
+    completedLessons: lessonCounts.completed,
+    remainingLessons: lessonCounts.remaining,
+    fullPrice,
+    proRatedPrice,
+    pricePerLesson: params.pricePerLesson,
+    currency: params.currency,
+    isPartial: lessonCounts.completed > 0,
+    fromDate: params.fromDate
+  }
+}
+
+/**
+ * Получает список дат всех занятий в месяце
+ */
+export function getAllLessonDatesInMonth(
+  year: number, 
+  month: number, // 0-based (0 = январь)
+  weekdays: string[],
+  courseStart: Date,
+  courseEnd: Date
+): Date[] {
+  const monthStart = new Date(year, month, 1)
+  const monthEnd = new Date(year, month + 1, 0)
+  
+  // Ограничиваем диапазон датами курса
+  const effectiveStart = new Date(Math.max(monthStart.getTime(), courseStart.getTime()))
+  const effectiveEnd = new Date(Math.min(monthEnd.getTime(), courseEnd.getTime()))
+  
+  if (effectiveStart > effectiveEnd) {
+    return []
+  }
+  
+  // Маппинг английских дней недели в номера (0 = воскресенье)
+  const weekdayMap: Record<string, number> = {
+    'sunday': 0,
+    'monday': 1,
+    'tuesday': 2,
+    'wednesday': 3,
+    'thursday': 4,
+    'friday': 5,
+    'saturday': 6
+  }
+  
+  const targetWeekdays = weekdays.map(day => weekdayMap[day.toLowerCase()]).filter(day => day !== undefined)
+  const lessonDates: Date[] = []
+  
+  const currentDate = new Date(effectiveStart)
+  
+  while (currentDate <= effectiveEnd) {
+    if (targetWeekdays.includes(currentDate.getDay())) {
+      lessonDates.push(new Date(currentDate))
+    }
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  
+  return lessonDates
+}

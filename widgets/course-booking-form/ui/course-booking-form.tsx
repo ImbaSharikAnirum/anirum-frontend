@@ -18,6 +18,7 @@ import { Course } from "@/entities/course/model/types";
 import {
   calculateNextMonthPricing,
   getAllMonthlyPricing,
+  calculateProRatedPricing,
   formatPrice,
 } from "@/shared/lib/course-pricing";
 
@@ -47,6 +48,29 @@ export function CourseBookingForm({ course }: CourseBookingFormProps) {
   const selectedMonthPricing = availableMonths.find(
     m => `${m.year}-${m.month}` === selectedMonthKey
   );
+
+  // Рассчитываем частичную оплату для выбранного месяца
+  const selectedProRatedPricing = selectedMonthPricing ? calculateProRatedPricing({
+    fromDate: new Date(), // С сегодняшнего дня
+    year: selectedMonthPricing.year,
+    month: selectedMonthPricing.month,
+    pricePerLesson: course.pricePerLesson,
+    currency: course.currency,
+    weekdays: course.weekdays,
+    courseStartDate: course.startDate,
+    courseEndDate: course.endDate
+  }) : null;
+
+  // Используем pro-rated если есть пропущенные занятия, иначе полную цену
+  const displayPricing = selectedProRatedPricing?.isPartial ? selectedProRatedPricing : selectedMonthPricing ? {
+    ...selectedMonthPricing,
+    completedLessons: 0,
+    remainingLessons: selectedMonthPricing.lessonsCount,
+    isPartial: false,
+    proRatedPrice: selectedMonthPricing.totalPrice,
+    fullPrice: selectedMonthPricing.totalPrice,
+    fromDate: new Date()
+  } : null;
 
   const handleBooking = () => {
     if (!selectedMonthPricing) return;
@@ -84,20 +108,20 @@ export function CourseBookingForm({ course }: CourseBookingFormProps) {
       </div>
 
       {/* Детали выбранного месяца */}
-      {selectedMonthPricing && selectedMonthPricing.isAvailable && (
+      {displayPricing && selectedMonthPricing?.isAvailable && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>В выбранном месяце занятий:</span>
-            <span className="font-medium">{selectedMonthPricing.lessonsCount}</span>
+            <span className="font-medium">{displayPricing.remainingLessons}</span>
           </div>
 
           <div className="flex justify-between text-sm">
             <span>
               {formatPrice(course.pricePerLesson, course.currency)} x{" "}
-              {selectedMonthPricing.lessonsCount} занятий
+              {displayPricing.remainingLessons} занятий
             </span>
             <span className="font-medium">
-              {formatPrice(selectedMonthPricing.totalPrice, course.currency)}
+              {formatPrice(displayPricing.proRatedPrice, course.currency)}
             </span>
           </div>
 
@@ -106,7 +130,7 @@ export function CourseBookingForm({ course }: CourseBookingFormProps) {
           <div className="flex justify-between font-medium">
             <span>Всего</span>
             <span>
-              {formatPrice(selectedMonthPricing.totalPrice, course.currency)}
+              {formatPrice(displayPricing.proRatedPrice, course.currency)}
             </span>
           </div>
         </div>
