@@ -9,6 +9,7 @@ import { canDirectPayment } from "@/shared/lib/booking-utils";
 import type { ContactData } from "./ContactStep";
 import type { StudentData } from "./StudentStep";
 import type { Course } from "@/entities/course/model/types";
+import type { Invoice } from "@/entities/invoice";
 
 interface ConfirmationStepProps {
   course: Course;
@@ -16,6 +17,7 @@ interface ConfirmationStepProps {
   studentData: StudentData;
   selectedMonth: number;
   selectedYear: number;
+  monthlyInvoices: Invoice[];
   onBack: () => void;
   onConfirm: () => void;
 }
@@ -26,11 +28,12 @@ export function ConfirmationStep({
   studentData,
   selectedMonth,
   selectedYear,
+  monthlyInvoices,
   onBack,
   onConfirm,
 }: ConfirmationStepProps) {
   const { user } = useUser();
-  const isDirectPayment = canDirectPayment(course, selectedMonth, selectedYear);
+  const isDirectPayment = canDirectPayment(course, monthlyInvoices);
 
   // Функция для получения текущего значения контакта
   const getCurrentContactValue = () => {

@@ -35,12 +35,10 @@ export function getInvoicesForMonth(
  */
 export function canDirectPayment(
   course: Course, 
-  selectedMonth: number, 
-  selectedYear: number
+  monthlyInvoices: Invoice[]
 ): boolean {
   const minStudents = course.minStudents
-  const monthInvoices = getInvoicesForMonth(course.invoices, selectedYear, selectedMonth)
-  const currentInvoiceCount = monthInvoices.length
+  const currentInvoiceCount = monthlyInvoices.length
   
   // Если minStudents равно 1 ИЛИ текущее количество бронирований >= minStudents
   return minStudents === 1 || currentInvoiceCount >= minStudents

@@ -29,13 +29,20 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
         
         const apiFilters = buildApiFilters(filters, timezone);
         
+        // Параметры для фильтрации инвойсов текущего месяца
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() возвращает 0-11, нужно 1-12
+        
         const result = await courseAPI.getCourses({
           page: 1,
           pageSize: 25,
           sort: ['createdAt:desc'],
-          populate: ['images', 'teacher.avatar'],
+          populate: ['images', 'teacher.avatar', 'invoices'],
           filters: apiFilters,
-          withCount: true
+          withCount: true,
+          invoicesMonth: currentMonth,
+          invoicesYear: currentYear
         });
 
         if (!isCancelled) {
@@ -112,11 +119,12 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
   return (
     <div className="space-y-6 mt-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-        {courses.map((course) => (
+        {courses.map((course, index) => (
           <CourseCard
             key={course.id}
             course={course}
             onClick={handleCourseClick}
+            index={index}
           />
         ))}
       </div>

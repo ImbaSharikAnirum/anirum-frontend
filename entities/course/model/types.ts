@@ -21,6 +21,8 @@ export interface Course {
   isOnline: boolean
   minStudents: number
   maxStudents: number
+  currentStudents?: number // Текущее количество записанных студентов
+  enrollmentStatus?: 'booking' | 'active' | 'completed' // Статус записи на курс
   startAge: number | null
   endAge: number | null
   complexity: 'beginner' | 'experienced' | 'professional'

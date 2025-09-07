@@ -107,6 +107,41 @@ export class InvoiceAPI extends BaseAPI {
   }
 
   /**
+   * Получить инвойсы конкретного курса за определенный период
+   */
+  async getCourseInvoices(
+    courseDocumentId: string,
+    filters?: {
+      month?: number;
+      year?: number;
+    }
+  ): Promise<Invoice[]> {
+    const searchParams = new URLSearchParams();
+
+    // Фильтр по курсу
+    searchParams.append('filters[course][documentId][$eq]', courseDocumentId);
+
+    // Добавляем фильтрацию по датам если указаны
+    if (filters && (filters.month || filters.year)) {
+      const year = filters.year || new Date().getFullYear();
+      const month = filters.month || new Date().getMonth() + 1;
+      
+      // Формируем диапазон дат для месяца
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+
+      searchParams.append('filters[startDate][$gte]', startDate);
+      searchParams.append('filters[startDate][$lte]', endDate);
+    }
+
+    const queryString = searchParams.toString();
+    const endpoint = `/invoices?${queryString}`;
+
+    return this.request<{ data: Invoice[] }>(endpoint).then(response => response.data);
+  }
+
+  /**
    * Создать платеж через Tinkoff
    */
   async createTinkoffPayment(data: TinkoffPaymentData): Promise<TinkoffPaymentResponse> {

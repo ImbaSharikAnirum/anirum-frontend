@@ -7,7 +7,7 @@ import { invoiceAPI, type CreateInvoiceData, type TinkoffPaymentData } from '@/e
 import { studentAPI } from '@/entities/student'
 import { calculateCustomMonthPricing, calculateProRatedPricing, getMonthLessonDates, getAllLessonDatesInMonth } from '@/shared/lib/course-pricing'
 import { getDirectionDisplayName } from '@/shared/lib/course-utils'
-import { getInvoicesForMonth } from '@/shared/lib/booking-utils'
+import { canDirectPayment } from '@/shared/lib/booking-utils'
 import { AuthStep, ContactStep, StudentStep, ConfirmationStep, SuccessStep, type ContactData, type StudentData } from './steps'
 import type { Invoice } from '@/entities/invoice'
 
@@ -15,12 +15,13 @@ interface BookingStepsProps {
   course: Course
   selectedMonth: number // 1-12
   selectedYear: number
+  monthlyInvoices: Invoice[]
   className?: string
 }
 
 type BookingStep = 'auth' | 'contact' | 'student' | 'confirmation' | 'success'
 
-export function BookingSteps({ course, selectedMonth, selectedYear, className }: BookingStepsProps) {
+export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoices, className }: BookingStepsProps) {
   const [currentStep, setCurrentStep] = useState<BookingStep>('auth')
   const [contactData, setContactData] = useState<ContactData>({
     firstName: '',
@@ -218,6 +219,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, className }:
           studentData={studentData}
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
+          monthlyInvoices={monthlyInvoices}
           onBack={() => setCurrentStep('student')}
           onConfirm={handleConfirmBooking}
         />

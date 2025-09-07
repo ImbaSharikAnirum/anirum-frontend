@@ -34,8 +34,10 @@ export class CourseAPI extends BaseAPI {
     pageSize?: number;
     sort?: string[];
     filters?: Record<string, any>;
-    populate?: string[];
+    populate?: (string | { path: string; filters?: Record<string, any> })[];
     withCount?: boolean;
+    invoicesMonth?: number;
+    invoicesYear?: number;
   }): Promise<{ courses: Course[]; meta: any }> {
     const searchParams = new URLSearchParams();
 
@@ -106,11 +108,53 @@ export class CourseAPI extends BaseAPI {
       });
     }
 
-    // Популяция связанных данных (изображения, преподаватель)
+    // Популяция связанных данных (изображения, преподаватель, инвойсы)
     const populate = params?.populate || ["images", "teacher.avatar"];
-    populate.forEach((field, index) => {
-      searchParams.append(`populate[${index}]`, field);
-    });
+    
+    // Проверяем, нужно ли фильтровать инвойсы
+    const needInvoicesFilter = params?.populate?.includes('invoices') && (params?.invoicesMonth || params?.invoicesYear);
+    
+    if (needInvoicesFilter) {
+      // Если нужна фильтрация инвойсов, используем объектный синтаксис populate
+      const year = params.invoicesYear || new Date().getFullYear();
+      const month = params.invoicesMonth || new Date().getMonth() + 1;
+      
+      // Формируем диапазон дат для месяца
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+
+      // Обрабатываем каждый populate отдельно
+      populate.forEach((field) => {
+        if (typeof field === 'string') {
+          if (field === 'invoices') {
+            // Для инвойсов добавляем фильтрацию
+            searchParams.append(`populate[invoices][filters][startDate][$gte]`, startDate);
+            searchParams.append(`populate[invoices][filters][startDate][$lte]`, endDate);
+          } else if (field === 'teacher.avatar') {
+            // Для вложенных полей используем правильный синтаксис
+            searchParams.append(`populate[teacher][populate][avatar]`, 'true');
+          } else if (field === 'images') {
+            // Для media полей простое populate
+            searchParams.append(`populate[images]`, 'true');
+          } else {
+            // Для остальных полей простое populate
+            searchParams.append(`populate[${field}]`, 'true');
+          }
+        }
+      });
+    } else {
+      // Простое populate без фильтров
+      populate.forEach((field, index) => {
+        if (typeof field === 'string') {
+          searchParams.append(`populate[${index}]`, field);
+        } else if (typeof field === 'object' && field.path) {
+          searchParams.append(`populate[${index}]`, field.path);
+        }
+      });
+    }
+
+    // Параметры invoicesMonth и invoicesYear теперь обрабатываются через populate фильтры выше
 
     // Включить count если запрошено
     if (params?.withCount) {
@@ -142,12 +186,47 @@ export class CourseAPI extends BaseAPI {
     const searchParams = new URLSearchParams();
 
     const defaultPopulate = populate || ["images", "teacher.avatar", "invoices"];
+    
+    // Проверяем, нужно ли фильтровать инвойсы
+    const needInvoicesFilter = defaultPopulate.includes('invoices') && filters && (filters.invoicesMonth || filters.invoicesYear);
+    
+    if (needInvoicesFilter) {
+      // Если нужна фильтрация инвойсов, используем объектный синтаксис populate
+      const year = filters.invoicesYear || new Date().getFullYear();
+      const month = filters.invoicesMonth || new Date().getMonth() + 1;
+      
+      // Формируем диапазон дат для месяца
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
 
-    defaultPopulate.forEach((field, index) => {
-      searchParams.append(`populate[${index}]`, field);
-    });
-
-    // Пока используем простое populate без фильтров, фильтрацию делаем на клиенте
+      // Обрабатываем каждый populate отдельно
+      defaultPopulate.forEach((field) => {
+        if (typeof field === 'string') {
+          if (field === 'invoices') {
+            // Для инвойсов добавляем фильтрацию
+            searchParams.append(`populate[invoices][filters][startDate][$gte]`, startDate);
+            searchParams.append(`populate[invoices][filters][startDate][$lte]`, endDate);
+          } else if (field === 'teacher.avatar') {
+            // Для вложенных полей используем правильный синтаксис
+            searchParams.append(`populate[teacher][populate][avatar]`, 'true');
+          } else if (field === 'images') {
+            // Для media полей простое populate
+            searchParams.append(`populate[images]`, 'true');
+          } else {
+            // Для остальных полей простое populate
+            searchParams.append(`populate[${field}]`, 'true');
+          }
+        }
+      });
+    } else {
+      // Простое populate без фильтров
+      defaultPopulate.forEach((field, index) => {
+        if (typeof field === 'string') {
+          searchParams.append(`populate[${index}]`, field);
+        }
+      });
+    }
 
     const queryString = searchParams.toString();
     const endpoint = `/courses/${documentId}?${queryString}`;

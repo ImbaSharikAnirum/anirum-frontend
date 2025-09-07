@@ -10,6 +10,7 @@ import { formatCourseSchedule, getTimezoneAbbreviation } from '@/shared/lib/time
 import { getDirectionDisplayName, getCurrencySymbol, formatWeekdays, getStrapiImageUrl } from '@/shared/lib/course-utils'
 import { calculateCustomMonthPricing, calculateProRatedPricing, formatPrice } from '@/shared/lib/course-pricing'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { CourseEnrollmentProgress } from './course-enrollment-progress'
 import { useRouter } from 'next/navigation'
 
 import 'swiper/css'
@@ -59,9 +60,10 @@ interface CourseCardProps {
   course: Course
   className?: string
   onClick?: (course: Course) => void
+  index?: number
 }
 
-export function CourseCard({ course, className, onClick }: CourseCardProps) {
+export function CourseCard({ course, className, onClick, index = 0 }: CourseCardProps) {
   const { timezone: userTimezone, loading: timezoneLoading } = useUserTimezone()
   const router = useRouter()
 
@@ -239,7 +241,20 @@ export function CourseCard({ course, className, onClick }: CourseCardProps) {
           )}
         </div>
 
-    
+        {/* Процесс записи - реальные данные из инвойсов */}
+        {(() => {
+          // Подсчитываем общее количество студентов (всех инвойсов независимо от оплаты)
+          const totalStudents = course.invoices?.length || 0
+          
+          return (
+            <CourseEnrollmentProgress 
+              currentStudents={totalStudents}
+              minStudents={course.minStudents}
+              maxStudents={course.maxStudents}
+              className="py-2"
+            />
+          )
+        })()}
 
         {/* Цена */}
         <div className="flex items-center justify-between">

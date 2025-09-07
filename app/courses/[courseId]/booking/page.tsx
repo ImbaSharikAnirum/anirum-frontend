@@ -1,4 +1,5 @@
 import { courseAPI } from '@/entities/course/api/courseApi'
+import { invoiceAPI, Invoice } from '@/entities/invoice'
 import { notFound } from 'next/navigation'
 import { BookingDetails } from '@/widgets/booking-details'
 import { BookingCard } from '@/widgets/booking-card'
@@ -22,8 +23,17 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
   const year = searchParamsData?.year ? parseInt(searchParamsData.year) : new Date().getFullYear()
   
   try {
-    const course = await courseAPI.getCourse(courseId)
+    // Загружаем курс без инвойсов (они загружаются отдельно)
+    const course = await courseAPI.getCourse(courseId, ["images", "teacher.avatar"])
     
+    // Отдельно загружаем инвойсы за выбранный период
+    const monthlyInvoices = await invoiceAPI.getCourseInvoices(courseId, {
+      month,
+      year
+    })
+    
+    console.log('Загружен курс для бронирования:', course)
+    console.log('Загружены инвойсы за период:', monthlyInvoices)
     return (
       <div className="container mx-auto px-4 py-8">
         {/* На мобильных - заголовок сверху */}
@@ -38,6 +48,7 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
               course={course}
               selectedMonth={month}
               selectedYear={year}
+              monthlyInvoices={monthlyInvoices}
             />
           </div>
 
@@ -58,6 +69,7 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
               course={course} 
               selectedMonth={month}
               selectedYear={year}
+              monthlyInvoices={monthlyInvoices}
             />
           </div>
 
@@ -67,6 +79,7 @@ export default async function BookingPage({ params, searchParams }: BookingPageP
               course={course}
               selectedMonth={month}
               selectedYear={year}
+              monthlyInvoices={monthlyInvoices}
             />
           </div>
         </div>
