@@ -23,6 +23,8 @@ import { invoiceAPI } from "@/entities/invoice/api/invoiceApi"
 import { StudentContactDialog } from "./student-contact-dialog"
 import { StudentEditDialog } from "./student-edit-dialog"
 
+type UserRole = 'Manager' | 'Teacher'
+
 interface StudentActionsDropdownProps {
   studentId: string
   studentName: string
@@ -31,6 +33,7 @@ interface StudentActionsDropdownProps {
   className?: string
   onStudentDeleted?: () => void
   onStudentUpdated?: () => void
+  role?: UserRole
 }
 
 export function StudentActionsDropdown({ 
@@ -40,7 +43,8 @@ export function StudentActionsDropdown({
   invoiceDocumentId,
   className,
   onStudentDeleted,
-  onStudentUpdated
+  onStudentUpdated,
+  role = 'Manager'
 }: StudentActionsDropdownProps) {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -100,10 +104,13 @@ export function StudentActionsDropdown({
             <MessageCircle className="mr-2 h-4 w-4" />
             Связаться
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleEditClick}>
-            <Edit className="mr-2 h-4 w-4" />
-            Редактировать
-          </DropdownMenuItem>
+          {/* Редактирование и удаление только для менеджеров */}
+          {role === 'Manager' && (
+            <DropdownMenuItem onClick={handleEditClick}>
+              <Edit className="mr-2 h-4 w-4" />
+              Редактировать
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem disabled>
             <User className="mr-2 h-4 w-4" />
             Профиль
@@ -112,13 +119,15 @@ export function StudentActionsDropdown({
             <Calendar className="mr-2 h-4 w-4" />
             История
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={handleDeleteClick}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Удалить
-          </DropdownMenuItem>
+          {role === 'Manager' && (
+            <DropdownMenuItem 
+              onClick={handleDeleteClick}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Удалить
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

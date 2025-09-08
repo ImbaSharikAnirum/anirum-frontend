@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useRole } from "@/shared/lib/hooks/useRole"
-import { ManagerCoursesTable } from "@/widgets/manager-courses-table"
-import { ManagerCoursesFilters, type ManagerCoursesFilterValues } from "@/widgets/manager-courses-filters"
-import { CourseStudentsTable } from "@/widgets/course-students-table"
+import { DashboardCoursesTable } from "@/widgets/dashboard-courses-table"
+import { DashboardCoursesFilters, type DashboardCoursesFilterValues } from "@/widgets/dashboard-courses-filters"
+import { DashboardCourseStudentsTable } from "@/widgets/dashboard-course-students-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, Home } from "lucide-react"
@@ -15,7 +15,7 @@ export default function ManagerCoursesPage() {
   const { isManager, user } = useRole()
   const router = useRouter()
   
-  const [filters, setFilters] = useState<ManagerCoursesFilterValues>({
+  const [filters, setFilters] = useState<DashboardCoursesFilterValues>({
     teacher: null,
     format: undefined,
     month: undefined,
@@ -25,7 +25,7 @@ export default function ManagerCoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const handleFiltersChange = (newFilters: ManagerCoursesFilterValues) => {
+  const handleFiltersChange = (newFilters: DashboardCoursesFilterValues) => {
     setFilters(newFilters)
     // Сбрасываем выбранный курс при изменении фильтров
     setSelectedCourse(null)
@@ -97,24 +97,27 @@ export default function ManagerCoursesPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">Курсы на проверку</h1>
       
-      <ManagerCoursesFilters 
+      <DashboardCoursesFilters 
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+        role="Manager"
       />
       
-      <ManagerCoursesTable 
+      <DashboardCoursesTable 
         filters={filters}
         onCourseSelect={setSelectedCourse}
         selectedCourse={selectedCourse}
         refreshKey={refreshKey}
+        role="Manager"
       />
       
-      <CourseStudentsTable 
+      <DashboardCourseStudentsTable 
         course={selectedCourse}
         month={filters.month}
         year={filters.year}
         className="mt-6"
         onStudentDeleted={handleStudentDeleted}
+        role="Manager"
       />
     </div>
   )

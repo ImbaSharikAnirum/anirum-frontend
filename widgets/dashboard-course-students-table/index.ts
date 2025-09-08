@@ -1,0 +1,1 @@
+export { DashboardCourseStudentsTable } from './ui/DashboardCourseStudentsTable'
