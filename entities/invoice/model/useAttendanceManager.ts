@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Хук для управления посещаемостью всей таблицы студентов (батчинг)
  * @layer entities/invoice
@@ -76,22 +78,15 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
   // Debounced функция для батчинга всех обновлений
   const debouncedBatchSave = useMemo(
     () => debounce(async () => {
-      console.log('🔄 Debounced save triggered', { token: !!token, batchKeys: Object.keys(batchRef.current) })
-      
       if (!token) {
-        console.warn('❌ No token available')
         return
       }
       
       if (Object.keys(batchRef.current).length === 0) {
-        console.warn('❌ No batch data to save')
         return
       }
 
       const batch = { ...batchRef.current }
-      console.log('📤 Sending batch:', batch)
-      
-      // НЕ очищаем batchRef здесь - только после успешной отправки!
 
       try {
         setState(prev => ({ ...prev, isUpdating: true, errors: {} }))
@@ -99,9 +94,7 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
         // Отправляем обновления ПОСЛЕДОВАТЕЛЬНО для избежания race conditions
         const results = []
         for (const [invoiceId, newAttendance] of Object.entries(batch)) {
-          console.log('📤 Sending update for:', { invoiceId, newAttendance, tokenLength: token.length })
-          
-          // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: мержим с существующими данными
+          // Мержим с существующими данными
           const originalInvoice = invoices.find(inv => inv.documentId === invoiceId)
           const existingAttendance = originalInvoice?.attendance || {}
           
@@ -111,18 +104,10 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
             ...newAttendance
           }
           
-          console.log('🔄 Merging attendance:', { 
-            existing: existingAttendance, 
-            new: newAttendance, 
-            merged: mergedAttendance 
-          })
-          
           try {
             const result = await invoiceAPI.updateAttendance(invoiceId, mergedAttendance, token)
-            console.log('✅ Update successful for:', invoiceId, result)
             results.push({ status: 'fulfilled', value: result })
           } catch (error) {
-            console.error('❌ Update failed for:', invoiceId, error)
             results.push({ status: 'rejected', reason: error, invoiceId })
           }
         }
@@ -157,7 +142,6 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
         }))
 
       } catch (err) {
-        console.error('Batch attendance update failed:', err)
         setState(prev => ({
           ...prev,
           isUpdating: false,
@@ -177,49 +161,40 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
     date: string,
     status: AttendanceStatus
   ) => {
-    console.log('🎯 updateAttendance called:', { invoiceId, date, status })
-    
     // 🚀 Мгновенное optimistic обновление
-    setState(prev => {
-      console.log('📊 Current state before update:', prev.attendance[invoiceId])
-      const newState = {
-        ...prev,
-        attendance: {
-          ...prev.attendance,
-          [invoiceId]: {
-            ...prev.attendance[invoiceId],
-            [date]: status
-          }
-        },
-        pendingUpdates: {
-          ...prev.pendingUpdates,
-          [invoiceId]: {
-            ...prev.pendingUpdates[invoiceId],
-            [date]: status
-          }
-        },
-        errors: {
-          ...prev.errors,
-          [invoiceId]: '' // Очищаем ошибку
+    setState(prev => ({
+      ...prev,
+      attendance: {
+        ...prev.attendance,
+        [invoiceId]: {
+          ...prev.attendance[invoiceId],
+          [date]: status
         }
+      },
+      pendingUpdates: {
+        ...prev.pendingUpdates,
+        [invoiceId]: {
+          ...prev.pendingUpdates[invoiceId],
+          [date]: status
+        }
+      },
+      errors: {
+        ...prev.errors,
+        [invoiceId]: '' // Очищаем ошибку
       }
-      console.log('📊 New attendance after update:', newState.attendance[invoiceId])
-      return newState
-    })
+    }))
 
     // Добавляем в батч для отправки - правильно мержим!
     if (!batchRef.current[invoiceId]) {
       batchRef.current[invoiceId] = {}
     }
-    // ИСПРАВЛЕНИЕ: мержим существующие pending изменения + новое
+    // Мержим существующие pending изменения + новое
     batchRef.current[invoiceId] = {
       ...batchRef.current[invoiceId],
       [date]: status
     }
-    console.log('📦 Batch ref updated:', batchRef.current)
 
     // Запускаем debounced batch save
-    console.log('🔄 Triggering debounced save...')
     debouncedBatchSave()
   }, [debouncedBatchSave])
 
@@ -228,9 +203,7 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
     invoiceId: string,
     date: string
   ): AttendanceStatus => {
-    const status = state.attendance[invoiceId]?.[date] || 'unknown'
-    console.log('🔍 getAttendanceStatus:', { invoiceId, date, status, fullAttendance: state.attendance[invoiceId] })
-    return status
+    return state.attendance[invoiceId]?.[date] || 'unknown'
   }, [state.attendance])
 
   // Проверить есть ли pending обновления для конкретной даты (НЕ блокируем UI!)

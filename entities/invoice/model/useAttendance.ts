@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Хук для работы с посещаемостью студентов
  * @layer entities/invoice
