@@ -513,6 +513,58 @@ export function calculateProRatedPricing(params: {
 }
 
 /**
+ * Получает список дат всех занятий в произвольном периоде
+ */
+export function getAllLessonDatesInPeriod(
+  startDate: Date,
+  endDate: Date,
+  weekdays: string[],
+  courseStart: Date,
+  courseEnd: Date
+): Date[] {
+  // Ограничиваем диапазон датами курса
+  const effectiveStart = new Date(Math.max(startDate.getTime(), courseStart.getTime()))
+  const effectiveEnd = new Date(Math.min(endDate.getTime(), courseEnd.getTime()))
+  
+  if (effectiveStart > effectiveEnd) {
+    return []
+  }
+  
+  // Маппинг английских дней недели в номера (0 = воскресенье)
+  const weekdayMap: Record<string, number> = {
+    'sunday': 0,
+    'monday': 1,
+    'tuesday': 2,
+    'wednesday': 3,
+    'thursday': 4,
+    'friday': 5,
+    'saturday': 6
+  }
+
+  const targetWeekdays = weekdays.map(day => weekdayMap[day.toLowerCase()]).filter(day => day !== undefined)
+  
+  if (targetWeekdays.length === 0) {
+    return []
+  }
+
+  const lessonDates: Date[] = []
+  const current = new Date(effectiveStart)
+  
+  // Проходим по всем дням в диапазоне
+  while (current <= effectiveEnd) {
+    const dayOfWeek = current.getDay()
+    
+    if (targetWeekdays.includes(dayOfWeek)) {
+      lessonDates.push(new Date(current))
+    }
+    
+    current.setDate(current.getDate() + 1)
+  }
+  
+  return lessonDates
+}
+
+/**
  * Получает список дат всех занятий в месяце
  */
 export function getAllLessonDatesInMonth(

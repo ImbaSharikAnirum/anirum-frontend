@@ -4,6 +4,7 @@
  */
 
 import { BaseAPI } from '@/shared/api/base'
+import type { User } from '@/entities/course/model/types'
 
 export type AttendanceStatus = 'present' | 'absent' | 'unknown'
 
@@ -27,10 +28,7 @@ export interface Invoice {
     id: number
     documentId: string
   }
-  owner?: {
-    id?: number
-    documentId?: string
-  }
+  owner?: User
   createdAt: string
   updatedAt: string
 }
@@ -110,6 +108,19 @@ export class InvoiceAPI extends BaseAPI {
   async getInvoice(id: string, token: string): Promise<Invoice> {
     return this.request<StrapiResponse<Invoice>>(`/invoices/${id}`, {
       headers: this.getAuthHeaders(token),
+    }).then(response => response.data)
+  }
+
+  /**
+   * Получить счет по ID для публичного доступа (без авторизации)
+   * Используется для страниц оплаты по ссылке
+   */
+  async getPublicInvoice(id: string): Promise<Invoice> {
+    // Используем правильный Strapi 5 синтаксис для populate
+    return this.request<StrapiResponse<Invoice>>(`/invoices/${id}?populate[0]=course&populate[1]=owner`, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     }).then(response => response.data)
   }
 

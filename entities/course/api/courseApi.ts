@@ -185,7 +185,7 @@ export class CourseAPI extends BaseAPI {
   ): Promise<Course> {
     const searchParams = new URLSearchParams();
 
-    const defaultPopulate = populate || ["images", "teacher.avatar", "invoices"];
+    const defaultPopulate = populate || ["teacher.avatar", "invoices"];
     
     // Проверяем, нужно ли фильтровать инвойсы
     const needInvoicesFilter = defaultPopulate.includes('invoices') && filters && (filters.invoicesMonth || filters.invoicesYear);

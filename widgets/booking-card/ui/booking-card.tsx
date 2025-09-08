@@ -12,12 +12,15 @@ import {
   calculateCustomMonthPricing,
   calculateProRatedPricing,
   formatPrice,
+  getAllLessonDatesInPeriod,
 } from "@/shared/lib/course-pricing";
 import {
   formatWeekdays,
   getDirectionDisplayName,
   getStrapiImageUrl,
 } from "@/shared/lib/course-utils";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 import { formatCourseSchedule } from "@/shared/lib/timezone-utils";
 import { useUserTimezone } from "@/shared/hooks/useUserTimezone";
 
@@ -26,6 +29,7 @@ interface BookingCardProps {
   selectedMonth: number;
   selectedYear: number;
   monthlyInvoices?: Invoice[];
+  paymentInvoice?: Invoice; // Опциональный invoice для payment страницы
 }
 
 export function BookingCard({
@@ -33,6 +37,7 @@ export function BookingCard({
   selectedMonth,
   selectedYear,
   monthlyInvoices = [],
+  paymentInvoice,
 }: BookingCardProps) {
   const { timezone: userTimezone, loading: timezoneLoading } =
     useUserTimezone();
@@ -61,7 +66,7 @@ export function BookingCard({
   });
 
   // Используем pro-rated если есть пропущенные занятия, иначе полную цену
-  const displayPricing = proRatedPricing.isPartial
+  let displayPricing = proRatedPricing.isPartial
     ? proRatedPricing
     : {
         ...monthlyPricing,
@@ -72,6 +77,53 @@ export function BookingCard({
         fullPrice: monthlyPricing.totalPrice,
         fromDate: new Date(),
       };
+
+  // Если есть paymentInvoice, используем данные из него
+  let actualPricePerLesson = course.pricePerLesson;
+  let hasDiscount = false;
+
+  if (paymentInvoice) {
+    // Рассчитываем количество занятий из дат invoice (правильный способ)
+    const invoiceStartDate = new Date(paymentInvoice.startDate);
+    const invoiceEndDate = new Date(paymentInvoice.endDate);
+    const courseStartDate = new Date(course.startDate);
+    const courseEndDate = new Date(course.endDate);
+    
+    const invoiceLessonDates = getAllLessonDatesInPeriod(
+      invoiceStartDate,
+      invoiceEndDate,
+      course.weekdays,
+      courseStartDate,
+      courseEndDate
+    );
+    
+    const invoiceLessonsCount = invoiceLessonDates.length;
+    
+    // Вычисляем реальную цену за занятие из invoice
+    const invoicePricePerLesson = invoiceLessonsCount > 0 
+      ? paymentInvoice.sum / invoiceLessonsCount
+      : course.pricePerLesson;
+    
+    // Проверяем, есть ли скидка (разница больше или равна 0.01)
+    if (Math.abs(invoicePricePerLesson - course.pricePerLesson) >= 0.01) {
+      actualPricePerLesson = invoicePricePerLesson;
+      hasDiscount = true;
+      
+      // Пересчитываем displayPricing с новой ценой
+      displayPricing = {
+        ...displayPricing,
+        proRatedPrice: paymentInvoice.sum, // Используем сумму из invoice
+      };
+    }
+  }
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "dd MMMM", { locale: ru });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const formatSchedule = () => {
     if (timezoneLoading) {
@@ -196,41 +248,55 @@ export function BookingCard({
       />
       <Separator className="" />
 
-      {/* Детализация цены */}
-      <div className="space-y-3">
-        <h4 className="font-medium">Детализация цены</h4>
+      {/* Детализация цены - только если нет готового invoice */}
+      {!paymentInvoice ? (
+        <div className="space-y-3">
+          <h4 className="font-medium">Детализация цены</h4>
 
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span>Цена занятия</span>
-            <span>{formatPrice(course.pricePerLesson, course.currency)}</span>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Цена занятия</span>
+              <div className="text-right">
+                {hasDiscount && (
+                  <div className="line-through text-gray-500 text-xs">
+                    {formatPrice(course.pricePerLesson, course.currency)}
+                  </div>
+                )}
+                <span className={hasDiscount ? "text-green-600 font-medium" : ""}>
+                  {formatPrice(actualPricePerLesson, course.currency)}
+                </span>
+                {hasDiscount && (
+                  <div className="text-xs text-green-600">Персональная скидка</div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Занятий в {displayPricing.monthName.toLowerCase()}</span>
+              <span>{displayPricing.remainingLessons}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>
+                {formatPrice(actualPricePerLesson, course.currency)} ×{" "}
+                {displayPricing.remainingLessons} занятий
+              </span>
+              <span>
+                {formatPrice(displayPricing.proRatedPrice, course.currency)}
+              </span>
+            </div>
           </div>
 
-          <div className="flex justify-between">
-            <span>Занятий в {displayPricing.monthName.toLowerCase()}</span>
-            <span>{displayPricing.remainingLessons}</span>
-          </div>
+          <Separator />
 
-          <div className="flex justify-between">
-            <span>
-              {formatPrice(course.pricePerLesson, course.currency)} ×{" "}
-              {displayPricing.remainingLessons} занятий
-            </span>
+          <div className="flex justify-between font-medium">
+            <span>Всего</span>
             <span>
               {formatPrice(displayPricing.proRatedPrice, course.currency)}
             </span>
           </div>
         </div>
-
-        <Separator />
-
-        <div className="flex justify-between font-medium">
-          <span>Всего</span>
-          <span>
-            {formatPrice(displayPricing.proRatedPrice, course.currency)}
-          </span>
-        </div>
-      </div>
+      ) : null}
     </Card>
   );
 }

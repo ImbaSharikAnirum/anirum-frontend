@@ -319,6 +319,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
                         studentName={invoice.name}
                         studentFamily={invoice.family}
                         invoiceDocumentId={invoice.documentId}
+                        courseId={course.documentId}
                         onStudentDeleted={handleStudentDeleted}
                         onStudentUpdated={handleStudentDeleted}
                         role={role}

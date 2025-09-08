@@ -18,10 +18,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MoreHorizontal, MessageCircle, User, Calendar, Trash2, Edit } from "lucide-react"
+import { MoreHorizontal, MessageCircle, User, Calendar, Trash2, Edit, Copy } from "lucide-react"
 import { invoiceAPI } from "@/entities/invoice/api/invoiceApi"
 import { StudentContactDialog } from "./student-contact-dialog"
 import { StudentEditDialog } from "./student-edit-dialog"
+import { toast } from "sonner"
 
 type UserRole = 'Manager' | 'Teacher'
 
@@ -30,6 +31,7 @@ interface StudentActionsDropdownProps {
   studentName: string
   studentFamily: string
   invoiceDocumentId: string
+  courseId?: string
   className?: string
   onStudentDeleted?: () => void
   onStudentUpdated?: () => void
@@ -41,6 +43,7 @@ export function StudentActionsDropdown({
   studentName,
   studentFamily,
   invoiceDocumentId,
+  courseId,
   className,
   onStudentDeleted,
   onStudentUpdated,
@@ -71,6 +74,31 @@ export function StudentActionsDropdown({
     setIsDeleteDialogOpen(true)
   }
 
+  const handleCopyPaymentLink = async () => {
+    if (!courseId || !invoiceDocumentId) {
+      toast.error('Ошибка создания ссылки')
+      return
+    }
+    
+    const paymentUrl = `${window.location.origin}/courses/${courseId}/payment/${invoiceDocumentId}`
+    
+    try {
+      await navigator.clipboard.writeText(paymentUrl)
+      toast.success('Ссылка счета скопирована')
+    } catch (err) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea')
+      textArea.value = paymentUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      toast.success('Ссылка счета скопирована')
+    }
+    
+    setIsDropdownOpen(false)
+  }
+
   const handleConfirmDelete = async () => {
     try {
       setIsDeleting(true)
@@ -99,11 +127,17 @@ export function StudentActionsDropdown({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={handleContactClick}>
             <MessageCircle className="mr-2 h-4 w-4" />
             Связаться
           </DropdownMenuItem>
+          {courseId && (
+            <DropdownMenuItem onClick={handleCopyPaymentLink}>
+              <Copy className="mr-2 h-4 w-4" />
+              Ссылка оплаты
+            </DropdownMenuItem>
+          )}
           {/* Редактирование и удаление только для менеджеров */}
           {role === 'Manager' && (
             <DropdownMenuItem onClick={handleEditClick}>

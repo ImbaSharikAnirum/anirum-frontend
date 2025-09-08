@@ -166,24 +166,10 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
 
       const invoice = await invoiceAPI.createInvoice(invoiceData, token)
       
-      // Создаем платеж через Tinkoff и перенаправляем на оплату
-      const paymentData: TinkoffPaymentData = {
-        users_permissions_user: user.documentId || user.id.toString(),
-        student: studentId || undefined,
-        course: course.documentId,
-        amount: proRatedPricing.proRatedPrice, // Только за оставшиеся занятия
-        currency: 'RUB',
-        invoiceId: invoice.documentId // Используем documentId для Strapi v5
-      }
-      
-      const paymentResponse = await invoiceAPI.createTinkoffPayment(paymentData)
-      
-      if (paymentResponse.paymentUrl) {
-        // Перенаправляем на страницу оплаты Tinkoff
-        window.location.href = paymentResponse.paymentUrl
-      } else {
-        throw new Error('Не удалось создать ссылку на оплату')
-      }
+      // Перенаправляем на нашу страницу оплаты вместо прямого перехода на Tinkoff
+      // Это позволит пользователям получать ссылку для повторной оплаты
+      const paymentUrl = `/courses/${course.documentId}/payment/${invoice.documentId}`
+      window.location.href = paymentUrl
       
     } catch (error) {
       alert('Ошибка при создании бронирования. Попробуйте еще раз.')
