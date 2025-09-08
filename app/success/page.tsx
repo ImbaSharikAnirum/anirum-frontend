@@ -4,12 +4,16 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, MessageCircle } from 'lucide-react'
+import { invoiceAPI } from '@/entities/invoice/api/invoiceApi'
+import { courseAPI } from '@/entities/course/api/courseApi'
+import type { Course } from '@/entities/course/model/types'
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [course, setCourse] = useState<Course | null>(null)
 
   // Извлекаем параметры от Tinkoff
   const success = searchParams?.get('Success')
@@ -24,13 +28,32 @@ export default function PaymentSuccessPage() {
   const formattedAmount = amount ? (parseInt(amount) / 100).toLocaleString('ru-RU') : '0'
 
   useEffect(() => {
-    // Имитируем загрузку для UX
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1500)
+    const loadCourseInfo = async () => {
+      if (!isSuccessful || !orderId) {
+        setIsLoading(false)
+        return
+      }
 
-    return () => clearTimeout(timer)
-  }, [])
+      try {
+        // orderId это tinkoffOrderId, ищем invoice по нему
+        const invoice = await invoiceAPI.getInvoiceByTinkoffOrderId(orderId)
+        if (invoice?.course?.documentId) {
+          const courseData = await courseAPI.getCourse(invoice.course.documentId, [])
+          setCourse(courseData)
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки информации о курсе:', error)
+        // Продолжаем работу без информации о курсе
+      } finally {
+        // Имитируем загрузку для UX
+        setTimeout(() => {
+          setIsLoading(false)
+        }, 1500)
+      }
+    }
+
+    loadCourseInfo()
+  }, [isSuccessful, orderId])
 
   const handleBackToHome = () => {
     router.push('/')
@@ -83,9 +106,46 @@ export default function PaymentSuccessPage() {
                 )}
               </div>
             </div>
-            <p className="text-sm text-gray-500 mb-6">
-              Информация о курсе и доступе будет отправлен в ближайшее время.
-            </p>
+            {course?.urlMessenger ? (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-5 mb-6 text-left shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="bg-blue-500 rounded-full p-1">
+                    <MessageCircle className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="font-bold text-blue-900 text-lg">
+                    Важно! Присоединитесь к группе курса
+                  </h3>
+                </div>
+                <div className="bg-white/70 rounded-md p-4 mb-4">
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    В этой группе будут ученики и преподаватель. Вся информация по курсам будет отправляться туда. 
+                    <br /><br />
+                    <strong>Обязательно вступите в группу</strong> и если вы записали кого-то вместо себя передайте ссылку. 
+                    <br /><br />
+                    Также информация по переносам или отменам также будет отправляться туда.
+                  </p>
+                </div>
+                <Button 
+                  asChild 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+                  size="lg"
+                >
+                  <a 
+                    href={course.urlMessenger} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    Перейти в группу курса
+                  </a>
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 mb-6">
+                Информация о курсе и доступе будет отправлена в ближайшее время.
+              </p>
+            )}
           </>
         ) : (
           <>

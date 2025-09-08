@@ -125,6 +125,25 @@ export class InvoiceAPI extends BaseAPI {
   }
 
   /**
+   * Получить счет по tinkoffOrderId для публичного доступа
+   * Используется на странице success после оплаты
+   */
+  async getInvoiceByTinkoffOrderId(tinkoffOrderId: string): Promise<Invoice | null> {
+    try {
+      const response = await this.request<{ data: Invoice[] }>(`/invoices?filters[tinkoffOrderId][$eq]=${tinkoffOrderId}&populate[0]=course&populate[1]=owner`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      return response.data && response.data.length > 0 ? response.data[0] : null
+    } catch (error) {
+      console.error('Ошибка получения invoice по tinkoffOrderId:', error)
+      return null
+    }
+  }
+
+  /**
    * Получить все счета пользователя
    */
   async getMyInvoices(token: string): Promise<Invoice[]> {
