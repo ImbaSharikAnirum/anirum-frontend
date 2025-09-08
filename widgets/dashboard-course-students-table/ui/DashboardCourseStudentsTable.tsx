@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { invoiceAPI, type Invoice } from "@/entities/invoice/api/invoiceApi"
+import { invoiceAPI, type Invoice, type AttendanceStatus, useAttendanceManager } from "@/entities/invoice"
 import {
   Table,
   TableBody,
@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight } from "lucide-react"
-import { generateCourseDates, formatAttendanceDate, getAttendanceStatus, updateAttendanceStatus } from "@/shared/lib/attendance-utils"
+import { generateCourseDates, formatAttendanceDate } from "@/shared/lib/attendance-utils"
 import { StudentActionsDropdown } from "@/shared/ui/student-actions-dropdown"
+import { StudentAttendanceCell } from './StudentAttendanceCell'
 import type { Course } from "@/entities/course"
 
 type UserRole = 'Manager' | 'Teacher'
@@ -33,7 +34,9 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, 'present' | 'absent' | 'unknown'>>({})
+
+  // Инициализируем attendance manager для всей таблицы
+  const attendanceManager = useAttendanceManager({ invoices })
 
   const loadInvoices = async () => {
     if (!course) {
@@ -50,7 +53,20 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
         { month, year }
       )
       
-      setInvoices(response)
+      // Стабильная сортировка студентов по алфавиту (многоязычная)
+      const sortedInvoices = response.sort((a, b) => {
+        const fullNameA = `${a.family || ''} ${a.name || ''}`.trim()
+        const fullNameB = `${b.family || ''} ${b.name || ''}`.trim()
+        
+        // Используем Intl.Collator для правильной многоязычной сортировки
+        return new Intl.Collator(['ru', 'en'], {
+          sensitivity: 'base',
+          numeric: true,
+          ignorePunctuation: true
+        }).compare(fullNameA, fullNameB)
+      })
+      
+      setInvoices(sortedInvoices)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка при загрузке студентов")
     } finally {
@@ -134,50 +150,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     )
   })() : []
 
-  const handleAttendanceToggle = async (studentId: string, date: Date) => {
-    const dateKey = `${studentId}-${date.toISOString().split('T')[0]}`
-    const currentStatus = attendanceMap[dateKey] || getAttendanceStatus(studentId, date)
-    
-    // Циклическое переключение: unknown → present → absent → unknown
-    let newStatus: 'present' | 'absent' | 'unknown'
-    if (currentStatus === 'unknown') {
-      newStatus = 'present'
-    } else if (currentStatus === 'present') {
-      newStatus = 'absent'
-    } else {
-      newStatus = 'unknown'
-    }
-
-    setAttendanceMap(prev => ({
-      ...prev,
-      [dateKey]: newStatus
-    }))
-
-    if (newStatus !== 'unknown') {
-      try {
-        await updateAttendanceStatus(studentId, date, newStatus)
-      } catch (error) {
-        setAttendanceMap(prev => ({
-          ...prev,
-          [dateKey]: currentStatus
-        }))
-      }
-    }
-  }
-
-  const getAttendanceIcon = (studentId: string, date: Date) => {
-    const dateKey = `${studentId}-${date.toISOString().split('T')[0]}`
-    const status = attendanceMap[dateKey] || getAttendanceStatus(studentId, date)
-    
-    switch (status) {
-      case 'present':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'absent':
-        return <XCircle className="h-4 w-4 text-red-600" />
-      default:
-        return <div className="h-4 w-4 border border-gray-300 rounded" />
-    }
-  }
+  // Логика посещаемости перенесена в StudentAttendanceCell
 
   if (!course) {
     return (
@@ -242,6 +215,8 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
           <span>
             Всего записаны: {invoices.length} студентов • 
             Оплатили: {paidCount} студентов
+            {attendanceManager.isUpdating && " • 💾 Сохраняется..."}
+            {attendanceManager.hasPendingUpdates && " • ⏳ Есть несохраненные изменения"}
           </span>
           <span className="flex items-center gap-1">
             <CreditCard className="h-4 w-4" />
@@ -310,18 +285,28 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
                       const studentStartDate = new Date(invoice.startDate)
                       const studentEndDate = new Date(invoice.endDate)
                       const isInStudentPeriod = courseDate.date >= studentStartDate && courseDate.date <= studentEndDate
+                      const dateKey = courseDate.date.toISOString().split('T')[0]
                       
                       return (
                         <TableCell key={index} className="text-center">
                           {isInStudentPeriod ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleAttendanceToggle(invoice.documentId, courseDate.date)}
-                              className="w-8 h-8 p-0 hover:bg-gray-100"
-                            >
-                              {getAttendanceIcon(invoice.documentId, courseDate.date)}
-                            </Button>
+                            <StudentAttendanceCell
+                              status={attendanceManager.getAttendanceStatus(invoice.documentId, dateKey)}
+                              isPending={attendanceManager.isPending(invoice.documentId, dateKey)}
+                              hasError={attendanceManager.hasError(invoice.documentId)}
+                              onClick={() => {
+                                const currentStatus = attendanceManager.getAttendanceStatus(invoice.documentId, dateKey)
+                                let newStatus: AttendanceStatus
+                                if (currentStatus === 'unknown') {
+                                  newStatus = 'present'
+                                } else if (currentStatus === 'present') {
+                                  newStatus = 'absent'
+                                } else {
+                                  newStatus = 'unknown'
+                                }
+                                attendanceManager.updateAttendance(invoice.documentId, dateKey, newStatus)
+                              }}
+                            />
                           ) : (
                             <div className="w-8 h-8"></div>
                           )}

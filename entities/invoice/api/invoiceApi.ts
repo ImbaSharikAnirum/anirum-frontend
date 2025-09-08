@@ -5,6 +5,10 @@
 
 import { BaseAPI } from '@/shared/api/base'
 
+export type AttendanceStatus = 'present' | 'absent' | 'unknown'
+
+export type AttendanceRecord = Record<string, AttendanceStatus>
+
 export interface Invoice {
   id: number
   documentId: string
@@ -18,6 +22,7 @@ export interface Invoice {
   tinkoffOrderId?: string
   paymentId?: string
   paymentDate?: string
+  attendance?: AttendanceRecord
   course: {
     id: number
     documentId: string
@@ -177,6 +182,44 @@ export class InvoiceAPI extends BaseAPI {
       method: 'DELETE',
       headers: this.getAuthHeaders(token),
     })
+  }
+
+  /**
+   * Обновить посещаемость студента
+   */
+  async updateAttendance(
+    invoiceId: string, 
+    attendance: AttendanceRecord,
+    token: string
+  ): Promise<Invoice> {
+    return this.request<StrapiResponse<Invoice>>(`/invoices/${invoiceId}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({
+        data: { attendance }
+      })
+    }).then(response => response.data)
+  }
+
+  /**
+   * Обновить одну дату посещаемости
+   */
+  async updateSingleAttendance(
+    invoiceId: string,
+    date: string,
+    status: AttendanceStatus,
+    token: string
+  ): Promise<Invoice> {
+    // Получаем текущую посещаемость
+    const invoice = await this.getInvoice(invoiceId, token)
+    
+    // Мержим с новой датой
+    const updatedAttendance = {
+      ...(invoice.attendance || {}),
+      [date]: status
+    }
+
+    return this.updateAttendance(invoiceId, updatedAttendance, token)
   }
 
   /**
