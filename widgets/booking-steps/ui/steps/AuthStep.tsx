@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useUser, userAuthAPI } from '@/entities/user'
+import { useUser } from '@/entities/user'
 import { APIError } from '@/shared/api/base'
 
 interface AuthStepProps {
@@ -19,7 +19,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isRegisterMode, setIsRegisterMode] = useState(false)
   
-  const { setAuth } = useUser()
+  const { setUser } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,9 +31,26 @@ export function AuthStep({ onNext }: AuthStepProps) {
     setError(null)
 
     try {
-      const response = await userAuthAPI.login({ identifier: email, password })
-      const userWithRole = await userAuthAPI.getCurrentUser(response.jwt)
-      setAuth(userWithRole, response.jwt)
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ identifier: email, password }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new APIError({
+          message: error.error?.message || 'Login failed',
+          status: response.status,
+          details: error
+        })
+      }
+
+      const { user } = await response.json()
+      setUser(user)
       onNext()
     } catch (err) {
       if (err instanceof APIError) {
@@ -58,9 +75,26 @@ export function AuthStep({ onNext }: AuthStepProps) {
     setError(null)
 
     try {
-      const response = await userAuthAPI.register({ email, password, username })
-      const userWithRole = await userAuthAPI.getCurrentUser(response.jwt)
-      setAuth(userWithRole, response.jwt)
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, username }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new APIError({
+          message: error.error?.message || 'Registration failed',
+          status: response.status,
+          details: error
+        })
+      }
+
+      const { user } = await response.json()
+      setUser(user)
       onNext()
     } catch (err) {
       if (err instanceof APIError) {
