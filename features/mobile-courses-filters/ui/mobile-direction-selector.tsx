@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-import { courseAPI } from "@/entities/course/api/courseApi"
+import { courseAPI } from "@/entities/course"
 import { Course } from "@/entities/course/model/types"
 
 // Статичные данные для отображения (изображения и красивые названия)

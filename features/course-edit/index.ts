@@ -1,0 +1,1 @@
+export { useEditCourse } from './model/useEditCourse'

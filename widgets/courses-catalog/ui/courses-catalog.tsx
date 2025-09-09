@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CourseCard } from "@/shared/ui/course-card";
-import { courseAPI } from "@/entities/course/api/courseApi";
+import { courseAPI } from "@/entities/course";
 import { Course } from "@/entities/course/model/types";
 import { CourseFilters, buildApiFilters, filterCourses } from "@/entities/course/lib/filters";
 import { useUserTimezone } from "@/shared/hooks/useUserTimezone";

@@ -3,18 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { courseAPI } from '@/entities/course/api/courseApi'
+import { courseAPI } from '@/entities/course'
 import { CreateCourseData } from '@/entities/course'
 import { useUser } from '@/entities/user'
 
 export function useCreateCourse() {
-  const { token } = useUser()
+  const { user } = useUser()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleCreateCourse = async (formData: CreateCourseData, selectedDays: string[], imageFiles?: File[]) => {
-    if (!token) {
+    if (!user) {
       const errorMessage = 'Необходимо войти в систему'
       setError(errorMessage)
       toast.error(errorMessage)
@@ -25,7 +25,7 @@ export function useCreateCourse() {
     setError(null)
 
     try {
-      const result = await courseAPI.createCourse(formData, selectedDays, token, imageFiles)
+      const result = await courseAPI.createCourse(formData, selectedDays, imageFiles)
       
       // Успешное создание курса
       toast.success('Курс успешно создан!')

@@ -22,9 +22,11 @@ export interface User {
   birth_date?: string
 }
 
+export type UserRoleName = 'Manager' | 'Teacher' | 'Student' | 'Authenticated'
+
 export interface UserRole {
   id: number
-  name: string
+  name: UserRoleName
   description: string
   type: string
 }

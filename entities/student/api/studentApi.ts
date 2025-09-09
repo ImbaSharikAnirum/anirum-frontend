@@ -11,44 +11,56 @@ export class StudentAPI extends BaseAPI {
   /**
    * Получить всех студентов текущего пользователя
    */
-  async getMyStudents(token: string, userId?: number): Promise<Student[]> {
+  async getMyStudents(userId?: number): Promise<Student[]> {
     let currentUserId = userId;
     
     // Если ID пользователя не передан, получаем его
     if (!currentUserId) {
-      const currentUser = await this.request<User>('/users/me', {
-        headers: this.getAuthHeaders(token),
-      })
-      currentUserId = currentUser.id;
+      const currentUser = await fetch('/api/users/me')
+      if (!currentUser.ok) {
+        throw new Error('Failed to get current user')
+      }
+      const user = await currentUser.json()
+      currentUserId = user.id;
     }
 
     // Фильтруем студентов по owner
-    return this.request<{ data: Student[] }>(`/students?filters[owner][id][$eq]=${currentUserId}&populate=owner&sort=createdAt:desc`, {
-      headers: this.getAuthHeaders(token),
-    }).then(response => response.data)
+    const response = await fetch(`/api/students?filters[owner][id][$eq]=${currentUserId}&populate=owner&sort=createdAt:desc`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch students')
+    }
+    
+    const data = await response.json()
+    return data.data
   }
 
   /**
    * Получить студента по ID
    */
-  async getStudent(id: number, token: string): Promise<Student> {
-    return this.request<{ data: Student }>(`/students/${id}?populate=owner`, {
-      headers: this.getAuthHeaders(token),
-    }).then(response => response.data)
+  async getStudent(id: number): Promise<Student> {
+    const response = await fetch(`/api/students/${id}?populate=owner`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch student')
+    }
+    
+    const data = await response.json()
+    return data.data
   }
 
   /**
    * Создать нового студента
    */
-  async createStudent(data: CreateStudentData, token: string, userId?: number): Promise<Student> {
+  async createStudent(data: CreateStudentData, userId?: number): Promise<Student> {
     let currentUserId = userId;
     
     // Если ID пользователя не передан, получаем его
     if (!currentUserId) {
-      const currentUser = await this.request<User>('/users/me', {
-        headers: this.getAuthHeaders(token),
-      })
-      currentUserId = currentUser.id;
+      const currentUser = await fetch('/api/users/me')
+      if (!currentUser.ok) {
+        throw new Error('Failed to get current user')
+      }
+      const user = await currentUser.json()
+      currentUserId = user.id;
     }
 
     // Добавляем owner к данным студента
@@ -57,35 +69,53 @@ export class StudentAPI extends BaseAPI {
       owner: currentUserId
     }
 
-    return this.request<{ data: Student }>('/students', {
+    const response = await fetch('/api/students', {
       method: 'POST',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ data: studentData }),
-    }).then(response => response.data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to create student')
+    }
+    
+    const result = await response.json()
+    return result.data
   }
 
   /**
    * Обновить студента
    */
-  async updateStudent(documentId: string, data: UpdateStudentData, token: string): Promise<Student> {
-    return this.request<{ data: Student }>(`/students/${documentId}`, {
+  async updateStudent(documentId: string, data: UpdateStudentData): Promise<Student> {
+    const response = await fetch(`/api/students/${documentId}`, {
       method: 'PUT',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ data }),
-    }).then(response => {
-      console.log('Update response:', response) // Отладка
-      return response.data
     })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to update student')
+    }
+    
+    const result = await response.json()
+    console.log('Update response:', result) // Отладка
+    return result.data
   }
 
   /**
    * Удалить студента
    */
-  async deleteStudent(documentId: string, token: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/students/${documentId}`, {
+  async deleteStudent(documentId: string): Promise<void> {
+    const response = await fetch(`/api/students/${documentId}`, {
       method: 'DELETE',
       headers: {
-        ...this.getAuthHeaders(token),
+        'Content-Type': 'application/json',
       },
     })
 

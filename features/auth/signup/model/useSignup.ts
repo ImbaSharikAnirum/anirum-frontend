@@ -7,13 +7,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { userAuthAPI, useUser, type RegisterCredentials } from '@/entities/user'
-import { APIError } from '@/shared/api/base'
+import { useUser, type RegisterCredentials } from '@/entities/user'
 
 export function useSignup() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { setAuth } = useUser()
+  const { setUser } = useUser()
   const router = useRouter()
 
   const signup = async (credentials: RegisterCredentials) => {
@@ -21,23 +20,32 @@ export function useSignup() {
     setError(null)
 
     try {
-      const response = await userAuthAPI.register(credentials)
-      
-      // Получаем полные данные пользователя с ролью
-      const userWithRole = await userAuthAPI.getCurrentUser(response.jwt)
-      
-      // Сохраняем данные пользователя в store
-      setAuth(userWithRole, response.jwt)
+      // Делаем запрос к Next.js API route
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Важно для cookies
+        body: JSON.stringify(credentials),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(getErrorMessage(data, response.status))
+        return
+      }
+
+      // Устанавливаем пользователя в store
+      setUser(data.user)
       
       // Перенаправляем на главную страницу
       router.push('/')
       
     } catch (err) {
-      if (err instanceof APIError) {
-        setError(getErrorMessage(err))
-      } else {
-        setError('Произошла неожиданная ошибка')
-      }
+      console.error('Signup error:', err)
+      setError('Произошла неожиданная ошибка')
     } finally {
       setIsLoading(false)
     }
@@ -50,13 +58,15 @@ export function useSignup() {
   }
 }
 
-function getErrorMessage(error: APIError): string {
-  switch (error.status) {
+function getErrorMessage(data: any, status: number): string {
+  const message = data?.error?.message || data?.error || ''
+  
+  switch (status) {
     case 400:
-      if (error.message.includes('email')) {
+      if (message.includes('email')) {
         return 'Пользователь с таким email уже существует'
       }
-      if (error.message.includes('username')) {
+      if (message.includes('username')) {
         return 'Пользователь с таким именем уже существует'  
       }
       return 'Проверьте правильность введенных данных'
@@ -65,6 +75,6 @@ function getErrorMessage(error: APIError): string {
     case 500:
       return 'Ошибка сервера. Попробуйте позже'
     default:
-      return error.message || 'Произошла ошибка при регистрации'
+      return message || 'Произошла ошибка при регистрации'
   }
 }

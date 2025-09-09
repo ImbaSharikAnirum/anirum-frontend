@@ -38,10 +38,14 @@ export class UserAuthAPI extends BaseAPI {
   /**
    * Получение текущего пользователя
    */
-  async getCurrentUser(token: string): Promise<User> {
-    return this.request<User>('/users/me?populate=role', {
-      headers: this.getAuthHeaders(token),
-    })
+  async getCurrentUser(): Promise<User> {
+    const response = await fetch('/api/users/me?populate=role')
+    
+    if (!response.ok) {
+      throw new Error('Failed to get current user')
+    }
+    
+    return response.json()
   }
 
   /**
@@ -67,12 +71,21 @@ export class UserAuthAPI extends BaseAPI {
   /**
    * Обновление профиля пользователя
    */
-  async updateUser(userId: number, data: UpdateUserData, token: string): Promise<User> {
-    return this.request<User>(`/users/${userId}`, {
+  async updateUser(data: UpdateUserData): Promise<User> {
+    const response = await fetch('/api/users/me', {
       method: 'PUT',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(data),
     })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to update user')
+    }
+
+    return response.json()
   }
 }
 

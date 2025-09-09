@@ -12,7 +12,7 @@ import {
   useSidebar
 } from "@/components/ui/sidebar"
 import { Home, Users, BarChart3, Search, Settings, DollarSign, BookOpen, MessageSquare, CheckCircle, Plus } from "lucide-react"
-import { useRole } from '@/shared/lib/hooks/useRole'
+import { useRole } from "@/shared/hooks"
 
 const navigationItems = [
   { title: "Курсы", url: "/courses", icon: Home },
@@ -36,10 +36,10 @@ const teacherItems = [
 
 export function AppSidebar() {
   const { open } = useSidebar()
-  const { isManager, isTeacher, isAuthenticated } = useRole()
+  const { isManager, isTeacher, isStaff, isAuthenticated } = useRole()
   
   return (
-    <Sidebar>
+    <Sidebar className={`${!isStaff ? (open ? 'md:flex lg:hidden' : 'sm:flex md:hidden') : ''}`}>
       <SidebarContent>
         {/* Основная навигация - всем */}
         <SidebarGroup className={`hidden ${open ? 'md:block lg:hidden' : 'sm:block md:hidden'}`}>

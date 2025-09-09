@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { CoursesFilters } from "@/widgets/courses-filters";
 import { CoursesCatalog } from "@/widgets/courses-catalog";
 import { useCoursesFilters } from "@/features/courses-filters";
-import { courseAPI } from "@/entities/course/api/courseApi";
+import { courseAPI } from "@/entities/course";
 import { CourseFilters, buildApiFilters } from "@/entities/course/lib/filters";
 import { useUserTimezone } from "@/shared/hooks/useUserTimezone";
 

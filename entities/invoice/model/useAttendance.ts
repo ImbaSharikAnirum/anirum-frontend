@@ -27,7 +27,7 @@ interface UseAttendanceOptions {
 }
 
 export function useAttendance({ invoiceId, initialAttendance = {} }: UseAttendanceOptions) {
-  const { user, token } = useUser()
+  const { user } = useUser()
   const safeInitialAttendance = initialAttendance || {}
   const [localAttendance, setLocalAttendance] = useState<AttendanceRecord>(() => safeInitialAttendance)
   const [pendingUpdates, setPendingUpdates] = useState<AttendanceRecord>({})
@@ -40,13 +40,13 @@ export function useAttendance({ invoiceId, initialAttendance = {} }: UseAttendan
   // Debounced функция для отправки на сервер
   const debouncedSave = useMemo(
     () => debounce(async (updates: AttendanceRecord) => {
-      if (!token || Object.keys(updates).length === 0) return
+      if (!user || Object.keys(updates).length === 0) return
 
       try {
         setIsUpdating(true)
         setError(null)
         
-        await invoiceAPI.updateAttendance(invoiceId, updates, token)
+        await invoiceAPI.updateAttendance(invoiceId, updates)
         
         // Очищаем pending updates после успешного сохранения
         setPendingUpdates(prev => {
@@ -79,7 +79,7 @@ export function useAttendance({ invoiceId, initialAttendance = {} }: UseAttendan
         setIsUpdating(false)
       }
     }, 500), // 500ms debounce
-    [invoiceId, token, initialAttendance]
+    [invoiceId, user, initialAttendance]
   )
 
   // Основная функция для обновления посещаемости

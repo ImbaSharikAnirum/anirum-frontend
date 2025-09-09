@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useRole } from "@/shared/lib/hooks/useRole"
+import { useRole } from "@/shared/hooks"
 import { DashboardCoursesTable } from "@/widgets/dashboard-courses-table"
 import { DashboardCoursesFilters, type DashboardCoursesFilterValues } from "@/widgets/dashboard-courses-filters"
 import { DashboardCourseStudentsTable } from "@/widgets/dashboard-course-students-table"
@@ -35,6 +35,7 @@ export default function TeacherMyCoursesPage() {
     // Обновляем оба компонента
     setRefreshKey(prev => prev + 1)
   }
+
 
   // Проверка доступа только для преподавателей
   if (!user) {

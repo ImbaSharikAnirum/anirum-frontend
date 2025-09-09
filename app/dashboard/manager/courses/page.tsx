@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useRole } from "@/shared/lib/hooks/useRole"
+import { useRole } from "@/shared/hooks"
 import { DashboardCoursesTable } from "@/widgets/dashboard-courses-table"
 import { DashboardCoursesFilters, type DashboardCoursesFilterValues } from "@/widgets/dashboard-courses-filters"
 import { DashboardCourseStudentsTable } from "@/widgets/dashboard-course-students-table"
@@ -36,7 +36,8 @@ export default function ManagerCoursesPage() {
     setRefreshKey(prev => prev + 1)
   }
 
-  // Проверка доступа только для менеджеров
+
+  // Проверка доступа только для менеджеров  
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-8">

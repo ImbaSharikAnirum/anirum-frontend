@@ -5,96 +5,121 @@
 
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
 import type { User, UpdateUserData } from './types'
 
 interface UserStore {
   user: User | null
-  token: string | null
   isAuthenticated: boolean
-  isLoading: boolean
+  
+  // Кэшированные роли для оптимизации
+  role: any | null
+  roleName: string | null
+  isManager: boolean
+  isTeacher: boolean
+  isStaff: boolean
   
   // Actions
-  setAuth: (user: User, token: string) => void
+  setUser: (user: User | null) => void
   clearAuth: () => void
-  setLoading: (loading: boolean) => void
   updateUser: (data: UpdateUserData) => Promise<void>
+  
+  // Role utilities
+  hasRole: (roleName: string) => boolean
+  hasAnyRole: (roleNames: string[]) => boolean
 }
 
 const UserContext = createContext<UserStore | null>(null)
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+interface UserProviderProps {
+  children: ReactNode
+  initialUser?: User | null
+}
 
-  // Загружаем токен из localStorage при инициализации
-  useEffect(() => {
-    const initAuth = async () => {
-      const savedToken = localStorage.getItem('jwt')
-      if (savedToken) {
-        setToken(savedToken)
-        try {
-          // Загружаем данные пользователя с сервера
-          const { userAuthAPI } = await import('../api/auth')
-          const userData = await userAuthAPI.getCurrentUser(savedToken)
-          setUser(userData)
-        } catch (error) {
-          // Если токен недействителен, очищаем его
-          console.error('Invalid token:', error)
-          localStorage.removeItem('jwt')
-          setToken(null)
-        }
-      }
-      setIsLoading(false)
+export function UserProvider({ children, initialUser = null }: UserProviderProps) {
+  // Инициализируем состояние с данными с сервера (SSR)
+  const [user, setUser] = useState<User | null>(initialUser)
+
+  const clearAuth = async () => {
+    // Вызываем API для удаления cookie
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch (error) {
+      console.error('Logout error:', error)
     }
-
-    initAuth()
-  }, [])
-
-  const setAuth = (userData: User, tokenValue: string) => {
-    setUser(userData)
-    setToken(tokenValue)
-    localStorage.setItem('jwt', tokenValue)
-  }
-
-  const clearAuth = () => {
+    
+    // Очищаем локальное состояние
     setUser(null)
-    setToken(null)
-    localStorage.removeItem('jwt')
-  }
-
-  const setLoadingState = (loading: boolean) => {
-    setIsLoading(loading)
   }
 
   const updateUserData = async (data: UpdateUserData) => {
-    if (!user || !token) {
+    if (!user) {
       throw new Error('Пользователь не авторизован')
     }
 
     try {
-      // Импортируем API и обновляем данные на сервере
-      const { userAuthAPI } = await import('../api/auth')
-      const updatedUser = await userAuthAPI.updateUser(user.id, data, token)
-      
-      // Обновляем локальное состояние
+      // Делаем запрос через Next.js API route
+      const response = await fetch('/api/user/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update user')
+      }
+
+      const { user: updatedUser } = await response.json()
       setUser(updatedUser)
     } catch (error) {
       throw error
     }
   }
 
+  // Мемоизированные вычисления ролей - пересчитываются только при изменении user
+  const roleInfo = useMemo(() => {
+    const role = user?.role || null
+    const roleName = role?.name || null
+
+    const hasRole = (targetRole: string) => roleName === targetRole
+    const hasAnyRole = (roleNames: string[]) => roleName ? roleNames.includes(roleName) : false
+
+    return {
+      role,
+      roleName,
+      isManager: hasRole('Manager'),
+      isTeacher: hasRole('Teacher'), 
+      isStaff: hasAnyRole(['Manager', 'Teacher']),
+      hasRole,
+      hasAnyRole
+    }
+  }, [user])
+
   const store: UserStore = {
     user,
-    token,
-    isAuthenticated: !!user && !!token,
-    isLoading,
+    isAuthenticated: !!user,
     
-    setAuth,
+    // Кэшированные роли из useMemo
+    role: roleInfo.role,
+    roleName: roleInfo.roleName,
+    isManager: roleInfo.isManager,
+    isTeacher: roleInfo.isTeacher,
+    isStaff: roleInfo.isStaff,
+    
+    // Actions
+    setUser,
     clearAuth,
-    setLoading: setLoadingState,
     updateUser: updateUserData,
+    
+    // Role utilities
+    hasRole: roleInfo.hasRole,
+    hasAnyRole: roleInfo.hasAnyRole,
   }
 
   return (

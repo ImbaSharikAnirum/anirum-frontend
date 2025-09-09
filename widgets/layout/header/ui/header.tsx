@@ -3,7 +3,7 @@
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/entities/user"
-import { useRole } from "@/shared/lib/hooks/useRole"
+import { useRole } from "@/shared/hooks"
 import { AuthButtons } from "./AuthButtons"
 import { UserMenu } from "./UserMenu"
 import Link from "next/link"
@@ -11,8 +11,9 @@ import Image from "next/image"
 
 export function Header() {
   const { open } = useSidebar()
-  const { user, isAuthenticated, clearAuth } = useUser()
-  const { isStaff } = useRole()
+  const { user, clearAuth } = useUser()
+  const { isStaff, role, roleName } = useRole()
+
 
   const handleLogout = () => {
     clearAuth()
@@ -21,11 +22,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
-        {isStaff && (
-          <div className="mr-4 flex">
-            <SidebarTrigger />
-          </div>
-        )}
+        {/* SidebarTrigger показываем:
+            - Staff: всегда
+            - Остальные: только когда сайдбар может быть виден (когда навигация в header скрыта) */}
+        <div className={`mr-4 ${isStaff ? 'flex' : `hidden ${open ? 'md:flex lg:hidden' : 'sm:flex md:hidden'}`}`}>
+          <SidebarTrigger />
+        </div>
         
         <div className="flex flex-1 items-center justify-between">
           <div className="flex items-center gap-8">
@@ -53,7 +55,7 @@ export function Header() {
           </div>
           
           <div className="flex items-center gap-1 md:gap-2">
-            {isAuthenticated && user ? (
+            {user ? (
               <UserMenu user={user} onLogout={handleLogout} />
             ) : (
               <AuthButtons />

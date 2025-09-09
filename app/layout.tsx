@@ -12,6 +12,7 @@ import { UserProvider } from "@/entities/user"
 import { ConditionalLayout } from "@/widgets/layout/conditional-layout"
 import { QueryProvider } from "@/shared/providers/query-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { getServerUser } from "@/shared/lib/auth"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,6 +28,9 @@ export default async function RootLayout({
 }) {
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
+  
+  // Получаем пользователя на сервере для SSR
+  const initialUser = await getServerUser()
   
   return (
     <html lang="en">
@@ -47,7 +51,7 @@ export default async function RootLayout({
         </Script>
         
         <QueryProvider>
-          <UserProvider>
+          <UserProvider initialUser={initialUser}>
             <ConditionalLayout defaultOpen={defaultOpen}>
               {children}
             </ConditionalLayout>

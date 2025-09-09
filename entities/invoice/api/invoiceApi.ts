@@ -80,7 +80,7 @@ export class InvoiceAPI extends BaseAPI {
   /**
    * Создать новый счет
    */
-  async createInvoice(data: CreateInvoiceData, token: string): Promise<Invoice> {
+  async createInvoice(data: CreateInvoiceData): Promise<Invoice> {
     const invoiceData = {
       data: {
         name: data.name,
@@ -95,20 +95,35 @@ export class InvoiceAPI extends BaseAPI {
       }
     }
 
-    return this.request<StrapiResponse<Invoice>>('/invoices', {
+    const response = await fetch('/api/invoices', {
       method: 'POST',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(invoiceData)
-    }).then(response => response.data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to create invoice')
+    }
+
+    const result = await response.json()
+    return result.data
   }
 
   /**
    * Получить счет по ID
    */
-  async getInvoice(id: string, token: string): Promise<Invoice> {
-    return this.request<StrapiResponse<Invoice>>(`/invoices/${id}`, {
-      headers: this.getAuthHeaders(token),
-    }).then(response => response.data)
+  async getInvoice(id: string): Promise<Invoice> {
+    const response = await fetch(`/api/invoices/${id}`)
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch invoice')
+    }
+    
+    const result = await response.json()
+    return result.data
   }
 
   /**
@@ -117,11 +132,14 @@ export class InvoiceAPI extends BaseAPI {
    */
   async getPublicInvoice(id: string): Promise<Invoice> {
     // Используем правильный Strapi 5 синтаксис для populate
-    return this.request<StrapiResponse<Invoice>>(`/invoices/${id}?populate[0]=course&populate[1]=owner`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then(response => response.data)
+    const response = await fetch(`/api/invoices/${id}?populate[0]=course&populate[1]=owner`)
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch public invoice')
+    }
+    
+    const result = await response.json()
+    return result.data
   }
 
   /**
@@ -130,13 +148,14 @@ export class InvoiceAPI extends BaseAPI {
    */
   async getInvoiceByTinkoffOrderId(tinkoffOrderId: string): Promise<Invoice | null> {
     try {
-      const response = await this.request<{ data: Invoice[] }>(`/invoices?filters[tinkoffOrderId][$eq]=${tinkoffOrderId}&populate[0]=course&populate[1]=owner`, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await fetch(`/api/invoices?filters[tinkoffOrderId][$eq]=${tinkoffOrderId}&populate[0]=course&populate[1]=owner`)
       
-      return response.data && response.data.length > 0 ? response.data[0] : null
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice by tinkoffOrderId')
+      }
+      
+      const result = await response.json()
+      return result.data && result.data.length > 0 ? result.data[0] : null
     } catch (error) {
       console.error('Ошибка получения invoice по tinkoffOrderId:', error)
       return null
@@ -146,10 +165,15 @@ export class InvoiceAPI extends BaseAPI {
   /**
    * Получить все счета пользователя
    */
-  async getMyInvoices(token: string): Promise<Invoice[]> {
-    return this.request<{ data: Invoice[] }>('/invoices?populate[course]=*&populate[owner]=*&sort=createdAt:desc', {
-      headers: this.getAuthHeaders(token),
-    }).then(response => response.data)
+  async getMyInvoices(): Promise<Invoice[]> {
+    const response = await fetch('/api/invoices?populate[course]=*&populate[owner]=*&sort=createdAt:desc')
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch my invoices')
+    }
+    
+    const result = await response.json()
+    return result.data
   }
 
   /**
@@ -182,36 +206,58 @@ export class InvoiceAPI extends BaseAPI {
     }
 
     const queryString = searchParams.toString();
-    const endpoint = `/invoices?${queryString}`;
-
-    return this.request<{ data: Invoice[] }>(endpoint).then(response => response.data);
+    const response = await fetch(`/api/invoices?${queryString}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch course invoices')
+    }
+    
+    const result = await response.json()
+    return result.data;
   }
 
   /**
    * Обновить счет
    */
-  async updateInvoice(documentId: string, data: UpdateInvoiceData, token: string): Promise<Invoice> {
+  async updateInvoice(documentId: string, data: UpdateInvoiceData): Promise<Invoice> {
     const invoiceData = {
       data: {
         ...data
       }
     }
 
-    return this.request<StrapiResponse<Invoice>>(`/invoices/${documentId}`, {
+    const response = await fetch(`/api/invoices/${documentId}`, {
       method: 'PUT',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(invoiceData)
-    }).then(response => response.data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to update invoice')
+    }
+
+    const result = await response.json()
+    return result.data
   }
 
   /**
    * Удалить счет
    */
-  async deleteInvoice(documentId: string, token: string): Promise<void> {
-    await this.request(`/invoices/${documentId}`, {
+  async deleteInvoice(documentId: string): Promise<void> {
+    const response = await fetch(`/api/invoices/${documentId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.error?.message || 'Failed to delete invoice')
+    }
   }
 
   /**
@@ -219,16 +265,25 @@ export class InvoiceAPI extends BaseAPI {
    */
   async updateAttendance(
     invoiceId: string, 
-    attendance: AttendanceRecord,
-    token: string
+    attendance: AttendanceRecord
   ): Promise<Invoice> {
-    return this.request<StrapiResponse<Invoice>>(`/invoices/${invoiceId}`, {
+    const response = await fetch(`/api/invoices/${invoiceId}`, {
       method: 'PUT',
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         data: { attendance }
       })
-    }).then(response => response.data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to update attendance')
+    }
+
+    const result = await response.json()
+    return result.data
   }
 
   /**
@@ -237,11 +292,10 @@ export class InvoiceAPI extends BaseAPI {
   async updateSingleAttendance(
     invoiceId: string,
     date: string,
-    status: AttendanceStatus,
-    token: string
+    status: AttendanceStatus
   ): Promise<Invoice> {
     // Получаем текущую посещаемость
-    const invoice = await this.getInvoice(invoiceId, token)
+    const invoice = await this.getInvoice(invoiceId)
     
     // Мержим с новой датой
     const updatedAttendance = {
@@ -249,20 +303,27 @@ export class InvoiceAPI extends BaseAPI {
       [date]: status
     }
 
-    return this.updateAttendance(invoiceId, updatedAttendance, token)
+    return this.updateAttendance(invoiceId, updatedAttendance)
   }
 
   /**
    * Создать платеж через Tinkoff
    */
   async createTinkoffPayment(data: TinkoffPaymentData): Promise<TinkoffPaymentResponse> {
-    return this.request<TinkoffPaymentResponse>('/invoices/tinkoff/payment', {
+    const response = await fetch('/api/invoices/tinkoff/payment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
     })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to create Tinkoff payment')
+    }
+
+    return response.json()
   }
 }
 

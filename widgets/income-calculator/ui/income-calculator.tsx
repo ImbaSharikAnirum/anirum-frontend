@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
-import { useRole } from '@/shared/lib/hooks/useRole'
+import { useRole } from "@/shared/hooks"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export interface IncomeCalculatorProps {

@@ -16,11 +16,11 @@ export function useStudents() {
   const [error, setError] = useState<string | null>(null)
   const [isFetching, setIsFetching] = useState(false) // Флаг для предотвращения параллельных запросов
   
-  const { token, isAuthenticated, user } = useUser()
+  const { isAuthenticated, user } = useUser()
 
   // Загрузка студентов
   const fetchStudents = async () => {
-    if (!token || !isAuthenticated || !user || isFetching) {
+    if (!isAuthenticated || !user || isFetching) {
       if (!isFetching) setIsLoading(false)
       return
     }
@@ -29,7 +29,7 @@ export function useStudents() {
       setIsFetching(true)
       setIsLoading(true)
       setError(null)
-      const data = await studentAPI.getMyStudents(token, user.id)
+      const data = await studentAPI.getMyStudents(user.id)
       setStudents(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки студентов')
@@ -41,10 +41,10 @@ export function useStudents() {
 
   // Создание студента
   const createStudent = async (data: CreateStudentData): Promise<Student | null> => {
-    if (!token || !user) return null
+    if (!user) return null
 
     try {
-      const newStudent = await studentAPI.createStudent(data, token, user.id)
+      const newStudent = await studentAPI.createStudent(data, user.id)
       setStudents(prev => [newStudent, ...prev])
       return newStudent
     } catch (err) {
@@ -55,10 +55,10 @@ export function useStudents() {
 
   // Обновление студента
   const updateStudent = async (documentId: string, data: UpdateStudentData): Promise<Student | null> => {
-    if (!token) return null
+    if (!user) return null
 
     try {
-      const updatedStudent = await studentAPI.updateStudent(documentId, data, token)
+      const updatedStudent = await studentAPI.updateStudent(documentId, data)
       setStudents(prev => prev.map(student => 
         student.documentId === documentId ? updatedStudent : student
       ))
@@ -71,10 +71,10 @@ export function useStudents() {
 
   // Удаление студента
   const deleteStudent = async (documentId: string): Promise<boolean> => {
-    if (!token) return false
+    if (!user) return false
 
     try {
-      await studentAPI.deleteStudent(documentId, token)
+      await studentAPI.deleteStudent(documentId)
       setStudents(prev => prev.filter(student => student.documentId !== documentId))
       return true
     } catch (err) {
@@ -87,7 +87,7 @@ export function useStudents() {
   // Загружаем студентов при монтировании
   useEffect(() => {
     fetchStudents()
-  }, [token, isAuthenticated, user?.id]) // Зависим только от user.id, а не от всего объекта user
+  }, [isAuthenticated, user?.id]) // Зависим только от user.id, а не от всего объекта user
 
   return {
     students,

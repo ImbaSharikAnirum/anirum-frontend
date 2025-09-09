@@ -13,7 +13,13 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, MoreHorizontal } from "lucide-react"
+import { Calendar, Clock, MapPin, MoreHorizontal, Edit, Eye, Check, X } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Pagination,
   PaginationContent,
@@ -28,6 +34,7 @@ import { formatCourseSchedule } from "@/shared/lib/timezone-utils"
 import { formatWeekdays } from "@/shared/lib/course-utils"
 import { CourseEnrollmentProgress } from "@/shared/ui/course-enrollment-progress"
 import type { DashboardCoursesFilterValues } from "@/widgets/dashboard-courses-filters"
+import { useRouter } from "next/navigation"
 
 type UserRole = 'Manager' | 'Teacher'
 
@@ -50,6 +57,7 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
   const [totalCourses, setTotalCourses] = useState(0)
   const pageSize = 5
   const { timezone: userTimezone, loading: timezoneLoading } = useUserTimezone()
+  const router = useRouter()
 
   // Сбрасываем страницу при изменении фильтров
   useEffect(() => {
@@ -157,9 +165,24 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
     loadCourses()
   }, [filters, refreshKey, currentPage])
 
-  const handleActions = async (courseId: string) => {
-    // TODO: Реализовать меню действий (одобрить/отклонить/просмотреть)
-    console.log("Действия для курса:", courseId)
+  const handleViewCourse = (courseId: string) => {
+    router.push(`/courses/${courseId}`)
+  }
+
+  const handleEditCourse = (courseId: string) => {
+    router.push(`/courses/${courseId}/edit`)
+  }
+
+  const handleApproveCourse = async (courseId: string) => {
+    // TODO: Реализовать API для одобрения курса
+    console.log("Одобрить курс:", courseId)
+    // После реализации API - обновить таблицу
+  }
+
+  const handleRejectCourse = async (courseId: string) => {
+    // TODO: Реализовать API для отклонения курса  
+    console.log("Отклонить курс:", courseId)
+    // После реализации API - обновить таблицу
   }
 
   const handlePageChange = (page: number) => {
@@ -374,13 +397,35 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
                     </TableCell>
                   )}
                   <TableCell>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleActions(course.documentId)}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewCourse(course.documentId)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Просмотреть
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditCourse(course.documentId)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Редактировать
+                        </DropdownMenuItem>
+                        {role === 'Manager' && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleApproveCourse(course.documentId)}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Одобрить
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleRejectCourse(course.documentId)}>
+                              <X className="mr-2 h-4 w-4" />
+                              Отклонить
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               )

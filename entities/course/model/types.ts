@@ -116,3 +116,7 @@ export interface CreateCourseData {
   googlePlaceId?: string
   coordinates?: { lat: number; lng: number } | null
 }
+
+export interface UpdateCourseData extends CreateCourseData {
+  // Может содержать дополнительные поля специфичные для обновления
+}

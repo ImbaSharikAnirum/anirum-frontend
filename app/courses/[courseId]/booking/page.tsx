@@ -1,4 +1,4 @@
-import { courseAPI } from '@/entities/course/api/courseApi'
+import { courseAPI } from '@/entities/course'
 import { invoiceAPI, Invoice } from '@/entities/invoice'
 import { notFound } from 'next/navigation'
 import { BookingDetails } from '@/widgets/booking-details'

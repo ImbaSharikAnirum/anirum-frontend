@@ -1,5 +1,5 @@
 import { BaseAPI } from "@/shared/api/base";
-import { Course, CreateCourseData } from "../model/types";
+import { Course, CreateCourseData, UpdateCourseData } from "../model/types";
 import { convertToMoscow } from "@/shared/lib/timezone";
 
 interface StrapiResponse<T> {
@@ -236,9 +236,9 @@ export class CourseAPI extends BaseAPI {
   }
 
   /**
-   * Загрузка изображений в Strapi 5
+   * Загрузка изображений через Next.js API route
    */
-  async uploadImages(files: File[], token: string): Promise<number[]> {
+  async uploadImages(files: File[]): Promise<number[]> {
     if (files.length === 0) return [];
 
     const form = new FormData();
@@ -246,9 +246,8 @@ export class CourseAPI extends BaseAPI {
       form.append("files", file, file.name);
     });
 
-    const response = await fetch(`${this.baseURL}/upload`, {
+    const response = await fetch('/api/upload', {
       method: "POST",
-      headers: this.getAuthHeaders(token),
       body: form,
     });
 
@@ -266,13 +265,12 @@ export class CourseAPI extends BaseAPI {
   async createCourse(
     formData: CreateCourseData,
     selectedDays: string[],
-    token: string,
     imageFiles?: File[]
   ): Promise<Course> {
     // Шаг 1: Загрузить изображения (если есть)
     let imageIds: number[] = [];
     if (imageFiles && imageFiles.length > 0) {
-      imageIds = await this.uploadImages(imageFiles, token);
+      imageIds = await this.uploadImages(imageFiles);
     }
 
     // Шаг 2: Вычислить нормализованное время в московской зоне
@@ -327,11 +325,21 @@ export class CourseAPI extends BaseAPI {
       },
     };
 
-    return this.request<{ data: Course }>("/courses", {
+    const response = await fetch('/api/courses', {
       method: "POST",
-      headers: this.getAuthHeaders(token),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(courseData),
-    }).then((result) => result.data);
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Ошибка при создании курса');
+    }
+
+    const result = await response.json();
+    return result.data;
   }
 
   /**
@@ -399,6 +407,117 @@ export class CourseAPI extends BaseAPI {
       });
 
     return { min, max, histogram };
+  }
+
+  /**
+   * Обновление курса
+   */
+  async updateCourse(
+    documentId: string,
+    formData: UpdateCourseData,
+    selectedDays: string[],
+    imageFiles?: File[],
+    allFiles?: any[] // Все файлы включая существующие для порядка
+  ): Promise<Course> {
+    // Шаг 1: Загрузить новые изображения (если есть)
+    let newImageIds: number[] = [];
+    if (imageFiles && imageFiles.length > 0) {
+      newImageIds = await this.uploadImages(imageFiles);
+    }
+    
+    // Шаг 2: Собрать все ID изображений в правильном порядке
+    let finalImageIds: number[] = [];
+    if (allFiles && allFiles.length > 0) {
+      let newImageIndex = 0;
+      
+      finalImageIds = allFiles.map(fileWrapper => {
+        const file = fileWrapper.file;
+        
+        // Если это новый загруженный файл (File object)
+        if (file instanceof File) {
+          return newImageIds[newImageIndex++];
+        }
+        // Если это существующее изображение (FileMetadata)
+        else if (typeof file === 'object' && 'strapiId' in fileWrapper.file) {
+          // Используем сохраненный Strapi ID
+          return fileWrapper.file.strapiId;
+        }
+        
+        return null;
+      }).filter((id): id is number => id !== null);
+    } else if (newImageIds.length > 0) {
+      // Если allFiles не передан, используем только новые изображения
+      finalImageIds = newImageIds;
+    }
+
+    // Шаг 3: Вычислить нормализованное время в московской зоне
+    const normalizedStartTime =
+      formData.startTime && formData.timezone
+        ? convertToMoscow(formData.startTime, formData.timezone)
+        : null;
+    const normalizedEndTime =
+      formData.endTime && formData.timezone
+        ? convertToMoscow(formData.endTime, formData.timezone)
+        : null;
+
+    // Шаг 4: Подготовить данные для обновления
+    const updateData = {
+      data: {
+        description: formData.description,
+        direction: formData.direction,
+        teacher: formData.teacher ? formData.teacher : null,
+        startTime: formData.startTime ? `${formData.startTime}:00.000` : null,
+        endTime: formData.endTime ? `${formData.endTime}:00.000` : null,
+        normalizedStartTime,
+        normalizedEndTime,
+        startDate: formData.startDate
+          ? formData.startDate.toISOString().split("T")[0]
+          : null,
+        endDate: formData.endDate
+          ? formData.endDate.toISOString().split("T")[0]
+          : null,
+        timezone: formData.timezone,
+        pricePerLesson: parseFloat(formData.pricePerLesson) || 0,
+        currency: formData.currency,
+        country: formData.country,
+        city: formData.city,
+        address: formData.address,
+        isOnline: formData.isOnline ?? false,
+        minStudents: formData.minStudents,
+        maxStudents: formData.maxStudents,
+        startAge: parseInt(formData.startAge) || null,
+        endAge: parseInt(formData.endAge) || null,
+        complexity: formData.complexity,
+        courseType: formData.courseType,
+        language: formData.language,
+        inventoryRequired: formData.inventoryRequired,
+        inventoryDescription: formData.inventoryDescription,
+        rentalPrice: parseFloat(formData.rentalPrice) || null,
+        software: formData.software,
+        urlMessenger: formData.urlMessenger,
+        weekdays: selectedDays,
+        googlePlaceId: formData.googlePlaceId,
+        coordinates: formData.coordinates,
+        // Если загружены новые изображения, заменяем их
+        ...(finalImageIds.length > 0 && { images: finalImageIds }),
+      },
+    };
+
+    const response = await fetch(`/api/courses/${documentId}`, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Ошибка при обновлении курса');
+    }
+
+    const result = await response.json();
+    return result.data;
   }
 }
 

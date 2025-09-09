@@ -1,5 +1,5 @@
 import { invoiceAPI } from '@/entities/invoice'
-import { courseAPI } from '@/entities/course/api/courseApi'
+import { courseAPI } from '@/entities/course'
 import { notFound } from 'next/navigation'
 import { PaymentForm } from '@/widgets/payment-form'
 import { BookingCard } from '@/widgets/booking-card'

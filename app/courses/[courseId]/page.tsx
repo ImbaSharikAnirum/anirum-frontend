@@ -7,7 +7,7 @@ import { CourseMaps } from "@/widgets/course-maps";
 import { CourseLocation } from "@/widgets/course-location";
 import { CourseBookingForm } from "@/widgets/course-booking-form";
 import { CourseTeacherInfo } from "@/widgets/course-teacher-info";
-import { courseAPI } from "@/entities/course/api/courseApi";
+import { courseAPI } from "@/entities/course";
 import { Course } from "@/entities/course/model/types";
 import { useParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";

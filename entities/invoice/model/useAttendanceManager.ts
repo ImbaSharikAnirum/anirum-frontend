@@ -36,7 +36,7 @@ interface UseAttendanceManagerOptions {
 }
 
 export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) {
-  const { user, token } = useUser()
+  const { user } = useUser()
   
   // Инициализируем состояние из данных invoices с правильной синхронизацией
   const [state, setState] = useState<AttendanceManagerState>(() => ({
@@ -78,7 +78,7 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
   // Debounced функция для батчинга всех обновлений
   const debouncedBatchSave = useMemo(
     () => debounce(async () => {
-      if (!token) {
+      if (!user) {
         return
       }
       
@@ -105,7 +105,7 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
           }
           
           try {
-            const result = await invoiceAPI.updateAttendance(invoiceId, mergedAttendance, token)
+            const result = await invoiceAPI.updateAttendance(invoiceId, mergedAttendance)
             results.push({ status: 'fulfilled', value: result })
           } catch (error) {
             results.push({ status: 'rejected', reason: error, invoiceId })
@@ -152,7 +152,7 @@ export function useAttendanceManager({ invoices }: UseAttendanceManagerOptions) 
         }))
       }
     }, 1000), // 1000ms debounce для лучшего батчинга
-    [token, invoices]
+    [user, invoices]
   )
 
   // Основная функция для обновления посещаемости

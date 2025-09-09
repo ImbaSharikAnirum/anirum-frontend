@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, XCircle, Loader2, MessageCircle } from 'lucide-react'
 import { invoiceAPI } from '@/entities/invoice/api/invoiceApi'
-import { courseAPI } from '@/entities/course/api/courseApi'
+import { courseAPI } from '@/entities/course'
 import type { Course } from '@/entities/course/model/types'
 
 export default function PaymentSuccessPage() {
