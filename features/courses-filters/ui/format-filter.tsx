@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover"
 import { useGooglePlaces } from "@/shared/hooks/use-google-places"
 
-interface LocationData {
+export interface LocationData {
   city: string
   country: string
   address: string
