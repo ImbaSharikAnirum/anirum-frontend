@@ -103,17 +103,16 @@ export function StudentActionsDropdown({
     try {
       setIsDeleting(true)
       
-      // Получаем токен из localStorage или context
-      const token = localStorage.getItem('jwt') || ''
-      
-      await invoiceAPI.deleteInvoice(invoiceDocumentId, token)
+      // Токен автоматически передается через cookies (session)
+      await invoiceAPI.deleteInvoice(invoiceDocumentId)
       
       setIsDeleteDialogOpen(false)
       onStudentDeleted?.()
+      toast.success('Студент удален')
       
     } catch (error) {
       console.error('Ошибка при удалении студента:', error)
-      // TODO: Добавить toast уведомление об ошибке
+      toast.error('Ошибка при удалении студента')
     } finally {
       setIsDeleting(false)
     }

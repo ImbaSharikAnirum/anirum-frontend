@@ -80,19 +80,36 @@ export function FormatFilter({ value, cityValue, onFormatAndLocationChange }: Fo
   const handleFormatSelect = (format: typeof formats[0]) => {
     const newFormat = format.id as 'online' | 'offline'
     
+    console.log('🎯 handleFormatSelect called:', { 
+      formatId: format.id, 
+      newFormat, 
+      cityValue,
+      locationQuery,
+      shortLocationName 
+    })
+    
     if (newFormat === "online") {
       setLocationQuery("")
       setShortLocationName("")
       clearPredictions()
       setOpen(false)
+      console.log('📡 Calling onFormatAndLocationChange with online:', newFormat, undefined)
       onFormatAndLocationChange?.(newFormat, undefined)
     } else {
+      console.log('🏢 Calling onFormatAndLocationChange with offline:', newFormat, cityValue)
       onFormatAndLocationChange?.(newFormat, cityValue)
     }
   }
 
   const handleLocationSelect = async (prediction: any) => {
     const russianDescription = prediction.description
+    
+    console.log('📍 handleLocationSelect called:', { 
+      prediction, 
+      russianDescription,
+      place_id: prediction.place_id 
+    })
+    
     setLocationQuery(russianDescription)
     clearPredictions()
     setOpen(false)
@@ -100,10 +117,20 @@ export function FormatFilter({ value, cityValue, onFormatAndLocationChange }: Fo
     // Получаем детальную информацию о месте
     if (prediction.place_id) {
       const details = await getPlaceDetails(prediction.place_id, russianDescription)
+      console.log('📍 Place details received:', details)
+      
       if (details) {
-        setShortLocationName(details.displayCity || details.city || getShortLocationName(russianDescription))
+        const shortName = details.displayCity || details.city || getShortLocationName(russianDescription)
+        setShortLocationName(shortName)
+        
+        console.log('📍 Setting location data:', { 
+          shortLocationName: shortName,
+          city: details.city,
+          format: 'offline'
+        })
         
         // Передаем город для фильтрации
+        console.log('📍 Calling onFormatAndLocationChange with city:', 'offline', details.city)
         onFormatAndLocationChange?.('offline', details.city)
       }
     }

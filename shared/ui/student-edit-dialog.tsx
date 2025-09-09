@@ -73,8 +73,7 @@ export function StudentEditDialog({
       setIsLoading(true)
       setError(null)
 
-      const token = localStorage.getItem('jwt') || ''
-      const invoice = await invoiceAPI.getInvoice(invoiceDocumentId, token)
+      const invoice = await invoiceAPI.getInvoice(invoiceDocumentId)
 
       setFormData({
         name: invoice.name,
@@ -113,8 +112,6 @@ export function StudentEditDialog({
       setIsSaving(true)
       setError(null)
 
-      const token = localStorage.getItem('jwt') || ''
-      
       const updateData: UpdateInvoiceData = {
         name: formData.name.trim(),
         family: formData.family.trim(),
@@ -125,7 +122,7 @@ export function StudentEditDialog({
         statusPayment: formData.statusPayment
       }
 
-      await invoiceAPI.updateInvoice(invoiceDocumentId, updateData, token)
+      await invoiceAPI.updateInvoice(invoiceDocumentId, updateData)
 
       onStudentUpdated?.()
       onClose()

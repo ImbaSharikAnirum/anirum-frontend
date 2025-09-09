@@ -515,16 +515,34 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
   const [initialImages] = useState(() => convertCourseImagesToFileMetadata(initialData))
 
   const handleInputChange = (field: string, value: string | boolean | Date | number | null | undefined) => {
+    console.log('📝 handleInputChange called:', { 
+      field, 
+      value, 
+      oldValue: formData[field as keyof typeof formData]
+    })
+    
     const newFormData = { ...formData, [field]: value }
     setFormData(newFormData)
+    
+    console.log('📝 formData updated:', {
+      field,
+      newValue: value,
+      fullFormData: newFormData
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('🚀 handleSubmit called with formData:', formData)
+    console.log('🚀 Selected days:', selectedDays)
+    console.log('🚀 Image files:', imageFiles)
+    
     try {
       // Определяем teacher на основе роли пользователя
       const courseData = { ...formData }
+      
+      console.log('🚀 Course data before teacher assignment:', courseData)
       
       if (isManager) {
         // Менеджер: обязательно должен выбрать преподавателя
@@ -579,10 +597,25 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
               value={formData.isOnline === undefined ? undefined : (formData.isOnline ? 'online' : 'offline')}
               cityValue={formData.city}
               onFormatAndLocationChange={(format, city) => {
-                handleInputChange('isOnline', format === 'online' ? true : format === 'offline' ? false : undefined)
+                console.log('🏗️ CourseForm onFormatAndLocationChange called:', { 
+                  format, 
+                  city,
+                  currentFormData: formData
+                })
+                
+                const newIsOnline = format === 'online' ? true : format === 'offline' ? false : undefined
+                console.log('🏗️ Setting isOnline to:', newIsOnline)
+                handleInputChange('isOnline', newIsOnline)
+                
                 if (city) {
+                  console.log('🏗️ Setting city to:', city)
                   handleInputChange('city', city)
                 }
+                
+                console.log('🏗️ Final formData after changes should have:', {
+                  isOnline: newIsOnline,
+                  city: city || formData.city
+                })
               }}
             />
             {isManager && (

@@ -80,8 +80,8 @@ export function StudentContactDialog({
       setIsLoading(true)
       setError(null)
 
-      // Сначала получаем invoice с owner
-      const invoiceResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/invoices/${invoiceDocumentId}?populate[owner][populate]=avatar`, {
+      // Получаем invoice с owner через API route
+      const invoiceResponse = await fetch(`/api/invoices/${invoiceDocumentId}?populate[owner][populate]=avatar`, {
         headers: {
           'Content-Type': 'application/json',
         }
