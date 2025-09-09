@@ -79,6 +79,9 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
       return
     }
 
+    // Проверяем, можно ли оплачивать сразу
+    const isDirectPayment = canDirectPayment(course, monthlyInvoices)
+
     try {
       // 1. Определяем данные студента
       let studentName = ''
@@ -166,10 +169,29 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
 
       const invoice = await invoiceAPI.createInvoice(invoiceData)
       
-      // Перенаправляем на нашу страницу оплаты вместо прямого перехода на Tinkoff
-      // Это позволит пользователям получать ссылку для повторной оплаты
-      const paymentUrl = `/courses/${course.documentId}/payment/${invoice.documentId}`
-      window.location.href = paymentUrl
+      if (isDirectPayment) {
+        // Прямая оплата - создаем Tinkoff платеж и перенаправляем
+        const paymentData = {
+          users_permissions_user: invoice.owner?.documentId || user.documentId || user.id.toString(),
+          course: course.documentId,
+          amount: invoice.sum,
+          currency: invoice.currency || 'RUB',
+          invoiceId: invoice.documentId
+        }
+
+        const paymentResponse = await invoiceAPI.createTinkoffPayment(paymentData)
+        
+        if (paymentResponse?.paymentUrl) {
+          // Перенаправляем на страницу оплаты Tinkoff
+          window.location.href = paymentResponse.paymentUrl
+        } else {
+          throw new Error('Сервер не вернул ссылку на оплату')
+        }
+      } else {
+        // Отложенная оплата - показываем success step
+        setCreatedInvoice(invoice)
+        setCurrentStep('success')
+      }
       
     } catch (error) {
       alert('Ошибка при создании бронирования. Попробуйте еще раз.')

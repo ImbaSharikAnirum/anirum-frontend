@@ -64,13 +64,13 @@ export function SuccessStep({ invoice, courseDirection, onClose }: SuccessStepPr
             <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5 flex-shrink-0">
               1
             </div>
-            <p>Как только наберется минимальное количество студентов, мы отправим счет на оплату</p>
+            <p>Мы свяжемся с вами, как только наберется минимальное количество студентов</p>
           </div>
           <div className="flex items-start">
             <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5 flex-shrink-0">
               2
             </div>
-            <p>После оплаты вы получите все необходимые материалы и доступ к курсу</p>
+            <p>Вы получите ссылку для оплаты и все необходимые материалы для курса</p>
           </div>
         </div>
       </div>
