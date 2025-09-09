@@ -13,13 +13,23 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, MoreHorizontal, Edit, Eye, Check, X } from "lucide-react"
+import { Calendar, Clock, MapPin, MoreHorizontal, Edit, Eye, Check, X, Copy, Trash2 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   Pagination,
   PaginationContent,
@@ -35,6 +45,7 @@ import { formatWeekdays } from "@/shared/lib/course-utils"
 import { CourseEnrollmentProgress } from "@/shared/ui/course-enrollment-progress"
 import type { DashboardCoursesFilterValues } from "@/widgets/dashboard-courses-filters"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 type UserRole = 'Manager' | 'Teacher'
 
@@ -55,6 +66,9 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCourses, setTotalCourses] = useState(0)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const pageSize = 5
   const { timezone: userTimezone, loading: timezoneLoading } = useUserTimezone()
   const router = useRouter()
@@ -64,104 +78,104 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
     setCurrentPage(1)
   }, [filters])
 
-  useEffect(() => {
-    async function loadCourses() {
-      try {
-        setIsLoading(true)
-        setError(null)
-        
-        // Построение фильтров для API
-        const apiFilters: Record<string, any> = {}
-        
-        // Фильтр по статусу в зависимости от роли
-        if (role === 'Manager') {
-          apiFilters.status = { $eq: 'pending_approval' }
-        } else if (role === 'Teacher') {
-          // Для преподавателей показываем все их курсы
-          apiFilters.status = { $in: ['draft', 'pending_approval', 'approved', 'active', 'completed'] }
-        }
-        
-        // Фильтр по преподавателю
-        if (role === 'Manager' && filters?.teacher) {
-          apiFilters.teacher = { documentId: { $eq: filters.teacher } }
-        } else if (role === 'Teacher' && teacherDocumentId) {
-          // Для преподавателей автоматически фильтруем по их documentId
-          apiFilters.teacher = { documentId: { $eq: teacherDocumentId } }
-        }
-        
-        // Фильтр по формату
-        if (filters?.format) {
-          apiFilters.isOnline = { $eq: filters.format === 'online' }
-        }
-        
-        // Фильтр по дате (месяц и год)
-        if (filters?.year || filters?.month) {
-          const year = filters.year || new Date().getFullYear()
-          
-          if (filters.month) {
-            // Конкретный месяц
-            const startDate = `${year}-${filters.month.toString().padStart(2, '0')}-01`
-            const lastDay = new Date(year, filters.month, 0).getDate()
-            const endDate = `${year}-${filters.month.toString().padStart(2, '0')}-${lastDay}`
-            
-            // Курсы, которые проходят в этом месяце
-            apiFilters.$or = [
-              {
-                startDate: { $lte: endDate },
-                endDate: { $gte: startDate }
-              }
-            ]
-          } else {
-            // Только год
-            const startDate = `${year}-01-01`
-            const endDate = `${year}-12-31`
-            
-            apiFilters.$or = [
-              {
-                startDate: { $lte: endDate },
-                endDate: { $gte: startDate }
-              }
-            ]
-          }
-        }
-        
-        // Определяем параметры для фильтрации инвойсов
-        const currentDate = new Date()
-        const currentYear = currentDate.getFullYear()
-        const currentMonth = currentDate.getMonth() + 1 // getMonth() возвращает 0-11, нужно 1-12
-        
-        const invoicesMonth = filters?.month || currentMonth
-        const invoicesYear = filters?.year || currentYear
-        
-        const response = await courseAPI.getCourses({
-          page: currentPage,
-          pageSize: pageSize,
-          filters: apiFilters,
-          populate: ["images", "teacher.avatar", "invoices"],
-          sort: ["createdAt:desc"],
-          // Передаем параметры для фильтрации инвойсов по выбранному/текущему месяцу
-          invoicesMonth: invoicesMonth,
-          invoicesYear: invoicesYear
-        })
-        
-        setCourses(response.courses)
-        
-        // Обновляем метаданные пагинации
-        if (response.meta?.pagination) {
-          setTotalPages(response.meta.pagination.pageCount)
-          setTotalCourses(response.meta.pagination.total)
-        } else {
-          // Если Strapi не возвращает meta, рассчитываем сами
-          setTotalCourses(response.courses.length)
-          setTotalPages(Math.ceil(response.courses.length / pageSize))
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Ошибка при загрузке курсов")
-      } finally {
-        setIsLoading(false)
+  const loadCourses = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // Построение фильтров для API
+      const apiFilters: Record<string, any> = {}
+      
+      // Фильтр по статусу в зависимости от роли
+      if (role === 'Manager') {
+        apiFilters.status = { $eq: 'pending_approval' }
+      } else if (role === 'Teacher') {
+        // Для преподавателей показываем все их курсы
+        apiFilters.status = { $in: ['draft', 'pending_approval', 'approved', 'active', 'completed'] }
       }
+      
+      // Фильтр по преподавателю
+      if (role === 'Manager' && filters?.teacher) {
+        apiFilters.teacher = { documentId: { $eq: filters.teacher } }
+      } else if (role === 'Teacher' && teacherDocumentId) {
+        // Для преподавателей автоматически фильтруем по их documentId
+        apiFilters.teacher = { documentId: { $eq: teacherDocumentId } }
+      }
+      
+      // Фильтр по формату
+      if (filters?.format) {
+        apiFilters.isOnline = { $eq: filters.format === 'online' }
+      }
+      
+      // Фильтр по дате (месяц и год)
+      if (filters?.year || filters?.month) {
+        const year = filters.year || new Date().getFullYear()
+        
+        if (filters.month) {
+          // Конкретный месяц
+          const startDate = `${year}-${filters.month.toString().padStart(2, '0')}-01`
+          const lastDay = new Date(year, filters.month, 0).getDate()
+          const endDate = `${year}-${filters.month.toString().padStart(2, '0')}-${lastDay}`
+          
+          // Курсы, которые проходят в этом месяце
+          apiFilters.$or = [
+            {
+              startDate: { $lte: endDate },
+              endDate: { $gte: startDate }
+            }
+          ]
+        } else {
+          // Только год
+          const startDate = `${year}-01-01`
+          const endDate = `${year}-12-31`
+          
+          apiFilters.$or = [
+            {
+              startDate: { $lte: endDate },
+              endDate: { $gte: startDate }
+            }
+          ]
+        }
+      }
+      
+      // Определяем параметры для фильтрации инвойсов
+      const currentDate = new Date()
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth() + 1 // getMonth() возвращает 0-11, нужно 1-12
+      
+      const invoicesMonth = filters?.month || currentMonth
+      const invoicesYear = filters?.year || currentYear
+      
+      const response = await courseAPI.getCourses({
+        page: currentPage,
+        pageSize: pageSize,
+        filters: apiFilters,
+        populate: ["images", "teacher.avatar", "invoices"],
+        sort: ["createdAt:desc"],
+        // Передаем параметры для фильтрации инвойсов по выбранному/текущему месяцу
+        invoicesMonth: invoicesMonth,
+        invoicesYear: invoicesYear
+      })
+      
+      setCourses(response.courses)
+      
+      // Обновляем метаданные пагинации
+      if (response.meta?.pagination) {
+        setTotalPages(response.meta.pagination.pageCount)
+        setTotalCourses(response.meta.pagination.total)
+      } else {
+        // Если Strapi не возвращает meta, рассчитываем сами
+        setTotalCourses(response.courses.length)
+        setTotalPages(Math.ceil(response.courses.length / pageSize))
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка при загрузке курсов")
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     loadCourses()
   }, [filters, refreshKey, currentPage])
 
@@ -183,6 +197,58 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
     // TODO: Реализовать API для отклонения курса  
     console.log("Отклонить курс:", courseId)
     // После реализации API - обновить таблицу
+  }
+
+  const handleCopyCourseLink = async (courseId: string) => {
+    const courseUrl = `${window.location.origin}/courses/${courseId}`
+    
+    try {
+      await navigator.clipboard.writeText(courseUrl)
+      toast.success('Ссылка на курс скопирована')
+    } catch (err) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea')
+      textArea.value = courseUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      toast.success('Ссылка на курс скопирована')
+    }
+  }
+
+  const handleDeleteCourse = (course: Course) => {
+    setCourseToDelete(course)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!courseToDelete) return
+
+    try {
+      setIsDeleting(true)
+      
+      await courseAPI.deleteCourse(courseToDelete.documentId)
+      
+      setIsDeleteDialogOpen(false)
+      setCourseToDelete(null)
+      
+      // Обновляем таблицу - перезагружаем курсы
+      await loadCourses()
+      
+      // Сбрасываем выбранный курс если он был удален
+      if (selectedCourse?.documentId === courseToDelete.documentId) {
+        onCourseSelect?.(null)
+      }
+      
+      toast.success('Курс успешно удален')
+      
+    } catch (error) {
+      console.error('Ошибка при удалении курса:', error)
+      toast.error('Ошибка при удалении курса')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handlePageChange = (page: number) => {
@@ -374,7 +440,12 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
                           <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
                           <div>
                             <p>{course.city}</p>
-                            <p className="text-gray-600">{course.address}</p>
+                            <p className="text-gray-600" title={course.address}>
+                              {course.address.length > 20 
+                                ? `${course.address.substring(0, 20)}...` 
+                                : course.address
+                              }
+                            </p>
                           </div>
                         </div>
                       )}
@@ -408,20 +479,31 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
                           <Eye className="mr-2 h-4 w-4" />
                           Просмотреть
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopyCourseLink(course.documentId)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Копировать ссылку
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEditCourse(course.documentId)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Редактировать
                         </DropdownMenuItem>
                         {role === 'Manager' && (
                           <>
-                            <DropdownMenuItem onClick={() => handleApproveCourse(course.documentId)}>
+                            <DropdownMenuItem disabled>
                               <Check className="mr-2 h-4 w-4" />
                               Одобрить
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleRejectCourse(course.documentId)}>
+                            <DropdownMenuItem disabled>
                               <X className="mr-2 h-4 w-4" />
                               Отклонить
                             </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteCourse(course)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Удалить
+                        </DropdownMenuItem>
                           </>
                         )}
                       </DropdownMenuContent>
@@ -476,6 +558,33 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
           </Pagination>
         </div>
       )}
+
+      {/* Диалог подтверждения удаления */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить курс</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы действительно хотите удалить курс{" "}
+              <span className="font-medium">{courseToDelete?.description}</span>?
+              <br />
+              Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Отмена
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Удаление..." : "Удалить"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

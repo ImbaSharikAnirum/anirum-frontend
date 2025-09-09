@@ -519,6 +519,63 @@ export class CourseAPI extends BaseAPI {
     const result = await response.json();
     return result.data;
   }
+
+  /**
+   * Удаление файла
+   */
+  async deleteFile(fileId: number): Promise<void> {
+    const response = await fetch(`/api/upload/files/${fileId}`, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Ошибка при удалении файла');
+    }
+  }
+
+  /**
+   * Удаление курса с изображениями
+   */
+  async deleteCourse(documentId: string): Promise<void> {
+    // Сначала получаем курс с изображениями
+    try {
+      const course = await this.getCourse(documentId, ["images"]);
+      
+      // Удаляем все изображения
+      if (course.images && course.images.length > 0) {
+        for (const image of course.images) {
+          try {
+            if (typeof image === 'object' && 'id' in image) {
+              await this.deleteFile(image.id);
+            }
+          } catch (fileError) {
+            console.warn(`Не удалось удалить изображение ${typeof image === 'object' ? image.id : image}:`, fileError);
+            // Продолжаем выполнение даже если не удалось удалить файл
+          }
+        }
+      }
+    } catch (courseError) {
+      console.warn('Не удалось получить данные курса для удаления изображений:', courseError);
+      // Продолжаем удаление курса даже если не удалось получить изображения
+    }
+
+    // Удаляем сам курс
+    const response = await fetch(`/api/courses/${documentId}`, {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Ошибка при удалении курса');
+    }
+  }
 }
 
 // Экспортируем экземпляр API
