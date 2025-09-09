@@ -117,7 +117,9 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
 
   const getPlaceDetails = useCallback(
     async (placeId: string, displayDescription: string): Promise<PlaceDetails | null> => {
-      if (!placesService) return null
+      if (!placesService) {
+        return null
+      }
 
       return new Promise((resolve) => {
         // Сначала получаем английские данные для сохранения
@@ -137,7 +139,7 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
               const types = component.types
               
               if (types.includes('country')) {
-                countryEn = component.long_name
+                countryEn = component.long_name || component.short_name
               }
               
               if (types.includes('locality')) {
@@ -170,39 +172,38 @@ export function useGooglePlaces(): UseGooglePlacesReturn {
                   const types = component.types
                   
                   if (types.includes('country')) {
-                    countryRu = component.short_name // Используем короткое название
+                    countryRu = component.long_name || component.short_name
                   }
                   
                   if (types.includes('locality')) {
-                    cityRu = component.short_name // Используем короткое название города
+                    cityRu = component.long_name
                   } else if (types.includes('administrative_area_level_1') && !cityRu) {
-                    cityRu = component.short_name
+                    cityRu = component.long_name
                   } else if (types.includes('administrative_area_level_2') && !cityRu) {
-                    cityRu = component.short_name
+                    cityRu = component.long_name
                   } else if (types.includes('sublocality') && !cityRu) {
-                    cityRu = component.short_name
+                    cityRu = component.long_name
                   }
                 })
               }
 
               const details: PlaceDetails = {
                 place_id: placeId,
-                // Английские данные для API
-                description: placeEn.formatted_address || '',
-                country: countryEn,
-                city: cityEn,
-                address: placeEn.formatted_address || '',
-                // Русские данные для отображения
-                displayDescription: addressRu,
-                displayCountry: countryRu,
-                displayCity: cityRu,
-                displayAddress: addressRu,
+                // Английские данные для API (с fallback на русские если пусто)
+                description: placeEn.formatted_address || displayDescription,
+                country: countryEn || countryRu || '',
+                city: cityEn || cityRu || '',
+                address: placeEn.formatted_address || addressRu,
+                // Русские данные для отображения (с fallback на английские)
+                displayDescription: addressRu || placeEn.formatted_address || '',
+                displayCountry: countryRu || countryEn || '',
+                displayCity: cityRu || cityEn || '',
+                displayAddress: addressRu || placeEn.formatted_address || '',
                 coordinates: placeEn.geometry?.location ? {
                   lat: placeEn.geometry.location.lat(),
                   lng: placeEn.geometry.location.lng()
                 } : undefined
               }
-
 
               resolve(details)
             })

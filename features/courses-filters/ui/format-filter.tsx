@@ -12,10 +12,18 @@ import {
 } from "@/components/ui/popover"
 import { useGooglePlaces } from "@/shared/hooks/use-google-places"
 
+interface LocationData {
+  city: string
+  country: string
+  address: string
+  googlePlaceId: string
+  coordinates?: { lat: number; lng: number }
+}
+
 interface FormatFilterProps {
   value?: 'online' | 'offline'
   cityValue?: string
-  onFormatAndLocationChange?: (format: 'online' | 'offline' | undefined, city?: string) => void
+  onFormatAndLocationChange?: (format: 'online' | 'offline' | undefined, locationData?: LocationData) => void
 }
 
 // Форматы курсов
@@ -80,35 +88,19 @@ export function FormatFilter({ value, cityValue, onFormatAndLocationChange }: Fo
   const handleFormatSelect = (format: typeof formats[0]) => {
     const newFormat = format.id as 'online' | 'offline'
     
-    console.log('🎯 handleFormatSelect called:', { 
-      formatId: format.id, 
-      newFormat, 
-      cityValue,
-      locationQuery,
-      shortLocationName 
-    })
-    
     if (newFormat === "online") {
       setLocationQuery("")
       setShortLocationName("")
       clearPredictions()
       setOpen(false)
-      console.log('📡 Calling onFormatAndLocationChange with online:', newFormat, undefined)
       onFormatAndLocationChange?.(newFormat, undefined)
     } else {
-      console.log('🏢 Calling onFormatAndLocationChange with offline:', newFormat, cityValue)
-      onFormatAndLocationChange?.(newFormat, cityValue)
+      onFormatAndLocationChange?.(newFormat, undefined)
     }
   }
 
   const handleLocationSelect = async (prediction: any) => {
     const russianDescription = prediction.description
-    
-    console.log('📍 handleLocationSelect called:', { 
-      prediction, 
-      russianDescription,
-      place_id: prediction.place_id 
-    })
     
     setLocationQuery(russianDescription)
     clearPredictions()
@@ -117,21 +109,21 @@ export function FormatFilter({ value, cityValue, onFormatAndLocationChange }: Fo
     // Получаем детальную информацию о месте
     if (prediction.place_id) {
       const details = await getPlaceDetails(prediction.place_id, russianDescription)
-      console.log('📍 Place details received:', details)
       
       if (details) {
         const shortName = details.displayCity || details.city || getShortLocationName(russianDescription)
         setShortLocationName(shortName)
         
-        console.log('📍 Setting location data:', { 
-          shortLocationName: shortName,
+        const locationData: LocationData = {
           city: details.city,
-          format: 'offline'
-        })
+          country: details.country,
+          address: details.address,
+          googlePlaceId: details.place_id,
+          coordinates: details.coordinates
+        }
         
-        // Передаем город для фильтрации
-        console.log('📍 Calling onFormatAndLocationChange with city:', 'offline', details.city)
-        onFormatAndLocationChange?.('offline', details.city)
+        // Передаем полные данные о местоположении
+        onFormatAndLocationChange?.('offline', locationData)
       }
     }
   }

@@ -10,7 +10,8 @@ import { AddressAutocomplete } from '@/shared/ui/address-autocomplete'
 import { 
   DirectionFilter,
   FormatFilter,
-  TeacherFilter
+  TeacherFilter,
+  type LocationData
 } from '@/features/courses-filters/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -409,7 +410,10 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
   const { user } = useUser()
   const { isManager } = useRole()
   
-  const isLoading = mode === 'create' ? createLoading : updateLoading
+  // Локальное состояние loading для контроля всего процесса сохранения
+  const [isSaving, setIsSaving] = useState(false)
+  
+  const isLoading = isSaving || (mode === 'create' ? createLoading : updateLoading)
   const error = mode === 'create' ? createError : updateError
   
   // Функция для преобразования данных курса в форму
@@ -514,17 +518,11 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
   const [formData, setFormData] = useState(courseToFormData(initialData))
   const [initialImages] = useState(() => convertCourseImagesToFileMetadata(initialData))
 
-  const handleInputChange = (field: string, value: string | boolean | Date | number | null | undefined) => {
-    console.log('📝 handleInputChange called:', { 
-      field, 
-      value, 
-      oldValue: formData[field as keyof typeof formData]
-    })
-    
+  const handleInputChange = (field: string, value: string | boolean | Date | number | null | undefined | { lat: number; lng: number }) => {
     const newFormData = { ...formData, [field]: value }
     setFormData(newFormData)
     
-    console.log('📝 formData updated:', {
+    console.log('📝 FormData Updated:', {
       field,
       newValue: value,
       fullFormData: newFormData
@@ -534,20 +532,23 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('🚀 handleSubmit called with formData:', formData)
-    console.log('🚀 Selected days:', selectedDays)
-    console.log('🚀 Image files:', imageFiles)
+    console.log('📋 Final Form Data:', {
+      ...formData,
+      selectedDays,
+      imageFilesCount: imageFiles.length
+    })
+    
+    setIsSaving(true) // Начинаем процесс сохранения
     
     try {
       // Определяем teacher на основе роли пользователя
       const courseData = { ...formData }
       
-      console.log('🚀 Course data before teacher assignment:', courseData)
-      
       if (isManager) {
         // Менеджер: обязательно должен выбрать преподавателя
         if (!courseData.teacher) {
           alert('Выберите преподавателя для курса')
+          setIsSaving(false)
           return
         }
       } else {
@@ -555,6 +556,7 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
         courseData.teacher = user?.documentId || null
         if (!courseData.teacher) {
           alert('Ошибка: не удалось получить documentId пользователя')
+          setIsSaving(false)
           return
         }
       }
@@ -571,6 +573,8 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
       }
     } catch (err) {
       // Ошибка уже обработана в хуках
+    } finally {
+      setIsSaving(false) // Завершаем процесс сохранения
     }
   }
 
@@ -596,26 +600,31 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
             <FormatFilter 
               value={formData.isOnline === undefined ? undefined : (formData.isOnline ? 'online' : 'offline')}
               cityValue={formData.city}
-              onFormatAndLocationChange={(format, city) => {
-                console.log('🏗️ CourseForm onFormatAndLocationChange called:', { 
-                  format, 
-                  city,
-                  currentFormData: formData
-                })
-                
+              onFormatAndLocationChange={(format, locationData) => {
                 const newIsOnline = format === 'online' ? true : format === 'offline' ? false : undefined
-                console.log('🏗️ Setting isOnline to:', newIsOnline)
-                handleInputChange('isOnline', newIsOnline)
                 
-                if (city) {
-                  console.log('🏗️ Setting city to:', city)
-                  handleInputChange('city', city)
+                if (locationData) {
+                  // Обновляем все поля одновременно
+                  const newFormData = {
+                    ...formData,
+                    isOnline: newIsOnline,
+                    city: locationData.city,
+                    country: locationData.country,
+                    address: locationData.address,
+                    googlePlaceId: locationData.googlePlaceId,
+                    coordinates: locationData.coordinates || null
+                  }
+                  setFormData(newFormData)
+                  
+                  console.log('🗺️ Location Data Updated:', {
+                    format,
+                    locationData,
+                    fullFormData: newFormData
+                  })
+                } else {
+                  // Если нет данных о местоположении, обновляем только isOnline
+                  handleInputChange('isOnline', newIsOnline)
                 }
-                
-                console.log('🏗️ Final formData after changes should have:', {
-                  isOnline: newIsOnline,
-                  city: city || formData.city
-                })
               }}
             />
             {isManager && (
@@ -930,7 +939,7 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
           <div className="flex flex-wrap gap-4 pt-4">
             <Button type="submit" size="lg" disabled={isLoading}>
               {isLoading 
-                ? (mode === 'create' ? 'Создание...' : 'Сохранение...') 
+                ? (mode === 'create' ? 'Создание курса...' : 'Сохранение изменений...') 
                 : (mode === 'create' ? 'Создать курс' : 'Сохранить изменения')
               }
             </Button>
