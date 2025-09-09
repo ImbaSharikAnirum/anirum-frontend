@@ -19,14 +19,25 @@ interface ConditionalLayoutProps {
 }
 
 export function ConditionalLayout({ children, defaultOpen = true }: ConditionalLayoutProps) {
-  const { isStaff } = useRole()
+  const { isStaff, isAuthenticated } = useRole()
 
+  // Для неавторизованных пользователей используем простой layout без сайдбара
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 pb-16 md:pb-0">
+          {children}
+        </main>
+        <Footer />
+        <MobileNav />
+      </div>
+    )
+  }
 
+  // Для авторизованных пользователей используем layout с сайдбаром
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      {/* Сайдбар всегда рендерим, но показываем:
-          - Staff: всегда
-          - Остальные: только когда навигация в header скрыта и нет MobileNav */}
       <AppSidebar />
       
       <SidebarInset>
@@ -37,7 +48,7 @@ export function ConditionalLayout({ children, defaultOpen = true }: ConditionalL
         <Footer />
       </SidebarInset>
       
-     <MobileNav />
+      <MobileNav />
     </SidebarProvider>
   )
 }

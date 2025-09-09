@@ -41,18 +41,32 @@ export function UserProvider({ children, initialUser = null }: UserProviderProps
   const [user, setUser] = useState<User | null>(initialUser)
 
   const clearAuth = async () => {
-    // Вызываем API для удаления cookie
+    // Очищаем локальное состояние сразу для быстрого отклика UI
+    setUser(null)
+    
+    // Очищаем cookie сайдбара
+    document.cookie = 'sidebar_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    
+    // Вызываем API для удаления cookie с таймаутом
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 секунд таймаут
+      
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
+        signal: controller.signal,
       })
+      
+      clearTimeout(timeoutId)
     } catch (error) {
-      console.error('Logout error:', error)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('Logout request timed out, but local state cleared')
+      } else {
+        console.error('Logout error:', error)
+      }
+      // Не показываем ошибку пользователю, так как локально уже вышли
     }
-    
-    // Очищаем локальное состояние
-    setUser(null)
   }
 
   const updateUserData = async (data: UpdateUserData) => {

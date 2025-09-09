@@ -27,6 +27,10 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
     return username.slice(0, 2).toUpperCase()
   }
 
+  const handleLogout = () => {
+    onLogout()
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -61,7 +65,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           className="flex items-center cursor-pointer"
-          onClick={onLogout}
+          onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Выйти</span>

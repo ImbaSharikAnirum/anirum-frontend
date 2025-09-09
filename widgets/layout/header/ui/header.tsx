@@ -10,10 +10,18 @@ import Link from "next/link"
 import Image from "next/image"
 
 export function Header() {
-  const { open } = useSidebar()
   const { user, clearAuth } = useUser()
-  const { isStaff, role, roleName } = useRole()
-
+  const { isStaff, role, roleName, isAuthenticated } = useRole()
+  
+  // Безопасно получаем sidebar состояние только если есть провайдер
+  let open = false
+  try {
+    const sidebar = useSidebar()
+    open = sidebar.open
+  } catch (error) {
+    // Если нет SidebarProvider, используем значение по умолчанию
+    open = false
+  }
 
   const handleLogout = () => {
     clearAuth()
@@ -22,12 +30,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
-        {/* SidebarTrigger показываем:
+        {/* SidebarTrigger показываем только для авторизованных пользователей:
             - Staff: всегда
             - Остальные: только когда сайдбар может быть виден (когда навигация в header скрыта) */}
-        <div className={`mr-4 ${isStaff ? 'flex' : `hidden ${open ? 'md:flex lg:hidden' : 'sm:flex md:hidden'}`}`}>
-          <SidebarTrigger />
-        </div>
+        {isAuthenticated && (
+          <div className={`mr-4 ${isStaff ? 'flex' : `hidden ${open ? 'md:flex lg:hidden' : 'sm:flex md:hidden'}`}`}>
+            <SidebarTrigger />
+          </div>
+        )}
         
         <div className="flex flex-1 items-center justify-between">
           <div className="flex items-center gap-8">
