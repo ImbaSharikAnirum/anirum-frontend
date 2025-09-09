@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies()
@@ -13,7 +13,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const fileId = params.id
+    const { id: fileId } = await params
 
     // Удаляем файл в Strapi
     const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/upload/files/${fileId}`, {
