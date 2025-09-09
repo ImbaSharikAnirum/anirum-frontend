@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react'
 import { CourseFilters } from '@/entities/course/lib/filters'
+import type { LocationData } from '@/features/courses-filters/ui'
 
 export function useCoursesFilters(initialFilters: CourseFilters = {}) {
   const [filters, setFilters] = useState<CourseFilters>(initialFilters)
@@ -60,11 +61,11 @@ export function useCoursesFilters(initialFilters: CourseFilters = {}) {
   }, [updateFilter])
 
   // Комбинированный метод для формата и города
-  const setFormatAndLocation = useCallback((format: 'online' | 'offline' | undefined, city?: string) => {
+  const setFormatAndLocation = useCallback((format: 'online' | 'offline' | undefined, locationData?: LocationData) => {
     setFilters(prev => ({
       ...prev,
       format,
-      city: format === 'online' ? undefined : city
+      city: format === 'online' ? undefined : locationData?.city
     }))
   }, [])
 
