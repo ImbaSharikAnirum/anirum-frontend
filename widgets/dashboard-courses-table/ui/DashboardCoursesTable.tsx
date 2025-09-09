@@ -497,6 +497,8 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
                               <X className="mr-2 h-4 w-4" />
                               Отклонить
                             </DropdownMenuItem>
+                          </>
+                        )}
                         <DropdownMenuItem 
                           onClick={() => handleDeleteCourse(course)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -504,8 +506,6 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
                           <Trash2 className="mr-2 h-4 w-4" />
                           Удалить
                         </DropdownMenuItem>
-                          </>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

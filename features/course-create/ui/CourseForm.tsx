@@ -580,6 +580,27 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
       errors.push('Укажите цену за аренду для оффлайн курса')
     }
 
+    // Изображения (минимум 5 изображений)
+    const totalImages = mode === 'create' 
+      ? imageFiles.length 
+      : (allFiles?.length || 0)
+    
+    if (totalImages < 5) {
+      errors.push(`Загрузите минимум 5 изображений (загружено: ${totalImages})`)
+    }
+
+    // URL мессенджера
+    if (!formData.urlMessenger || !formData.urlMessenger.trim()) {
+      errors.push('Укажите URL мессенджера для связи')
+    }
+
+    // Используемое ПО (обязательно для всех направлений кроме скетчинга)
+    if (formData.direction && formData.direction !== 'sketching') {
+      if (!formData.software || !formData.software.trim()) {
+        errors.push('Укажите используемое ПО')
+      }
+    }
+
     return errors
   }
 
@@ -1001,7 +1022,7 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
             <Button 
               type="submit" 
               size="lg" 
-              disabled={isLoading || validateForm().length > 0}
+              disabled={isLoading}
             >
               {isLoading 
                 ? (mode === 'create' ? 'Создание курса...' : 'Сохранение изменений...') 
