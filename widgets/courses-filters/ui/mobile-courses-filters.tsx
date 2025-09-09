@@ -39,7 +39,7 @@ interface MobileCoursesFiltersProps {
   filters: any
   coursesCount?: number
   setDirection: (direction: string | undefined) => void
-  setFormatAndLocation: (format: 'online' | 'offline' | undefined, city?: string) => void
+  setFormatAndLocation: (format: 'online' | 'offline' | undefined, locationData?: import('@/features/courses-filters/ui').LocationData) => void
   setAge: (age: number | undefined) => void
   setTeacher: (teacherId: string | null) => void
   clearFilters: () => void
@@ -103,7 +103,13 @@ export function MobileCoursesFilters({
     
     // Всегда обновляем формат и локацию
     if (tempSelectedFormat) {
-      setFormatAndLocation(tempSelectedFormat, tempLocationQuery || undefined)
+      const locationData = tempLocationQuery ? { 
+        city: tempLocationQuery, 
+        country: '', 
+        address: tempLocationQuery,
+        googlePlaceId: '' 
+      } : undefined
+      setFormatAndLocation(tempSelectedFormat, locationData)
     } else {
       setFormatAndLocation(undefined, undefined)
     }

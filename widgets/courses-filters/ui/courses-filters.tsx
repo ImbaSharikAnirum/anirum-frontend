@@ -1,4 +1,4 @@
-import { DirectionFilter, FormatFilter, AgeFilter, TeacherFilter, AdvancedFilter } from '@/features/courses-filters'
+import { DirectionFilter, FormatFilter, AgeFilter, TeacherFilter, AdvancedFilter, type LocationData } from '@/features/courses-filters'
 import { MobileCoursesFilters } from './mobile-courses-filters'
 import { CourseFilters } from '@/entities/course/lib/filters'
 
@@ -10,7 +10,7 @@ interface CoursesFiltersProps {
   teacherValue?: string | null;
   coursesCount?: number;
   onDirectionChange?: (direction: string | undefined) => void;
-  onFormatAndLocationChange?: (format: 'online' | 'offline' | undefined, city?: string) => void;
+  onFormatAndLocationChange?: (format: 'online' | 'offline' | undefined, locationData?: LocationData) => void;
   onAgeChange?: (age: number | undefined) => void;
   onTeacherChange?: (teacherId: string | null) => void;
   onApplyAdvancedFilters?: (filters: { days: string[], price: number[], timeSlot: string }) => void;

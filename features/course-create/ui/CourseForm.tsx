@@ -33,6 +33,7 @@ import { useUser } from '@/entities/user'
 import { useRole } from '@/shared/hooks'
 import { Course } from '@/entities/course'
 import React from 'react'
+import { toast } from 'sonner'
 import {
   AlertCircleIcon,
   FileArchiveIcon,
@@ -529,8 +530,68 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
     })
   }
 
+  // Валидация обязательных полей
+  const validateForm = () => {
+    const errors = []
+
+    // Направление
+    if (!formData.direction) {
+      errors.push('Выберите направление')
+    }
+
+    // Формат
+    if (formData.isOnline === undefined) {
+      errors.push('Выберите формат курса (онлайн или оффлайн)')
+    }
+
+    // Адрес для оффлайн формата
+    if (formData.isOnline === false && (!formData.address || !formData.city)) {
+      errors.push('Укажите адрес для оффлайн курса')
+    }
+
+    // Дни недели
+    if (selectedDays.length === 0) {
+      errors.push('Выберите дни недели')
+    }
+
+    // Даты
+    if (!formData.startDate) {
+      errors.push('Укажите дату начала курса')
+    }
+    if (!formData.endDate) {
+      errors.push('Укажите дату окончания курса')
+    }
+
+    // Время
+    if (!formData.startTime) {
+      errors.push('Укажите время начала занятий')
+    }
+    if (!formData.endTime) {
+      errors.push('Укажите время окончания занятий')
+    }
+
+    // Цена за урок
+    if (!formData.pricePerLesson || parseFloat(formData.pricePerLesson) <= 0) {
+      errors.push('Укажите цену за урок')
+    }
+
+    // Цена за аренду для оффлайн
+    if (formData.isOnline === false && (!formData.rentalPrice || parseFloat(formData.rentalPrice) <= 0)) {
+      errors.push('Укажите цену за аренду для оффлайн курса')
+    }
+
+    return errors
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Валидация формы
+    const validationErrors = validateForm()
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => toast.error(error))
+      return
+    }
     
     console.log('📋 Final Form Data:', {
       ...formData,
@@ -937,7 +998,11 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
           )}
 
           <div className="flex flex-wrap gap-4 pt-4">
-            <Button type="submit" size="lg" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              size="lg" 
+              disabled={isLoading || validateForm().length > 0}
+            >
               {isLoading 
                 ? (mode === 'create' ? 'Создание курса...' : 'Сохранение изменений...') 
                 : (mode === 'create' ? 'Создать курс' : 'Сохранить изменения')
