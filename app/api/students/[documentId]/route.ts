@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     })
 
     const queryString = strapiParams.toString()
-    const url = `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/students/${documentId}${queryString ? `?${queryString}` : ''}`
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/students/${documentId}${queryString ? `?${queryString}` : ''}`
 
     const response = await fetch(url, {
       headers: {
@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const body = await request.json()
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/students/${documentId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${documentId}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -91,7 +91,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/students/${documentId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${documentId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       headers['Authorization'] = `Bearer ${token}`
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/invoices/tinkoff/payment`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/tinkoff/payment`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),

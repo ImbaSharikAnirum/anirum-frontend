@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       strapiParams.append(key, value)
     })
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/invoices?${strapiParams}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices?${strapiParams}`, {
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
         'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/invoices`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

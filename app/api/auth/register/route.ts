@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const { username, email, password }: RegisterRequest = await request.json()
 
     // Делаем запрос к Strapi для регистрации
-    const authResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/auth/local/register`, {
+    const authResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/local/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const { jwt, user } = authData
 
     // Получаем полные данные пользователя с ролью
-    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me?populate=role`, {
+    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me?populate=role`, {
       headers: {
         'Authorization': `Bearer ${jwt}`,
       },

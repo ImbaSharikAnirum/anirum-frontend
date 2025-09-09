@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
 
     // Передаем FormData напрямую к Strapi
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/upload`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

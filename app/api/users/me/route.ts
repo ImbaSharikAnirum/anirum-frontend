@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     })
 
     const queryString = strapiParams.toString()
-    const url = `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me${queryString ? `?${queryString}` : ''}`
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/users/me${queryString ? `?${queryString}` : ''}`
 
     const response = await fetch(url, {
       headers: {
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Сначала получаем ID текущего пользователя
-    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me`, {
+    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
 
     // Обновляем пользователя по ID
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/${currentUser.id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${currentUser.id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,

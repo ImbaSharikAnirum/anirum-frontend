@@ -11,7 +11,7 @@ export async function GET() {
     }
 
     // Получаем данные пользователя с ролью из Strapi
-    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me?populate=role`, {
+    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me?populate=role`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

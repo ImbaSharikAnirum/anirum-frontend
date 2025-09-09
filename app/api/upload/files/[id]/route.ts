@@ -16,7 +16,7 @@ export async function DELETE(
     const { id: fileId } = await params
 
     // Удаляем файл в Strapi
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/upload/files/${fileId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/files/${fileId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

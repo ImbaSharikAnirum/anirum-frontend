@@ -20,7 +20,7 @@ export async function getServerUser(): Promise<User | null> {
     }
 
     // Делаем запрос к Strapi напрямую с сервера
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me?populate=role`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me?populate=role`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

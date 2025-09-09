@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       strapiParams.append(key, value)
     })
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/students?${strapiParams}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students?${strapiParams}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/students`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
