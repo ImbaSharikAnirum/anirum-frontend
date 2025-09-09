@@ -55,7 +55,7 @@ export function ContactStep({
   );
   const [isLoading, setIsLoading] = useState(false);
   
-  const { user, token, updateUser } = useUser();
+  const { user, updateUser } = useUser();
 
   // Функция для получения текущего значения контакта
   const getCurrentContactValue = () => {
@@ -149,7 +149,7 @@ export function ContactStep({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !token) {
+    if (!user) {
       console.error('Пользователь не авторизован');
       return;
     }

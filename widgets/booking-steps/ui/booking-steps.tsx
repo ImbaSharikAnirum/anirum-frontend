@@ -41,7 +41,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
   })
   const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null)
   
-  const { user, token, isAuthenticated } = useUser()
+  const { user, isAuthenticated } = useUser()
 
 
 
@@ -74,7 +74,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
   }, [isAuthenticated, user])
 
   const handleConfirmBooking = async () => {
-    if (!user || !token) {
+    if (!user) {
       alert('Необходимо авторизоваться')
       return
     }
@@ -98,7 +98,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
           name: studentData.studentFirstName,
           family: studentData.studentLastName,
           age: studentData.studentBirthDate?.toISOString().split('T')[0] || ''
-        }, token, user.id)
+        }, user.id)
         
         studentName = newStudent.name
         studentFamily = newStudent.family
@@ -164,7 +164,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
         owner: user.documentId || user.id.toString()
       }
 
-      const invoice = await invoiceAPI.createInvoice(invoiceData, token)
+      const invoice = await invoiceAPI.createInvoice(invoiceData)
       
       // Перенаправляем на нашу страницу оплаты вместо прямого перехода на Tinkoff
       // Это позволит пользователям получать ссылку для повторной оплаты
