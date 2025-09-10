@@ -7,7 +7,7 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination } from 'swiper/modules'
 import { useUserTimezone } from '@/shared/hooks/useUserTimezone'
 import { formatCourseSchedule, getTimezoneAbbreviation } from '@/shared/lib/timezone-utils'
-import { getDirectionDisplayName, getCurrencySymbol, formatWeekdays, getStrapiImageUrl } from '@/shared/lib/course-utils'
+import { getDirectionDisplayName, getCurrencySymbol, formatWeekdays, getStrapiImageUrl, getOptimalImageFormat } from '@/shared/lib/course-utils'
 import { calculateCustomMonthPricing, calculateProRatedPricing, formatPrice } from '@/shared/lib/course-pricing'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CourseEnrollmentProgress } from './course-enrollment-progress'
@@ -184,6 +184,8 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
                   src={typeof image === 'string' ? image : getStrapiImageUrl(image.url)}
                   alt={typeof image === 'string' ? `${getDirectionDisplayName(course.direction)} - изображение ${index + 1}` : image.alternativeText || `${getDirectionDisplayName(course.direction)} - изображение ${index + 1}`}
                   fill
+                  priority={index < 2} // Первые 2 изображения загружаются с приоритетом
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover"
                 />
               </SwiperSlide>
@@ -203,9 +205,10 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
         <div className="flex items-start space-x-2 mb-3">
           <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
             <Image
-              src={course.teacher?.avatar ? (typeof course.teacher.avatar === 'string' ? course.teacher.avatar : course.teacher.avatar?.url || '/default-avatar.png') : '/default-avatar.png'}
+              src={course.teacher?.avatar ? (typeof course.teacher.avatar === 'string' ? course.teacher.avatar : getStrapiImageUrl(course.teacher.avatar.url) || '/default-avatar.png') : '/default-avatar.png'}
               alt="Преподаватель"
               fill
+              sizes="40px"
               className="object-cover"
             />
           </div>
