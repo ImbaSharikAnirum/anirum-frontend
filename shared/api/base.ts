@@ -9,6 +9,10 @@ export interface APIError {
   details?: any
 }
 
+export interface RequestOptions extends RequestInit {
+  timeout?: number
+}
+
 export class BaseAPI {
   protected baseURL: string
 
@@ -18,20 +22,41 @@ export class BaseAPI {
 
   protected async request<T>(
     endpoint: string, 
-    options: RequestInit = {}
+    options: RequestOptions = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
     
+    // Создаем AbortController для timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), options.timeout || 10000) // 10 секунд по умолчанию
+    
     const config: RequestInit = {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
     }
 
-    const response = await fetch(url, config)
+    try {
+      const response = await fetch(url, config)
+      clearTimeout(timeoutId)
+      return await this.handleResponse<T>(response)
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      if (error.name === 'AbortError') {
+        throw new APIError({
+          message: 'Запрос превысил время ожидания',
+          status: 408,
+          details: { timeout: options.timeout || 10000 }
+        })
+      }
+      throw error
+    }
+  }
 
+  private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
       throw new APIError({
