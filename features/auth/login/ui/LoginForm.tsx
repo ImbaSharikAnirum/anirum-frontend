@@ -57,7 +57,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           />
         </div>
         <div className="grid gap-3">
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <Label htmlFor="password">Пароль</Label>
             <a
               href="/auth/forgot-password"
@@ -65,7 +65,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             >
               Забыли пароль?
             </a>
-          </div>
+          </div> */}
           <Input 
             id="password" 
             type="password" 
@@ -79,7 +79,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           {isLoading ? 'Входим...' : 'Войти'}
         </Button>
         
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+        {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
           <span className="bg-background text-muted-foreground relative z-10 px-2">
             Или продолжить через
           </span>
@@ -104,7 +104,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             />
           </svg>
           Войти через Google
-        </Button>
+        </Button> */}
       </div>
       <div className="text-center text-sm">
         Нет аккаунта?{" "}
