@@ -76,7 +76,7 @@ export function UserProvider({ children, initialUser = null }: UserProviderProps
 
     try {
       // Делаем запрос через Next.js API route
-      const response = await fetch('/api/user/update', {
+      const response = await fetch('/api/users/me', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export function UserProvider({ children, initialUser = null }: UserProviderProps
         throw new Error('Failed to update user')
       }
 
-      const { user: updatedUser } = await response.json()
+      const updatedUser = await response.json()
       setUser(updatedUser)
     } catch (error) {
       throw error
