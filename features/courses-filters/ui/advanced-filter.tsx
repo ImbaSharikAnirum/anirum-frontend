@@ -201,50 +201,103 @@ export function AdvancedFilter({
           </Button>
         </DialogTrigger>
         <DialogContent className={mobile 
-          ? "w-screen h-screen max-w-none max-h-screen overflow-y-scroll m-0 p-0 rounded-none flex flex-col" 
+          ? "w-[100vw] h-[100vh] h-[100dvh] max-w-none p-0 rounded-none top-0 left-0 transform-none translate-x-0 translate-y-0 inset-0" 
           : "max-w-2xl max-h-[80vh] overflow-y-auto"
         }>
-          <DialogHeader className={mobile ? "p-4 " : ""}>
-            <DialogTitle>Дополнительные фильтры</DialogTitle>
-            <DialogDescription className="sr-only">
-              Выберите дополнительные параметры для фильтрации курсов: дни недели, ценовой диапазон и время занятий
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className={mobile ? "flex-1 p-4 space-y-4 overflow-y-auto" : "space-y-6"}>
-            {/* Дни недели */}
-            <WeekDaysSelector 
-              selectedDays={tempSelectedDays}
-              onDaysChange={setTempSelectedDays}
-            />
+          {mobile ? (
+            <div className="flex flex-col h-full w-full min-w-0">
+              {/* Шапка с safe-area */}
+              <DialogHeader className="flex-shrink-0 pb-4 px-4 border-b bg-white w-full min-w-0" style={{paddingTop: 'max(env(safe-area-inset-top), 1rem)'}}>
+                <div className="pt-2 w-full min-w-0">
+                  <DialogTitle className="text-lg font-semibold truncate">Дополнительные фильтры</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Выберите дополнительные параметры для фильтрации курсов: дни недели, ценовой диапазон и время занятий
+                  </DialogDescription>
+                </div>
+              </DialogHeader>
 
-            {/* Ценовой диапазон */}
-            <PriceSliderWithHistogram 
-              value={tempPriceRange}
-              onValueChange={setTempPriceRange}
-              minValue={0}
-              maxValue={10000}
-            />
+              {/* Основное содержимое с правильным скроллом */}
+              <div className="flex-1 overflow-y-scroll overflow-x-hidden w-full min-w-0" style={{height: 'calc(100vh - 160px)', maxHeight: 'calc(100dvh - 160px)'}}>
+                <div className="px-4 py-6 pb-32 w-full min-w-0">
+                  <div className="space-y-6 w-full min-w-0">
+                    {/* Дни недели */}
+                    <WeekDaysSelector 
+                      selectedDays={tempSelectedDays}
+                      onDaysChange={setTempSelectedDays}
+                    />
 
-            {/* Время занятий */}
-            <TimeSlotsSelector 
-              selectedTimeSlot={tempSelectedTimeSlot}
-              onTimeSlotChange={setTempSelectedTimeSlot}
-            />
+                    {/* Ценовой диапазон */}
+                    <PriceSliderWithHistogram 
+                      value={tempPriceRange}
+                      onValueChange={setTempPriceRange}
+                      minValue={0}
+                      maxValue={10000}
+                    />
 
+                    {/* Время занятий */}
+                    <TimeSlotsSelector 
+                      selectedTimeSlot={tempSelectedTimeSlot}
+                      onTimeSlotChange={setTempSelectedTimeSlot}
+                    />
+                  </div>
+                </div>
+              </div>
 
-          </div>
-
-          <DialogFooter className={mobile ? "flex-shrink-0 p-4" : ""}>
-            <div className={mobile ? "flex gap-3 w-full" : "flex gap-2"}>
-              <Button variant="outline" className={mobile ? "flex-1" : ""} onClick={handleResetFilters}>
-                Сбросить
-              </Button>
-              <Button className="flex-1" onClick={handleApplyFilters}>
-                Показать {coursesCount} курсов
-              </Button>
+              {/* Футер с safe-area и тенью */}
+              <DialogFooter className="flex-shrink-0 pt-4 px-4 border-t bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] w-full" style={{paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)'}}>
+                <div className="flex gap-3 w-full">
+                  <Button variant="outline" className="flex-1 h-11 text-sm font-normal" onClick={handleResetFilters}>
+                    Сбросить
+                  </Button>
+                  <Button className="flex-1 h-11 text-sm font-normal" onClick={handleApplyFilters}>
+                    Показать {coursesCount} курсов
+                  </Button>
+                </div>
+              </DialogFooter>
             </div>
-          </DialogFooter>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Дополнительные фильтры</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Выберите дополнительные параметры для фильтрации курсов: дни недели, ценовой диапазон и время занятий
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                {/* Дни недели */}
+                <WeekDaysSelector 
+                  selectedDays={tempSelectedDays}
+                  onDaysChange={setTempSelectedDays}
+                />
+
+                {/* Ценовой диапазон */}
+                <PriceSliderWithHistogram 
+                  value={tempPriceRange}
+                  onValueChange={setTempPriceRange}
+                  minValue={0}
+                  maxValue={10000}
+                />
+
+                {/* Время занятий */}
+                <TimeSlotsSelector 
+                  selectedTimeSlot={tempSelectedTimeSlot}
+                  onTimeSlotChange={setTempSelectedTimeSlot}
+                />
+              </div>
+
+              <DialogFooter>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleResetFilters}>
+                    Сбросить
+                  </Button>
+                  <Button onClick={handleApplyFilters}>
+                    Показать {coursesCount} курсов
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
