@@ -26,7 +26,7 @@ export async function fetchWithTimeout(
     })
     clearTimeout(timeoutId)
     return response
-  } catch (error) {
+  } catch (error: any) {
     clearTimeout(timeoutId)
     if (error.name === 'AbortError') {
       throw new Error(`Запрос превысил время ожидания (${timeout}ms)`)
