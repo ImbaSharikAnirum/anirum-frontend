@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Filter } from "lucide-react"
+import { Filter, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -164,71 +164,73 @@ export function MobileCoursesFilters({
             </div>
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-screen h-screen max-w-none max-h-screen overflow-y-scroll m-0 p-0 rounded-none">
-          <div className="flex flex-col h-full">
-            {/* Шапка */}
-            <DialogHeader className="flex-shrink-0 p-4 border-b">
-              <DialogTitle className="text-lg font-semibold">Фильтры курсов</DialogTitle>
-              <DialogDescription className="sr-only">
-                Выберите параметры для фильтрации курсов: направление, формат обучения, возраст и преподавателя
-              </DialogDescription>
+        <DialogContent className="w-[100vw] h-[100vh] h-[100dvh] max-w-none p-0 rounded-none top-0 left-0 transform-none translate-x-0 translate-y-0 inset-0">
+          <div className="flex flex-col h-full w-full min-w-0">
+            {/* Шапка с safe-area */}
+            <DialogHeader className="flex-shrink-0 pb-4 px-4 border-b bg-white w-full min-w-0" style={{paddingTop: 'max(env(safe-area-inset-top), 1rem)'}}>
+              <div className="pt-2 w-full min-w-0">
+                <DialogTitle className="text-lg font-semibold truncate">Фильтры курсов</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Выберите параметры для фильтрации курсов: направление, формат обучения, возраст и преподавателя
+                </DialogDescription>
+              </div>
             </DialogHeader>
 
-            {/* Основное содержимое */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="space-y-6">
-                {/* Направление */}
-                <MobileDirectionSelector
-                  selectedDirection={filters.direction || null}
-                  tempSelectedDirection={tempSelectedDirection}
-                  expanded={directionExpanded}
-                  onDirectionSelect={handleDirectionSelect}
-                  onToggleExpanded={toggleDirectionExpanded}
-                />
+            {/* Основное содержимое с правильным скроллом */}
+            <div className="flex-1 overflow-y-scroll overflow-x-hidden w-full min-w-0" style={{height: 'calc(100vh - 160px)', maxHeight: 'calc(100dvh - 160px)'}}>
+              <div className="px-4 py-6 pb-32 w-full min-w-0">
+                <div className="space-y-6 w-full min-w-0">
+                  {/* Направление */}
+                  <MobileDirectionSelector
+                    selectedDirection={filters.direction || null}
+                    tempSelectedDirection={tempSelectedDirection}
+                    expanded={directionExpanded}
+                    onDirectionSelect={handleDirectionSelect}
+                    onToggleExpanded={toggleDirectionExpanded}
+                  />
 
-                {/* Формат */}
-                <MobileFormatSelector
-                  selectedFormat={filters.format || null}
-                  tempSelectedFormat={tempSelectedFormat}
-                  locationQuery={filters.city || ""}
-                  tempLocationQuery={tempLocationQuery}
-                  expanded={formatExpanded}
-                  onFormatSelect={handleFormatSelect}
-                  onLocationChange={setTempLocationQuery}
-                  onLocationSelect={handleLocationSelect}
-                  onToggleExpanded={toggleFormatExpanded}
-                />
+                  {/* Формат */}
+                  <MobileFormatSelector
+                    selectedFormat={filters.format || null}
+                    tempSelectedFormat={tempSelectedFormat}
+                    locationQuery={filters.city || ""}
+                    tempLocationQuery={tempLocationQuery}
+                    expanded={formatExpanded}
+                    onFormatSelect={handleFormatSelect}
+                    onLocationChange={setTempLocationQuery}
+                    onLocationSelect={handleLocationSelect}
+                    onToggleExpanded={toggleFormatExpanded}
+                  />
 
-                {/* Возраст */}
-                <MobileAgeSelector
-                  age={filters.age ? filters.age.toString() : ""}
-                  tempAge={tempAge}
-                  expanded={ageExpanded}
-                  onAgeChange={setTempAge}
-                  onAgeApply={handleAgeApply}
-                  onToggleExpanded={toggleAgeExpanded}
-                />
+                  {/* Возраст */}
+                  <MobileAgeSelector
+                    age={filters.age ? filters.age.toString() : ""}
+                    tempAge={tempAge}
+                    expanded={ageExpanded}
+                    onAgeChange={setTempAge}
+                    onAgeApply={handleAgeApply}
+                    onToggleExpanded={toggleAgeExpanded}
+                  />
 
-                {/* Преподаватель */}
-                <MobileTeacherSelector
-                  selectedTeacher={filters.teacherId || null}
-                  tempSelectedTeacher={tempSelectedTeacher}
-                  expanded={teacherExpanded}
-                  onTeacherSelect={handleTeacherSelect}
-                  onToggleExpanded={toggleTeacherExpanded}
-                />
-
-                
+                  {/* Преподаватель */}
+                  <MobileTeacherSelector
+                    selectedTeacher={filters.teacherId || null}
+                    tempSelectedTeacher={tempSelectedTeacher}
+                    expanded={teacherExpanded}
+                    onTeacherSelect={handleTeacherSelect}
+                    onToggleExpanded={toggleTeacherExpanded}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Футер */}
-            <DialogFooter className="flex-shrink-0 p-4 border-t">
+            {/* Футер с safe-area и тенью */}
+            <DialogFooter className="flex-shrink-0 pt-4 px-4 border-t bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] w-full" style={{paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)'}}>
               <div className="flex gap-3 w-full">
-                <Button variant="outline" className="flex-1" onClick={handleResetFilters}>
+                <Button variant="outline" className="flex-1 h-12 text-base font-medium" onClick={handleResetFilters}>
                   Сбросить
                 </Button>
-                <Button className="flex-1" onClick={handleApplyFilters}>
+                <Button className="flex-1 h-12 text-base font-medium" onClick={handleApplyFilters}>
                   Показать курсы
                 </Button>
               </div>
