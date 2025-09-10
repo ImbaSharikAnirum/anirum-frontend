@@ -213,14 +213,14 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
             <h3 className="font-semibold text-gray-900 text-sm leading-tight">
               {getDirectionDisplayName(course.direction)}
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 h-7">
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-4 h-7">
               {course.isOnline ? 'Онлайн' : getLocationText()}
             </p>
           </div>
         </div>
 
         {/* Расписание и локация */}
-        <div className="text-sm text-gray-600 space-y-1">
+        <div className="text-xs text-gray-600 space-y-1 leading-4">
           <div className="flex flex-col">
             {(() => {
               const schedule = formatSchedule()
@@ -251,7 +251,7 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
               currentStudents={totalStudents}
               minStudents={course.minStudents}
               maxStudents={course.maxStudents}
-              className="py-2"
+              className="py-1"
             />
           )
         })()}
