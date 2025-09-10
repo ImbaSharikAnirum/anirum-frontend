@@ -119,7 +119,7 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
     if (course.isOnline) {
       return 'Онлайн'
     }
-    return `${course.city}`
+    return `${course.address}`
   }
 
   const getAgeRangeText = () => {
@@ -213,7 +213,7 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
             <h3 className="font-semibold text-gray-900 text-sm leading-tight">
               {getDirectionDisplayName(course.direction)}
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 h-7">
               {course.isOnline ? 'Онлайн' : getLocationText()}
             </p>
           </div>
