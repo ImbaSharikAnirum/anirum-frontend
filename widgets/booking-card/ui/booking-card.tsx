@@ -223,7 +223,7 @@ export function BookingCard({
               <div className="text-sm text-gray-600">
                 {course.isOnline
                   ? "Онлайн"
-                  : `${course.city}, ${course.country}`}
+                  : `${course.address}`}
               </div>
             </div>
           </div>
