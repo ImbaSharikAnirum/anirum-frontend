@@ -130,6 +130,11 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
       return null // Нет ограничений по возрасту
     }
     
+    // Если startAge >= 18, всегда показываем "от X лет"
+    if (startAge && startAge >= 18) {
+      return `от ${startAge} лет`
+    }
+    
     if (startAge && endAge) {
       return `${startAge}-${endAge} лет`
     }

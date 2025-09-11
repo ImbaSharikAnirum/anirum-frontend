@@ -150,6 +150,11 @@ export function BookingCard({
       return null;
     }
 
+    // Если startAge >= 18, всегда показываем "от X лет"
+    if (startAge && startAge >= 18) {
+      return `от ${startAge} лет`;
+    }
+
     if (startAge && endAge) {
       return `${startAge}-${endAge} лет`;
     }

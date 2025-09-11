@@ -49,6 +49,34 @@ export function CourseDetails({ course }: CourseDetailsProps) {
     )
   }
 
+  const getAgeRangeText = () => {
+    const startAge = course.startAge;
+    const endAge = course.endAge;
+
+    if (!startAge && !endAge) {
+      return "Без ограничений по возрасту";
+    }
+
+    // Если startAge >= 18, всегда показываем "от X лет"
+    if (startAge && startAge >= 18) {
+      return `от ${startAge} лет`;
+    }
+
+    if (startAge && endAge) {
+      return `${startAge}-${endAge} лет`;
+    }
+
+    if (startAge && !endAge) {
+      return `от ${startAge} лет`;
+    }
+
+    if (!startAge && endAge) {
+      return `до ${endAge} лет`;
+    }
+
+    return "Без ограничений по возрасту";
+  };
+
   return (
     <div className="space-y-3">
       {/* Название курса */}
@@ -71,7 +99,7 @@ export function CourseDetails({ course }: CourseDetailsProps) {
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-gray-500" />
             <span>
-              Возраст: {course.startAge} - {course.endAge} лет
+              Возраст: {getAgeRangeText()}
             </span>
           </div>
 
