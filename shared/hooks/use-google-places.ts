@@ -3,6 +3,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { loadGoogleMaps } from '@/shared/lib/google-maps-loader'
 
+// Отключаем предупреждения Google Maps в консоли для разработки
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const originalWarn = console.warn;
+  console.warn = function(...args) {
+    const message = args[0]?.toString?.() || '';
+    if (message.includes('AutocompleteService') || 
+        message.includes('PlacesService') ||
+        message.includes('non-passive event listener') ||
+        message.includes('touchmove') ||
+        message.includes('touchstart') ||
+        message.includes('loading=async') ||
+        message.includes('Violation')) return;
+    originalWarn.apply(console, args);
+  };
+}
+
 interface PlacePrediction {
   place_id: string
   description: string

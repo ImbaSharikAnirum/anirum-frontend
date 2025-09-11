@@ -45,9 +45,10 @@ export function Header() {
               <Image 
                 src="/logo.svg" 
                 alt="Anirum" 
-                width={32} 
+                width={80} 
                 height={32}
                 className="w-20 h-8"
+                priority
               />
             </Link>
             
