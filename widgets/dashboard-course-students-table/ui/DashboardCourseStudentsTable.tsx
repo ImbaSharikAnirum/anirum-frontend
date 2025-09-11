@@ -169,7 +169,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Студенты курса: {course.description}</CardTitle>
+          <CardTitle>Студенты курса</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center p-8">
@@ -187,7 +187,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Студенты курса: {course.description}</CardTitle>
+          <CardTitle>Студенты курса</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center p-8">
@@ -205,11 +205,8 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span>Студенты курса:</span>
-          <span className="text-base font-normal text-gray-600 line-clamp-1">
-            {course.description}
-          </span>
+        <CardTitle>
+          Студенты курса
         </CardTitle>
         <CardDescription className="flex items-center justify-between">
           <span>
