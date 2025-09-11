@@ -17,8 +17,30 @@ import { getServerUser } from "@/shared/lib/auth"
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Anirum Platform',
-  description: 'Custom platform built with Next.js',
+  title: 'Anirum',
+  description: 'Изучайте анимацию и геймдев. Курсы от экспертов, практические гайды и секреты индустрии',
+  openGraph: {
+    title: 'Anirum - Платформа обучения анимации и геймдев',
+    description: 'Изучайте анимацию и геймдев. Курсы от экспертов, практические гайды и секреты индустрии',
+    url: 'https://anirum.com',
+    siteName: 'Anirum',
+    images: [
+      {
+        url: '/og-image.jpg', // Основное изображение 1200x630
+        width: 1200,
+        height: 630,
+        alt: 'Anirum - Платформа обучения анимации и геймдев',
+      },
+    ],
+    locale: 'ru_RU',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Anirum - Платформа обучения анимации и геймдев',
+    description: 'Изучайте анимацию и геймдев. Курсы от экспертов, практические гайды и секреты индустрии',
+    images: ['/og-image.jpg'],
+  },
 }
 
 export default async function RootLayout({
