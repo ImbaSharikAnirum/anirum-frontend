@@ -119,11 +119,11 @@ export function getStrapiImageUrl(url: string, baseURL?: string): string {
 }
 
 /**
- * Получает оптимальный формат изображения для контекста
+ * Получает оптимальный формат изображения для контекста с приоритетом качества
  */
 export function getOptimalImageFormat(
   image: any, 
-  context: 'card' | 'modal' | 'hero' = 'card'
+  context: 'card' | 'modal' | 'hero' | 'thumbnail' = 'card'
 ): string {
   if (typeof image === 'string') {
     return getStrapiImageUrl(image)
@@ -135,14 +135,17 @@ export function getOptimalImageFormat(
 
   switch (context) {
     case 'card':
-      // Для карточек используем medium формат (750px, ~90KB) для лучшего качества
-      return image.formats.medium?.url || image.formats.large?.url || image.url
+      // Для карточек используем large формат (1000px) для максимального качества на ретина дисплеях
+      return getStrapiImageUrl(image.formats.large?.url || image.url || image.formats.medium?.url)
     case 'modal':
-      // Для модальных окон используем оригинал или large формат
-      return image.url || image.formats.large?.url
+      // Для модальных окон всегда используем оригинал
+      return getStrapiImageUrl(image.url)
     case 'hero':
-      // Для hero секций используем large формат (1000px)
-      return image.formats.large?.url || image.url
+      // Для hero секций используем оригинал или large формат
+      return getStrapiImageUrl(image.url || image.formats.large?.url)
+    case 'thumbnail':
+      // Для миниатюр используем medium формат
+      return getStrapiImageUrl(image.formats.medium?.url || image.formats.small?.url || image.url)
     default:
       return getStrapiImageUrl(image.url)
   }

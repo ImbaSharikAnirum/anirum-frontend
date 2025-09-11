@@ -20,6 +20,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'anirum.up.railway.app',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 }
