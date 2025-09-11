@@ -43,6 +43,7 @@ import { useUserTimezone } from "@/shared/hooks/useUserTimezone"
 import { formatCourseSchedule } from "@/shared/lib/timezone-utils"
 import { formatWeekdays } from "@/shared/lib/course-utils"
 import { CourseEnrollmentProgress } from "@/shared/ui/course-enrollment-progress"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { DashboardCoursesFilterValues } from "@/widgets/dashboard-courses-filters"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -386,8 +387,15 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
           </TableHeader>
           <TableBody>
             {courses.map((course) => {
-              const schedule = formatSchedule(course.startTime, course.endTime, course.timezone)
-              const displayTimezone = schedule.isConverted ? userTimezone : course.timezone
+              // Всегда показываем время в исходном часовом поясе курса
+              const originalSchedule = {
+                timeRange: `${course.startTime.slice(0, 5)} - ${course.endTime.slice(0, 5)}`,
+                timezone: course.timezone,
+                isConverted: false
+              }
+              
+              // Конвертированное время для tooltip
+              const convertedSchedule = formatSchedule(course.startTime, course.endTime, course.timezone)
               
               return (
                 <TableRow 
@@ -423,13 +431,27 @@ export function DashboardCoursesTable({ className, filters, onCourseSelect, sele
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-1 text-sm">
-                      <Clock className="h-4 w-4" />
-                      <div>
-                        <p>{schedule.timeRange}</p>
-                        <p className="text-gray-600">{displayTimezone}</p>
-                      </div>
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center space-x-1 text-sm cursor-help">
+                          <Clock className="h-4 w-4" />
+                          <div>
+                            <p>{originalSchedule.timeRange}</p>
+                            <p className="text-gray-600">{course.timezone}</p>
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-white">
+                        {convertedSchedule.isConverted ? (
+                          <div>
+                            <div className="font-medium">В вашем часовом поясе:</div>
+                            <div>{convertedSchedule.timeRange} ({userTimezone})</div>
+                          </div>
+                        ) : (
+                          <div>Время уже в вашем часовом поясе</div>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">

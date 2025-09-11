@@ -29,27 +29,33 @@ export function useUserTimezone() {
 
     const detectTimezone = async (): Promise<TimezoneInfo | null> => {
       try {
-        // Fallback: используем локальный часовой пояс браузера
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-        const now = new Date()
+        // Сначала проверяем сохраненный часовой пояс в localStorage
+        let detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
         
-        let detectedTimezone = browserTimezone
-        
-        // Если есть токен IPinfo, пытаемся получить более точную информацию
-        if (IPINFO_TOKEN) {
-          try {
-            const response = await fetch(`https://ipinfo.io/json?token=${IPINFO_TOKEN}`)
-            if (response.ok) {
-              const data: IPInfoResponse = await response.json()
-              if (data.timezone) {
-                detectedTimezone = data.timezone
+        if (typeof window !== 'undefined') {
+          const savedTimezone = localStorage.getItem('user-timezone')
+          if (savedTimezone) {
+            detectedTimezone = savedTimezone
+          } else {
+            // Если сохраненного нет, пытаемся определить через IP
+            if (IPINFO_TOKEN) {
+              try {
+                const response = await fetch(`https://ipinfo.io/json?token=${IPINFO_TOKEN}`)
+                if (response.ok) {
+                  const data: IPInfoResponse = await response.json()
+                  if (data.timezone) {
+                    detectedTimezone = data.timezone
+                  }
+                }
+              } catch (ipError) {
+                // Игнорируем ошибку API и используем браузерный часовой пояс
+                console.warn('Failed to fetch IP timezone, using browser timezone:', ipError)
               }
             }
-          } catch (ipError) {
-            // Игнорируем ошибку API и используем браузерный часовой пояс
-            console.warn('Failed to fetch IP timezone, using browser timezone:', ipError)
           }
         }
+
+        const now = new Date()
 
         // Получаем детальную информацию о часовом поясе
         const formatter = new Intl.DateTimeFormat('en', {
@@ -77,11 +83,23 @@ export function useUserTimezone() {
       }
     }
 
-    // Если данные уже кешированы, используем их
-    if (globalTimezoneCache && mounted) {
+    // Проверяем, не изменился ли сохраненный часовой пояс
+    const checkCacheValidity = () => {
+      if (typeof window === 'undefined') return true
+      const savedTimezone = localStorage.getItem('user-timezone')
+      return globalTimezoneCache?.timezone === (savedTimezone || globalTimezoneCache?.timezone)
+    }
+
+    // Если данные кешированы и актуальны, используем их
+    if (globalTimezoneCache && checkCacheValidity() && mounted) {
       setUserTimezone(globalTimezoneCache)
       setLoading(false)
       return
+    }
+
+    // Если кеш устарел, очищаем его
+    if (globalTimezoneCache && !checkCacheValidity()) {
+      globalTimezoneCache = null
     }
 
     // Если уже есть активный запрос, ждем его

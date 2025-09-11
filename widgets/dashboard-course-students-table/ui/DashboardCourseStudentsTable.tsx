@@ -13,10 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight } from "lucide-react"
+import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight, Info } from "lucide-react"
 import { generateCourseDates, formatAttendanceDate } from "@/shared/lib/attendance-utils"
 import { StudentActionsDropdown } from "@/shared/ui/student-actions-dropdown"
 import { StudentAttendanceCell } from './StudentAttendanceCell'
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Course } from "@/entities/course"
 
 type UserRole = 'Manager' | 'Teacher'
@@ -198,9 +199,66 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     )
   }
 
+  // Расчеты доходов
   const totalSum = invoices.reduce((sum, invoice) => sum + invoice.sum, 0)
   const paidSum = invoices.filter(invoice => invoice.statusPayment).reduce((sum, invoice) => sum + invoice.sum, 0)
   const paidCount = invoices.filter(invoice => invoice.statusPayment).length
+
+  // Функции расчета доходов как в калькуляторе
+  const taxAndCommissionRate = 10 // 6% налоги + 4% банк
+  const teacherShare = 0.7 // 70% преподавателю
+  const companyShare = 0.3 // 30% компании
+
+  const calculateTeacherIncome = (grossIncome: number, rentTotal: number = 0) => {
+    const taxAndCommission = Math.round(grossIncome * (taxAndCommissionRate / 100))
+    const afterTax = grossIncome - taxAndCommission
+    const net = afterTax - rentTotal
+    const result = Math.max(0, Math.round(net * teacherShare))
+    
+    // Отладка - можно убрать потом
+    console.log('Teacher Income Calculation:', {
+      grossIncome,
+      taxAndCommission,
+      afterTax,
+      rentTotal,
+      net,
+      teacherShare,
+      result
+    })
+    
+    return result
+  }
+
+  const calculateCompanyProfit = (grossIncome: number, rentTotal: number = 0) => {
+    const taxAndCommission = Math.round(grossIncome * (taxAndCommissionRate / 100))
+    const afterTax = grossIncome - taxAndCommission
+    const net = afterTax - rentTotal
+    return Math.max(0, Math.round(net * companyShare))
+  }
+
+  // Расчеты для оплаченных студентов
+  const rentPerLesson = course?.isOnline ? 0 : (course?.rentalPrice || 0)
+  // Примерное количество занятий в месяце (можно улучшить позже)
+  const estimatedLessonsPerMonth = 8 
+  const rentTotal = rentPerLesson * estimatedLessonsPerMonth
+  
+  // Отладка
+  console.log('Course financial data:', {
+    isOnline: course?.isOnline,
+    rentalPrice: course?.rentalPrice,
+    rentPerLesson,
+    estimatedLessonsPerMonth,
+    rentTotal,
+    paidSum,
+    totalSum,
+    paidCount
+  })
+
+  // Временно убираем аренду из расчета, чтобы проверить
+  const teacherIncomeFromPaid = calculateTeacherIncome(paidSum, 0)
+  const teacherIncomeFromTotal = calculateTeacherIncome(totalSum, 0)
+  const companyProfitFromPaid = calculateCompanyProfit(paidSum, 0)
+  const companyProfitFromTotal = calculateCompanyProfit(totalSum, 0)
 
   return (
     <Card className={className}>
@@ -212,13 +270,48 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
           <span>
             Всего записаны: {invoices.length} студентов • 
             Оплатили: {paidCount} студентов
-            {attendanceManager.isUpdating && " • 💾 Сохраняется..."}
-            {attendanceManager.hasPendingUpdates && " • ⏳ Есть несохраненные изменения"}
+            {attendanceManager.isUpdating && " • Сохраняется..."}
+            {attendanceManager.hasPendingUpdates && " • Есть несохраненные изменения"}
           </span>
-          <span className="flex items-center gap-1">
-            <CreditCard className="h-4 w-4" />
-            {paidSum}/{totalSum} {course.currency}
-          </span>
+          
+          {/* Краткая информация о сумме с подробным tooltip */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex items-center gap-1 cursor-help">
+                <CreditCard className="h-4 w-4" />
+                {role === 'Teacher' ? (
+                  `${teacherIncomeFromPaid.toLocaleString('ru-RU')}/${teacherIncomeFromTotal.toLocaleString('ru-RU')} ${course.currency}`
+                ) : (
+                  `${paidSum.toLocaleString('ru-RU')}/${totalSum.toLocaleString('ru-RU')} ${course.currency}`
+                )}
+                <Info className="h-3 w-3 text-gray-400" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-xs text-white">
+              {role === 'Teacher' ? (
+                // Tooltip для преподавателя
+                <div className="space-y-2 text-sm">
+                  <div className="font-medium text-white">Ваш доход</div>
+                  <div className="text-white">К выплате от оплативших: <span className="font-medium">{teacherIncomeFromPaid.toLocaleString('ru-RU')} {course.currency}</span></div>
+                  <div className="text-white">Потенциально от всех: <span className="font-medium">{teacherIncomeFromTotal.toLocaleString('ru-RU')} {course.currency}</span></div>
+                  <div className="text-xs text-gray-300 border-t border-gray-600 pt-2">
+                    Расчет: Валовый доход - 10% (налоги + банк) {rentTotal > 0 && '- аренда'} × 70% (ваша доля)
+                  </div>
+                </div>
+              ) : (
+                // Tooltip для менеджера
+                <div className="space-y-2 text-sm">
+                  <div className="font-medium text-white">Финансовая сводка</div>
+                  <div className="text-white">Валовый доход: <span className="font-medium">{paidSum.toLocaleString('ru-RU')}/{totalSum.toLocaleString('ru-RU')} {course.currency}</span></div>
+                  <div className="text-white">К выплате преподавателю: <span className="font-medium">{teacherIncomeFromPaid.toLocaleString('ru-RU')}/{teacherIncomeFromTotal.toLocaleString('ru-RU')} {course.currency}</span></div>
+                  <div className="text-white">Прибыль компании: <span className="font-medium">{companyProfitFromPaid.toLocaleString('ru-RU')}/{companyProfitFromTotal.toLocaleString('ru-RU')} {course.currency}</span></div>
+                  <div className="text-xs text-gray-300 border-t border-gray-600 pt-2">
+                    Расчет: Валовый доход - 10% (налоги + банк) {rentTotal > 0 && '- аренда'} → 70% преподавателю, 30% компании
+                  </div>
+                </div>
+              )}
+            </TooltipContent>
+          </Tooltip>
         </CardDescription>
       </CardHeader>
       
