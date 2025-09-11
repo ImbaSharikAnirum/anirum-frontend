@@ -17,6 +17,7 @@ import { getServerUser } from "@/shared/lib/auth"
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://anirum.com'),
   title: 'Anirum',
   description: 'Изучайте анимацию и геймдев. Курсы от экспертов, практические гайды и секреты индустрии',
   openGraph: {

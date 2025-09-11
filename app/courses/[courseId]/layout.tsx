@@ -1,11 +1,6 @@
 import type { Metadata } from 'next'
 import { courseAPI } from '@/entities/course'
 
-interface CourseLayoutProps {
-  children: React.ReactNode
-  params: { courseId: string }
-}
-
 // Функция для форматирования дней недели
 function formatWeekdays(weekdays: string[]): string {
   const dayNames: Record<string, string> = {
@@ -38,9 +33,10 @@ function formatTime(startTime: string, endTime: string, timezone: string): strin
   return `${startTime}-${endTime} (${timezone})`
 }
 
-export async function generateMetadata({ params }: { params: { courseId: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ courseId: string }> }): Promise<Metadata> {
   try {
-    const course = await courseAPI.getCourse(params.courseId, ['teacher.avatar', 'images'])
+    const { courseId } = await params
+    const course = await courseAPI.getCourse(courseId, ['teacher.avatar', 'images'])
     
     if (!course) {
       return {
@@ -70,7 +66,7 @@ export async function generateMetadata({ params }: { params: { courseId: string 
       openGraph: {
         title,
         description,
-        url: `https://anirum.com/courses/${params.courseId}`,
+        url: `https://anirum.com/courses/${courseId}`,
         siteName: 'Anirum',
         images: [
           {
@@ -116,6 +112,6 @@ export async function generateMetadata({ params }: { params: { courseId: string 
   }
 }
 
-export default function CourseLayout({ children }: CourseLayoutProps) {
+export default function CourseLayout({ children }: { children: React.ReactNode }) {
   return children
 }
