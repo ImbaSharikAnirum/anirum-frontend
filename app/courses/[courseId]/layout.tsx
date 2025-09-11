@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ courseId:
     const directionInfo = formatDirection(course.direction)
     const locationInfo = course.isOnline ? 'Онлайн' : `${course.city}, ${course.address}`
     
-    const description = `${course.description} • ${directionInfo} • ${timeInfo} • ${weekdaysInfo} • ${locationInfo} • От ${course.pricePerLesson}₽/урок`
+    const description = `${directionInfo} • ${timeInfo} • ${weekdaysInfo} • ${locationInfo} • От ${course.pricePerLesson}₽/урок`
     
     const title = `${directionInfo} - ${course.city} ${course.isOnline ? '(Онлайн)' : ''} | Anirum`
 
