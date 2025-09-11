@@ -520,7 +520,16 @@ export function CourseForm({ mode = 'create', initialData, onSuccess }: CourseFo
   const [initialImages] = useState(() => convertCourseImagesToFileMetadata(initialData))
 
   const handleInputChange = (field: string, value: string | boolean | Date | number | null | undefined | { lat: number; lng: number }) => {
-    const newFormData = { ...formData, [field]: value }
+    let newFormData = { ...formData, [field]: value }
+    
+    // Автоматически ставим endAge = 99 при startAge >= 18
+    if (field === 'startAge' && typeof value === 'string') {
+      const startAgeNum = parseInt(value)
+      if (startAgeNum >= 18) {
+        newFormData.endAge = '99'
+      }
+    }
+    
     setFormData(newFormData)
     
     console.log('📝 FormData Updated:', {
