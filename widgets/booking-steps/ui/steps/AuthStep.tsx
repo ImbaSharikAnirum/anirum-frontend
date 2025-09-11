@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUser } from '@/entities/user'
 import { APIError } from '@/shared/api/base'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface AuthStepProps {
   onNext: () => void
@@ -18,6 +19,8 @@ export function AuthStep({ onNext }: AuthStepProps) {
   const [username, setUsername] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
   const { setUser } = useUser()
   const [isLoading, setIsLoading] = useState(false)
@@ -157,11 +160,13 @@ export function AuthStep({ onNext }: AuthStepProps) {
       {!isRegisterMode && (
         <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="login-email">Email</Label>
             <Input 
-              id="email"
+              id="login-email"
+              name="login-email"
               type="email" 
               placeholder="m@example.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
@@ -170,15 +175,38 @@ export function AuthStep({ onNext }: AuthStepProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Пароль</Label>
-            <Input 
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-              required
-            />
+            <Label htmlFor="login-password">Пароль</Label>
+            <div className="relative">
+              <Input 
+                id="login-password"
+                name="login-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Введите пароль"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                required
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                <span className="sr-only">
+                  {showPassword ? "Скрыть пароль" : "Показать пароль"}
+                </span>
+              </Button>
+            </div>
           </div>
 
           <Button 
@@ -193,7 +221,15 @@ export function AuthStep({ onNext }: AuthStepProps) {
             <Button 
               type="button"
               variant="link" 
-              onClick={() => setIsRegisterMode(true)}
+              onClick={() => {
+                setIsRegisterMode(true)
+                // Очищаем поля при переходе к регистрации
+                setEmail('')
+                setPassword('')
+                setUsername('')
+                setConfirmPassword('')
+                setError(null)
+              }}
               disabled={isLoading}
             >
               Нет аккаунта? Зарегистрироваться
@@ -204,13 +240,15 @@ export function AuthStep({ onNext }: AuthStepProps) {
 
       {/* Форма регистрации */}
       {isRegisterMode && (
-        <form onSubmit={handleSignup} className="space-y-4" autoComplete="on">
+        <form onSubmit={handleSignup} className="space-y-4" autoComplete="off">
           <div className="space-y-2">
-            <Label htmlFor="username">Имя пользователя</Label>
+            <Label htmlFor="signup-username">Имя пользователя</Label>
             <Input 
-              id="username"
+              id="signup-username"
+              name="signup-username"
               type="text"
               placeholder="johndoe"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={isLoading}
@@ -219,11 +257,13 @@ export function AuthStep({ onNext }: AuthStepProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="signup-email">Email</Label>
             <Input 
-              id="email"
+              id="signup-email"
+              name="signup-email"
               type="email" 
               placeholder="m@example.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
@@ -232,28 +272,74 @@ export function AuthStep({ onNext }: AuthStepProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Пароль</Label>
-            <Input 
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-              minLength={6}
-              required
-            />
+            <Label htmlFor="signup-password">Пароль</Label>
+            <div className="relative">
+              <Input 
+                id="signup-password"
+                name="signup-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Минимум 6 символов"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                minLength={6}
+                required
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                <span className="sr-only">
+                  {showPassword ? "Скрыть пароль" : "Показать пароль"}
+                </span>
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
-            <Input 
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={isLoading}
-              required
-            />
+            <Label htmlFor="signup-confirm-password">Подтвердите пароль</Label>
+            <div className="relative">
+              <Input 
+                id="signup-confirm-password"
+                name="signup-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Повторите пароль"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
+                required
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                <span className="sr-only">
+                  {showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
+                </span>
+              </Button>
+            </div>
           </div>
 
           <Button 
@@ -268,7 +354,15 @@ export function AuthStep({ onNext }: AuthStepProps) {
             <Button 
               type="button"
               variant="link" 
-              onClick={() => setIsRegisterMode(false)}
+              onClick={() => {
+                setIsRegisterMode(false)
+                // Очищаем поля при переходе к входу
+                setEmail('')
+                setPassword('')
+                setUsername('')
+                setConfirmPassword('')
+                setError(null)
+              }}
               disabled={isLoading}
             >
               Уже есть аккаунт? Войти

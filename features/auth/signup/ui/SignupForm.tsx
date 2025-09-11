@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { useSignup } from '../model/useSignup'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface SignupFormProps extends React.ComponentProps<"form"> {}
 
@@ -20,6 +21,8 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
   const { signup, isLoading, error } = useSignup()
 
@@ -96,27 +99,73 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
         
         <div className="grid gap-3">
           <Label htmlFor="password">Пароль</Label>
-          <Input 
-            id="password" 
-            type="password" 
-            required 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            minLength={6}
-          />
+          <div className="relative">
+            <Input 
+              id="password" 
+              name="new-password"
+              type={showPassword ? "text" : "password"} 
+              placeholder="Минимум 6 символов"
+              autoComplete="new-password"
+              required 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              minLength={6}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {showPassword ? "Скрыть пароль" : "Показать пароль"}
+              </span>
+            </Button>
+          </div>
         </div>
         
         <div className="grid gap-3">
           <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
-          <Input 
-            id="confirmPassword" 
-            type="password" 
-            required 
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            disabled={isLoading}
-          />
+          <div className="relative">
+            <Input 
+              id="confirmPassword" 
+              name="confirm-password"
+              type={showConfirmPassword ? "text" : "password"} 
+              placeholder="Повторите пароль"
+              autoComplete="new-password"
+              required 
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isLoading}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={isLoading}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
+              </span>
+            </Button>
+          </div>
         </div>
         
         <Button type="submit" className="w-full" disabled={isLoading}>

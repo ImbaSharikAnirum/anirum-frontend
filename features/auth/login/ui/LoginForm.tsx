@@ -11,12 +11,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { useLogin } from '../model/useLogin'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface LoginFormProps extends React.ComponentProps<"form"> {}
 
 export function LoginForm({ className, ...props }: LoginFormProps) {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const { login, isLoading, error } = useLogin()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,8 +50,10 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           <Label htmlFor="email">Email</Label>
           <Input 
             id="email" 
+            name="email"
             type="email" 
             placeholder="m@example.com" 
+            autoComplete="email"
             required 
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
@@ -57,23 +61,46 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           />
         </div>
         <div className="grid gap-3">
-          {/* <div className="flex items-center">
+          <div className="flex items-center">
             <Label htmlFor="password">Пароль</Label>
-            <a
+            {/* <a
               href="/auth/forgot-password"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Забыли пароль?
-            </a>
-          </div> */}
-          <Input 
-            id="password" 
-            type="password" 
-            required 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-          />
+            </a> */}
+          </div>
+          <div className="relative">
+            <Input 
+              id="password" 
+              name="password"
+              type={showPassword ? "text" : "password"} 
+              placeholder="Введите пароль"
+              autoComplete="current-password"
+              required 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {showPassword ? "Скрыть пароль" : "Показать пароль"}
+              </span>
+            </Button>
+          </div>
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? 'Входим...' : 'Войти'}
