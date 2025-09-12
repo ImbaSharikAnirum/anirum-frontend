@@ -20,6 +20,9 @@ export interface User {
   telegram_username?: string
   telegram_phone?: string
   birth_date?: string
+  bonusBalance?: number // Текущий баланс бонусов
+  totalEarnedBonuses?: number // Всего заработано бонусов
+  totalSpentBonuses?: number // Всего потрачено бонусов
 }
 
 export type UserRoleName = 'Manager' | 'Teacher' | 'Student' | 'Authenticated'

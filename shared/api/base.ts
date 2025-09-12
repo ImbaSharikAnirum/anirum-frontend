@@ -3,10 +3,16 @@
  * @layer shared
  */
 
-export interface APIError {
-  message: string
-  status: number
-  details?: any
+export class APIError extends Error {
+  public status: number
+  public details?: any
+
+  constructor({ message, status, details }: { message: string, status: number, details?: any }) {
+    super(message)
+    this.name = 'APIError'
+    this.status = status
+    this.details = details
+  }
 }
 
 export class BaseAPI {
@@ -57,17 +63,5 @@ export class BaseAPI {
     return {
       Authorization: `Bearer ${token}`
     }
-  }
-}
-
-export class APIError extends Error {
-  public status: number
-  public details?: any
-
-  constructor({ message, status, details }: { message: string, status: number, details?: any }) {
-    super(message)
-    this.name = 'APIError'
-    this.status = status
-    this.details = details
   }
 }

@@ -16,6 +16,9 @@ export interface Invoice {
   name: string
   family: string
   sum: number
+  originalSum?: number
+  discountAmount?: number
+  bonusesUsed?: number
   currency: string
   startDate: string
   endDate: string
@@ -29,6 +32,12 @@ export interface Invoice {
     documentId: string
   }
   owner?: User
+  referralCode?: {
+    id: number
+    documentId: string
+    code: string
+  }
+  referrer?: User
   createdAt: string
   updatedAt: string
 }
@@ -37,12 +46,17 @@ export interface CreateInvoiceData {
   name: string
   family: string
   sum: number
+  originalSum?: number
+  discountAmount?: number
+  bonusesUsed?: number
   currency: string
   startDate: string
   endDate: string
   statusPayment: boolean
   course: string // documentId курса
   owner: string // documentId владельца
+  referralCode?: string | number // documentId реферального кода
+  referrer?: string | number // documentId реферера
 }
 
 export interface UpdateInvoiceData {
@@ -86,12 +100,17 @@ export class InvoiceAPI extends BaseAPI {
         name: data.name,
         family: data.family,
         sum: data.sum,
+        originalSum: data.originalSum,
+        discountAmount: data.discountAmount,
+        bonusesUsed: data.bonusesUsed,
         currency: data.currency,
         startDate: data.startDate,
         endDate: data.endDate,
         statusPayment: data.statusPayment,
         course: data.course,
-        owner: data.owner
+        owner: data.owner,
+        referralCode: data.referralCode,
+        referrer: data.referrer
       }
     }
 

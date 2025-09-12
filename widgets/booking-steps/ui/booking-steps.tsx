@@ -8,8 +8,9 @@ import { studentAPI } from '@/entities/student'
 import { calculateCustomMonthPricing, calculateProRatedPricing, getMonthLessonDates, getAllLessonDatesInMonth } from '@/shared/lib/course-pricing'
 import { getDirectionDisplayName } from '@/shared/lib/course-utils'
 import { canDirectPayment } from '@/shared/lib/booking-utils'
-import { AuthStep, ContactStep, StudentStep, ConfirmationStep, SuccessStep, type ContactData, type StudentData } from './steps'
+import { AuthStep, ContactStep, StudentStep, ConfirmationStep, SuccessStep, type ContactData, type StudentData, type BookingData } from './steps'
 import type { Invoice } from '@/entities/invoice'
+import type { AppliedReferral } from '@/entities/referral'
 
 interface BookingStepsProps {
   course: Course
@@ -73,7 +74,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
     }
   }, [isAuthenticated, user])
 
-  const handleConfirmBooking = async () => {
+  const handleConfirmBooking = async (bookingData: BookingData) => {
     if (!user) {
       alert('Необходимо авторизоваться')
       return
@@ -154,17 +155,28 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
         return `${year}-${month}-${day}`
       }
 
-      // 4. Создаем счет с частичной оплатой
+      // 4. Рассчитываем финальную сумму с учетом промокода и бонусов
+      const basePrice = proRatedPricing.proRatedPrice;
+      const discountAmount = bookingData.referralData?.discountAmount || 0;
+      const bonusesUsed = bookingData.bonusesUsed || 0;
+      const finalPrice = Math.max(0, basePrice - discountAmount - bonusesUsed);
+
+      // 5. Создаем счет с частичной оплатой и данными промокода и бонусов
       const invoiceData: CreateInvoiceData = {
         name: studentName,
         family: studentFamily,
-        sum: proRatedPricing.proRatedPrice, // Только за оставшиеся занятия
+        sum: finalPrice, // Цена с учетом скидки и бонусов
+        originalSum: basePrice, // Сохраняем изначальную цену
+        discountAmount: discountAmount, // Размер скидки по промокоду
+        bonusesUsed: bonusesUsed, // Использованные бонусы
         currency: 'RUB', // По умолчанию RUB как в требованиях
         startDate: formatDateForInvoice(nextLesson), // Ближайшее занятие
         endDate: formatDateForInvoice(lastLesson),
         statusPayment: false,
         course: course.documentId,
-        owner: user.documentId || user.id.toString()
+        owner: user.documentId || user.id.toString(),
+        referralCode: bookingData.referralData?.referralCodeId || undefined,
+        referrer: bookingData.referralData?.referrerId || undefined,
       }
 
       const invoice = await invoiceAPI.createInvoice(invoiceData)
