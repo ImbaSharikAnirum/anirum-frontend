@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
 import { 
   Copy, 
   Share2, 
@@ -297,7 +296,7 @@ export default function ReferralsPage() {
       )}
 
       {/* Баланс бонусов */}
-      {user && (user.bonusBalance > 0 || user.totalEarnedBonuses > 0 || user.totalSpentBonuses > 0) && (
+      {user && ((user.bonusBalance || 0) > 0 || (user.totalEarnedBonuses || 0) > 0 || (user.totalSpentBonuses || 0) > 0) && (
         <Card className="p-6">
           <div className="flex items-center space-x-2 mb-4">
             <Wallet className="h-5 w-5 text-primary" />
@@ -321,11 +320,11 @@ export default function ReferralsPage() {
             </div>
           </div>
           
-          {user.bonusBalance > 0 && (
+          {(user?.bonusBalance ?? 0) > 0 && (
             <Alert className="mt-4 border-emerald-200 bg-emerald-50">
               <Wallet className="h-4 w-4 text-emerald-600" />
               <AlertDescription className="text-emerald-800">
-                Вы можете использовать до <strong>{formatPrice(user.bonusBalance)}</strong> при записи на курсы
+                Вы можете использовать до <strong>{formatPrice(user?.bonusBalance ?? 0)}</strong> при записи на курсы
               </AlertDescription>
             </Alert>
           )}
