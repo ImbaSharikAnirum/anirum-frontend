@@ -19,6 +19,7 @@ export function UnderDevelopment({
           height={300}
           className="mx-auto"
           priority
+          unoptimized
         />
       </div>
       
