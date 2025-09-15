@@ -13,11 +13,12 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight, Info } from "lucide-react"
+import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight, Info, Copy, Users } from "lucide-react"
 import { generateCourseDates, formatAttendanceDate } from "@/shared/lib/attendance-utils"
 import { StudentActionsDropdown } from "@/shared/ui/student-actions-dropdown"
 import { StudentAttendanceCell } from './StudentAttendanceCell'
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { toast } from "sonner"
 import type { Course } from "@/entities/course"
 
 type UserRole = 'Manager' | 'Teacher'
@@ -84,6 +85,40 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     loadInvoices()
     // Уведомляем родительский компонент
     onStudentDeleted?.()
+  }
+
+  const handleCopyStudentsList = async () => {
+    if (!course || invoices.length === 0) {
+      toast.error('Нет студентов для копирования')
+      return
+    }
+
+    // Получаем информацию о преподавателе
+    const teacherInfo = course.teacher 
+      ? `${course.teacher.name || ''} ${course.teacher.family || ''}`.trim()
+      : 'Не указан'
+
+    // Формируем список с преподавателем первым
+    const peopleList = [
+      `1. ${teacherInfo} (преподаватель)`,
+      ...invoices.map((invoice, index) => `${index + 2}. ${invoice.name} ${invoice.family}`)
+    ].join('\n')
+
+    const message = peopleList
+
+    try {
+      await navigator.clipboard.writeText(message)
+      toast.success('Список студентов скопирован')
+    } catch (err) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea')
+      textArea.value = message
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      toast.success('Список студентов скопирован')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -215,17 +250,6 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     const net = afterTax - rentTotal
     const result = Math.max(0, Math.round(net * teacherShare))
     
-    // Отладка - можно убрать потом
-    console.log('Teacher Income Calculation:', {
-      grossIncome,
-      taxAndCommission,
-      afterTax,
-      rentTotal,
-      net,
-      teacherShare,
-      result
-    })
-    
     return result
   }
 
@@ -267,12 +291,33 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
           Студенты курса
         </CardTitle>
         <CardDescription className="flex items-center justify-between">
-          <span>
-            Всего записаны: {invoices.length} студентов • 
-            Оплатили: {paidCount} студентов
-            {attendanceManager.isUpdating && " • Сохраняется..."}
-            {attendanceManager.hasPendingUpdates && " • Есть несохраненные изменения"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span>
+              Всего записаны: {invoices.length} студентов • 
+              Оплатили: {paidCount} студентов
+              {attendanceManager.isUpdating && " • Сохраняется..."}
+              {attendanceManager.hasPendingUpdates && " • Есть несохраненные изменения"}
+            </span>
+            
+            {/* Кнопка копирования списка студентов */}
+            {invoices.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyStudentsList}
+                    className="h-6 w-6 p-0 hover:bg-gray-100"
+                  >
+                    <Users className="h-4 w-4 text-gray-900 hover:text-blue-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-white">Скопировать список студентов</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           
           {/* Краткая информация о сумме с подробным tooltip */}
           <Tooltip>
@@ -413,6 +458,10 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
                         onStudentDeleted={handleStudentDeleted}
                         onStudentUpdated={handleStudentDeleted}
                         role={role}
+                        courseStartTime={course.startTime}
+                        courseEndTime={course.endTime}
+                        courseTimezone={course.timezone}
+                        courseWeekdays={course.weekdays}
                       />
                     </TableCell>
                   </TableRow>
