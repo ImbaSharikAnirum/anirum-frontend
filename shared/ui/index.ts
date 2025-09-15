@@ -6,3 +6,6 @@ export { AccessDenied } from './AccessDenied'
 
 // Page components
 export { UnderDevelopment } from './UnderDevelopment'
+
+// Pinterest
+export { PinterestLogin } from './PinterestLogin'
