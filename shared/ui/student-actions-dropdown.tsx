@@ -129,7 +129,7 @@ export function StudentActionsDropdown({
       return;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin;
+    const baseUrl = process.env.NEXT_PUBLIC_DOMAIN || window.location.origin;
     const paymentUrl = `${baseUrl}/courses/${courseId}/payment/${invoiceDocumentId}`;
 
     // Формируем информацию о расписании
