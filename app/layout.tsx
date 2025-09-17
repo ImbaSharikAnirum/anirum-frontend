@@ -10,7 +10,6 @@ import { Footer } from "@/widgets/layout/footer"
 import { MobileNav } from "@/widgets/layout/mobile-nav"
 import { UserProvider } from "@/entities/user"
 import { ConditionalLayout } from "@/widgets/layout/conditional-layout"
-import { QueryProvider } from "@/shared/providers/query-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { getServerUser } from "@/shared/lib/auth"
 
@@ -73,13 +72,11 @@ export default async function RootLayout({
           `}
         </Script>
         
-        <QueryProvider>
-          <UserProvider initialUser={initialUser}>
-            <ConditionalLayout defaultOpen={defaultOpen}>
-              {children}
-            </ConditionalLayout>
-          </UserProvider>
-        </QueryProvider>
+        <UserProvider initialUser={initialUser}>
+          <ConditionalLayout defaultOpen={defaultOpen}>
+            {children}
+          </ConditionalLayout>
+        </UserProvider>
         <Toaster position="top-right" />
       </body>
     </html>

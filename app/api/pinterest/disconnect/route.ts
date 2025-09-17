@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-export async function GET() {
+export async function POST() {
   try {
     const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
@@ -13,8 +13,9 @@ export async function GET() {
       )
     }
 
-    // Вызываем Strapi API для проверки статуса Pinterest
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pinterest/status`, {
+    // Вызываем Strapi API для отключения Pinterest
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pinterest/disconnect`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -25,7 +26,7 @@ export async function GET() {
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: data.error || { message: 'Ошибка проверки статуса' } },
+        { error: data.error || { message: 'Ошибка при отключении Pinterest' } },
         { status: response.status }
       )
     }
@@ -33,7 +34,7 @@ export async function GET() {
     return NextResponse.json(data)
 
   } catch (error) {
-    console.error('Pinterest status error:', error)
+    console.error('Pinterest disconnect error:', error)
     return NextResponse.json(
       { error: { message: 'Внутренняя ошибка сервера' } },
       { status: 500 }
