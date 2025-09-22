@@ -4,11 +4,17 @@ import { NextRequest } from 'next/server'
 /**
  * Toggle save guide API route
  */
+
+interface RouteContext {
+  params: Promise<{ id: string }>
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   try {
+    const { id } = await context.params
     const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
 
@@ -22,7 +28,7 @@ export async function POST(
     const body = await request.json()
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/guides/${params.id}/toggle-save`,
+      `${process.env.NEXT_PUBLIC_API_URL}/guides/${id}/toggle-save`,
       {
         method: 'POST',
         headers: {
