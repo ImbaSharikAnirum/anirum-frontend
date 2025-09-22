@@ -5,11 +5,16 @@ import { NextRequest } from 'next/server'
  * Single guide API routes
  */
 
+interface RouteContext {
+  params: Promise<{ id: string }>
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   try {
+    const { id } = await context.params
     const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
 
@@ -17,7 +22,7 @@ export async function GET(
     const queryString = searchParams.toString()
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/guides/${params.id}${queryString ? `?${queryString}` : ''}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/guides/${id}${queryString ? `?${queryString}` : ''}`,
       {
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -49,9 +54,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   try {
+    const { id } = await context.params
     const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
 
@@ -64,7 +70,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/${params.id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -96,9 +102,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   try {
+    const { id } = await context.params
     const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
 
@@ -109,7 +116,7 @@ export async function DELETE(
       )
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/${params.id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
