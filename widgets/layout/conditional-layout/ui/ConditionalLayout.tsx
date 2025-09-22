@@ -39,7 +39,7 @@ export function ConditionalLayout({ children, defaultOpen = true }: ConditionalL
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />
-      
+
       <SidebarInset>
         <Header />
         <main className="flex-1 pb-16 md:pb-0">
@@ -47,7 +47,7 @@ export function ConditionalLayout({ children, defaultOpen = true }: ConditionalL
         </main>
         <Footer />
       </SidebarInset>
-      
+
       <MobileNav />
     </SidebarProvider>
   )

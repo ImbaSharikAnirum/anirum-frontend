@@ -1,0 +1,1 @@
+export { GuidesSearch } from './ui/GuidesSearch'

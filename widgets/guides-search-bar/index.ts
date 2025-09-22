@@ -1,0 +1,1 @@
+export { GuidesSearchBar } from './ui/GuidesSearchBar'

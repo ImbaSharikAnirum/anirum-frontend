@@ -9,3 +9,6 @@ export { UnderDevelopment } from './UnderDevelopment'
 
 // Pinterest
 export { PinterestLogin } from './PinterestLogin'
+
+// Gallery
+export { MasonryGallery } from './MasonryGallery'

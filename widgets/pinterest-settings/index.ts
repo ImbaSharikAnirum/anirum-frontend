@@ -1,0 +1,1 @@
+export { PinterestSettings } from './ui/PinterestSettings'

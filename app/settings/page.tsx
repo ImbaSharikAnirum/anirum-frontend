@@ -8,11 +8,25 @@ import { useUserTimezone } from '@/shared/hooks/useUserTimezone'
 import { Clock, RotateCcw, Gift, Users, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useUser } from "@/entities/user"
+import { PinterestSettings } from "@/widgets/pinterest-settings"
 
 export default function SettingsPage() {
+  const { user } = useUser()
+  const [pinterestStatus, setPinterestStatus] = useState(null)
   const { timezone: detectedTimezone, loading } = useUserTimezone()
   const [selectedTimezone, setSelectedTimezone] = useState<string>('')
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Загружаем Pinterest статус
+  useEffect(() => {
+    if (user) {
+      fetch('/api/pinterest/status')
+        .then(res => res.ok ? res.json() : null)
+        .then(setPinterestStatus)
+        .catch(() => setPinterestStatus(null))
+    }
+  }, [user])
 
   // Загружаем сохраненный часовой пояс при монтировании
   useEffect(() => {
@@ -142,6 +156,9 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pinterest настройки */}
+        <PinterestSettings user={user} initialPinterestStatus={pinterestStatus} />
 
         {/* Реферальная программа */}
         <Card>
