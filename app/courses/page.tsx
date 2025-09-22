@@ -3,13 +3,13 @@
 import { useState, useCallback } from "react";
 import { CoursesFilters } from "@/widgets/courses-filters";
 import { CoursesCatalog } from "@/widgets/courses-catalog";
-import { useCoursesFilters } from "@/features/courses-filters";
+import { useCoursesFiltersWithUrl } from "@/features/courses-filters";
 import { courseAPI } from "@/entities/course";
 import { CourseFilters, buildApiFilters } from "@/entities/course/lib/filters";
 import { useUserTimezone } from "@/shared/hooks/useUserTimezone";
 
 export default function CoursesPage() {
-  const { filters, setDirection, setFormatAndLocation, setAge, setTeacher, setWeekdays, setPriceRange, setTimeSlot } = useCoursesFilters();
+  const { filters, setDirection, setFormatAndLocation, setAge, setTeacher, setWeekdays, setPriceRange, setTimeSlot } = useCoursesFiltersWithUrl();
   const { timezone } = useUserTimezone();
   const [coursesCount, setCoursesCount] = useState(0);
 
