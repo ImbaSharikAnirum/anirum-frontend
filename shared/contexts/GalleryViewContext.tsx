@@ -5,7 +5,7 @@
  * @layer shared/contexts
  */
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 type GalleryView = 'popular' | 'guides' | 'pins' | 'saved' | 'search'
 
@@ -32,6 +32,35 @@ export function GalleryViewProvider({ children, defaultView = 'popular' }: Galle
   const [currentView, setCurrentView] = useState<GalleryView>(defaultView)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchTags, setSearchTags] = useState<string[]>([])
+
+  // Обработка hash в URL для переключения на Pinterest
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash
+      if (hash === '#pinterest') {
+        setCurrentView('pins')
+        // Очищаем hash для чистого URL
+        window.history.replaceState(null, '', window.location.pathname)
+        // Скролл к галерее
+        setTimeout(() => {
+          const galleryElement = document.querySelector('.guides-gallery')
+          if (galleryElement) {
+            galleryElement.scrollIntoView({ behavior: 'smooth' })
+          }
+        }, 100)
+      }
+    }
+
+    // Проверяем hash при загрузке
+    checkHash()
+
+    // Слушаем изменения hash
+    window.addEventListener('hashchange', checkHash)
+
+    return () => {
+      window.removeEventListener('hashchange', checkHash)
+    }
+  }, [])
 
   const switchToPopular = () => {
     setCurrentView('popular')

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
@@ -18,14 +19,90 @@ interface PinterestGalleryProps {
 }
 
 export function PinterestGallery({ user }: PinterestGalleryProps) {
-  const [pins, setPins] = useState<PinterestPin[]>([])
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  // Инициализация с проверкой кеша
+  const [pins, setPins] = useState<PinterestPin[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('pinterest-pins-cache')
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return cachedData.pins || []
+        }
+      } catch (error) {
+        // Ошибка чтения кеша пинов
+      }
+    }
+    return []
+  })
+
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('pinterest-pins-cache')
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return !cachedData.pins || cachedData.pins.length === 0
+        }
+      } catch (error) {
+        // Ошибка проверки кеша для loading
+      }
+    }
+    return true
+  })
+
   const [loadingMore, setLoadingMore] = useState(false)
-  const [bookmark, setBookmark] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
+
+  const [bookmark, setBookmark] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('pinterest-pins-cache')
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return cachedData.bookmark || null
+        }
+      } catch (error) {
+        // Ошибка чтения bookmark из кеша
+      }
+    }
+    return null
+  })
+
+  const [hasMore, setHasMore] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('pinterest-pins-cache')
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return cachedData.hasMore !== false
+        }
+      } catch (error) {
+        // Ошибка чтения hasMore из кеша
+      }
+    }
+    return true
+  })
+
   const [savingPins, setSavingPins] = useState<Set<string>>(new Set())
 
   const pageSize = 50
+
+  // Функция сохранения состояния в кеш
+  const saveToCache = useCallback((pinsData: PinterestPin[], bookmarkValue: string | null, hasMoreValue: boolean, scrollPosition?: number) => {
+    try {
+      const cacheData = {
+        pins: pinsData,
+        bookmark: bookmarkValue,
+        hasMore: hasMoreValue,
+        scrollPosition: scrollPosition ?? window.scrollY,
+        timestamp: Date.now()
+      }
+      sessionStorage.setItem('pinterest-pins-cache', JSON.stringify(cacheData))
+    } catch (error) {
+      // Ошибка сохранения в кеш
+    }
+  }, [])
 
   // Начинаем с 2 колонок по умолчанию для SSR (mobile-first)
   const [columnsCount, setColumnsCount] = useState(2)
@@ -74,13 +151,16 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
       setPins(response.items)
       setBookmark(response.bookmark || null)
       setHasMore(!!response.bookmark)
+
+      // Сохраняем в кеш
+      saveToCache(response.items, response.bookmark || null, !!response.bookmark)
     } catch (error) {
-      console.error('Ошибка загрузки пинов:', error)
+      // Ошибка загрузки пинов
       toast.error('Не удалось загрузить пины')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [saveToCache])
 
   // Загрузка дополнительных пинов
   const loadMorePins = useCallback(async () => {
@@ -90,19 +170,57 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
       setLoadingMore(true)
       const response = await pinterestAPI.getPins({ pageSize, bookmark })
 
-      setPins(prev => [...prev, ...response.items])
+      // Фильтруем дубликаты по ID
+      setPins(prev => {
+        const existingIds = new Set(prev.map(pin => pin.id))
+        const newPins = response.items.filter(pin => !existingIds.has(pin.id))
+        const updatedPins = [...prev, ...newPins]
+
+        // Обновляем кеш с новыми данными
+        saveToCache(updatedPins, response.bookmark || null, !!response.bookmark)
+
+        return updatedPins
+      })
+
       setBookmark(response.bookmark || null)
       setHasMore(!!response.bookmark)
     } catch (error) {
-      console.error('Ошибка загрузки дополнительных пинов:', error)
+      // Ошибка загрузки дополнительных пинов
       toast.error('Не удалось загрузить больше пинов')
     } finally {
       setLoadingMore(false)
     }
-  }, [bookmark, hasMore, loadingMore])
+  }, [bookmark, hasMore, loadingMore, saveToCache])
 
-  // Инициализация
+  // Инициализация - только если нет кеша
   useEffect(() => {
+    // Если пины уже загружены из кеша, не делаем API запрос
+    if (pins.length > 0) {
+      // Пины уже загружены из кеша, пропускаем API запрос
+
+      // Восстанавливаем позицию скролла из кеша
+      try {
+        const cached = sessionStorage.getItem('pinterest-pins-cache')
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          if (cachedData.scrollPosition) {
+            // Даем время на рендер, затем восстанавливаем скролл
+            setTimeout(() => {
+              window.scrollTo({
+                top: cachedData.scrollPosition,
+                behavior: 'auto' // Мгновенный скролл без анимации
+              })
+              // Восстановлена позиция скролла
+            }, 100)
+          }
+        }
+      } catch (error) {
+        // Ошибка восстановления позиции скролла
+      }
+
+      return
+    }
+
     loadInitialPins()
   }, [loadInitialPins])
 
@@ -122,9 +240,28 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
   }, [loadMorePins])
 
 
-  // Сохранение пина как гайда
+  // Переход к просмотру пина как гайда
+  const handlePinClick = (pin: PinterestPin) => {
+    // Сохраняем текущую позицию скролла в кеш перед переходом
+    saveToCache(pins, bookmark, hasMore, window.scrollY)
+
+    // Передаем данные пина через window.history.state для мгновенного рендера
+    const url = `/guides/pinterest/${pin.id}`
+
+    // Сохраняем данные пина в history state
+    window.history.pushState({ pinData: pin }, '', url)
+
+    // Программный переход через router
+    router.push(url)
+  }
+
+  // Двухэтапное сохранение пина как гайда
   const handleSavePin = async (pin: PinterestPin) => {
-    if (savingPins.has(pin.id) || pin.isSaved) {
+    // ВРЕМЕННО ОТКЛЮЧЕНО
+    toast.info('Функция сохранения временно отключена')
+    return
+
+    /* if (savingPins.has(pin.id) || pin.isSaved) {
       return
     }
 
@@ -139,8 +276,16 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
         throw new Error('Изображение недоступно')
       }
 
+      // Шаг 1: Загружаем изображение через прокси
+      const uploadedImage = await pinterestAPI.uploadPinterestImage(imageUrl)
+
+      if (!uploadedImage?.id) {
+        throw new Error('Не удалось загрузить изображение')
+      }
+
+      // Шаг 2: Создаем гайд с загруженным изображением
       await pinterestAPI.savePinAsGuide({
-        imageUrl,
+        imageId: uploadedImage.id,
         title: pin.title || 'Pinterest Pin',
         text: pin.description || '',
         link: pin.link,
@@ -155,7 +300,7 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
 
       toast.success('Пин сохранен как гайд!')
     } catch (error) {
-      console.error('Ошибка сохранения пина:', error)
+      // Ошибка сохранения пина
       toast.error('Не удалось сохранить пин')
     } finally {
       setSavingPins(prev => {
@@ -163,7 +308,7 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
         newSet.delete(pin.id)
         return newSet
       })
-    }
+    } */
   }
 
   if (loading) {
@@ -211,7 +356,8 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
               return (
                 <div
                   key={pin.id}
-                  className="group relative overflow-hidden rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow w-full max-w-full"
+                  className="group relative overflow-hidden rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow w-full max-w-full cursor-pointer"
+                  onClick={() => handlePinClick(pin)}
                 >
                   <div className="relative">
                     <img
@@ -221,8 +367,12 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
                       loading="lazy"
                     />
 
-                    {/* Overlay с кнопками */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    {/* Серый overlay при наведении */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+
+                    {/* Кнопки - ВРЕМЕННО ОТКЛЮЧЕНО */}
+                    {/* <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="space-x-2">
                         <Button
                           size="sm"
@@ -246,7 +396,7 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
                           )}
                         </Button>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
 
                 </div>

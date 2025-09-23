@@ -37,7 +37,7 @@ export interface PinterestPinsParams {
 }
 
 export interface SavePinAsGuideRequest {
-  imageUrl: string
+  imageId: number
   title: string
   text?: string
   link: string
