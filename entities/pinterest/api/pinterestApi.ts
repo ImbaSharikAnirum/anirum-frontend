@@ -5,6 +5,7 @@
 
 import { BaseAPI } from '@/shared/api/base'
 import type {
+  PinterestPin,
   PinterestPinsResponse,
   PinterestPinsParams,
   SavePinAsGuideRequest
