@@ -23,6 +23,8 @@ export interface User {
   bonusBalance?: number // Текущий баланс бонусов
   totalEarnedBonuses?: number // Всего заработано бонусов
   totalSpentBonuses?: number // Всего потрачено бонусов
+  pinterestAccessToken?: string // Pinterest OAuth access token
+  pinterestRefreshToken?: string // Pinterest OAuth refresh token
 }
 
 export type UserRoleName = 'Manager' | 'Teacher' | 'Student' | 'Authenticated'
