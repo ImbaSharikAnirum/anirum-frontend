@@ -4,7 +4,7 @@
  */
 
 import { BaseAPI } from '@/shared/api/base'
-import type { User } from '@/entities/course/model/types'
+import type { User, Course } from '@/entities/course/model/types'
 
 export type AttendanceStatus = 'present' | 'absent' | 'unknown'
 
@@ -27,10 +27,7 @@ export interface Invoice {
   paymentId?: string
   paymentDate?: string
   attendance?: AttendanceRecord
-  course: {
-    id: number
-    documentId: string
-  }
+  course: Course
   owner?: User
   referralCode?: {
     id: number
@@ -231,6 +228,49 @@ export class InvoiceAPI extends BaseAPI {
       throw new Error('Failed to fetch course invoices')
     }
     
+    const result = await response.json()
+    return result.data;
+  }
+
+  /**
+   * Получить все инвойсы за период для финансовой аналитики
+   */
+  async getInvoicesForPeriod(filters?: {
+    month?: number;
+    year?: number;
+  }): Promise<Invoice[]> {
+    const searchParams = new URLSearchParams();
+
+    // Популируем курс с преподавателем для получения полной информации
+    searchParams.append('populate[0]', 'course');
+    searchParams.append('populate[1]', 'course.teacher');
+
+    // Добавляем фильтрацию по датам если указаны
+    if (filters && (filters.month || filters.year)) {
+      const year = filters.year || new Date().getFullYear();
+      const month = filters.month || new Date().getMonth() + 1;
+
+      // Формируем диапазон дат для месяца
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+
+      // Фильтруем по дате создания инвойса (createdAt)
+      searchParams.append('filters[createdAt][$gte]', `${startDate}T00:00:00.000Z`);
+      searchParams.append('filters[createdAt][$lte]', `${endDate}T23:59:59.999Z`);
+    }
+
+    const queryString = searchParams.toString();
+    const url = `/api/invoices?${queryString}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Error response:', response.status, errorData);
+      throw new Error(`Failed to fetch invoices for period: ${response.status} ${errorData}`)
+    }
+
     const result = await response.json()
     return result.data;
   }

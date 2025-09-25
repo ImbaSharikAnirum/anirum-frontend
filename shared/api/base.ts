@@ -7,11 +7,16 @@ export class APIError extends Error {
   public status: number
   public details?: any
 
-  constructor({ message, status, details }: { message: string, status: number, details?: any }) {
+  constructor({ message, status, details }: { message: string; status: number; details?: any }) {
     super(message)
     this.name = 'APIError'
     this.status = status
     this.details = details
+
+    // Для корректной работы в разных JS движках
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, APIError)
+    }
   }
 }
 
@@ -41,7 +46,7 @@ export class BaseAPI {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
       throw new APIError({
-        message: error.error?.message || `HTTP error! status: ${response.status}`,
+        message: error?.error?.message || `HTTP error! status: ${response.status}`,
         status: response.status,
         details: error
       })

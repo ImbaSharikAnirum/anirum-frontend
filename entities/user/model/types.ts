@@ -19,6 +19,8 @@ export interface User {
   whatsapp_phone?: string
   telegram_username?: string
   telegram_phone?: string
+  whatsapp_phone_verified?: boolean
+  telegram_phone_verified?: boolean
   birth_date?: string
   bonusBalance?: number // Текущий баланс бонусов
   totalEarnedBonuses?: number // Всего заработано бонусов
@@ -68,5 +70,7 @@ export interface UpdateUserData {
   whatsapp_phone?: string
   telegram_username?: string
   telegram_phone?: string
+  whatsapp_phone_verified?: boolean
+  telegram_phone_verified?: boolean
   birth_date?: string
 }

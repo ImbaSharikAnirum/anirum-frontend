@@ -10,6 +10,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { useUser } from "@/entities/user/model/store";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { VerificationDialog } from "../components/VerificationDialog";
 
 interface ContactStepProps {
   onNext: () => void;
@@ -54,7 +55,8 @@ export function ContactStep({
     initialData?.birthDate
   );
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+
   const { user, updateUser } = useUser();
 
   // Функция для получения текущего значения контакта
@@ -148,38 +150,62 @@ export function ContactStep({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       console.error('Пользователь не авторизован');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      // Подготавливаем данные для обновления профиля
-      const updateData = {
-        name: firstName,
-        family: lastName,
-        whatsapp_phone: messenger === 'whatsapp' ? whatsappPhone : undefined,
-        telegram_phone: messenger === 'telegram' && telegramMode === 'phone' ? telegramPhone : undefined,
-        telegram_username: messenger === 'telegram' && telegramMode === 'username' ? telegramUsername : undefined,
-        birth_date: birthDate ? format(birthDate, 'yyyy-MM-dd') : undefined,
-      };
-      
-      // Обновляем профиль пользователя через контекст (это обновит и локальное состояние)
-      await updateUser(updateData);
-      
-      // Показываем уведомление об успехе
-      toast.success("Данные успешно сохранены");
-      
+      // Проверяем нужна ли верификация номера СНАЧАЛА
+      const currentPhone = getCurrentContactValue();
+      const needsVerification = messenger === 'whatsapp'
+        ? !user.whatsapp_phone_verified
+        : !user.telegram_phone_verified;
+
+      if (needsVerification && currentPhone) {
+        // Если нужна верификация - показываем диалог БЕЗ сохранения данных
+        setShowVerificationDialog(true);
+      } else {
+        // Если верификация не нужна - сохраняем данные и переходим дальше
+        await saveUserData();
+        onNext();
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+      toast.error("Произошла ошибка");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Функция сохранения данных (вызывается после верификации или сразу)
+  const saveUserData = async () => {
+    const updateData = {
+      name: firstName,
+      family: lastName,
+      whatsapp_phone: messenger === 'whatsapp' ? whatsappPhone : undefined,
+      telegram_phone: messenger === 'telegram' && telegramMode === 'phone' ? telegramPhone : undefined,
+      telegram_username: messenger === 'telegram' && telegramMode === 'username' ? telegramUsername : undefined,
+      birth_date: birthDate ? format(birthDate, 'yyyy-MM-dd') : undefined,
+    };
+
+    await updateUser(updateData);
+    toast.success("Данные успешно сохранены");
+  };
+
+  // Обработчик успешной верификации
+  const handleVerificationSuccess = async () => {
+    try {
+      // Сохраняем данные ПОСЛЕ успешной верификации
+      await saveUserData();
       // Переходим к следующему шагу
       onNext();
     } catch (error) {
-      console.error('Ошибка при обновлении профиля:', error);
+      console.error('Ошибка сохранения данных после верификации:', error);
       toast.error("Ошибка при сохранении данных");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -250,6 +276,15 @@ export function ContactStep({
           {isLoading ? 'Сохранение...' : 'Далее'}
         </Button>
       </form>
+
+      {/* Диалог верификации номера */}
+      <VerificationDialog
+        open={showVerificationDialog}
+        onOpenChange={setShowVerificationDialog}
+        phone={getCurrentContactValue()}
+        messenger={messenger}
+        onSuccess={handleVerificationSuccess}
+      />
     </Card>
   );
 }

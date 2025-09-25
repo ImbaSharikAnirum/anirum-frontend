@@ -19,7 +19,12 @@ export async function getServerPinterestStatus(): Promise<PinterestStatus | null
     const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
 
+    console.log('🔍 getServerPinterestStatus Debug:')
+    console.log('  Token found:', !!token)
+    console.log('  API URL:', process.env.NEXT_PUBLIC_API_URL)
+
     if (!token) {
+      console.log('❌ No token found')
       return { isConnected: false, message: 'Необходима авторизация' }
     }
 

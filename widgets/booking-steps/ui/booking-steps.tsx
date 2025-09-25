@@ -52,11 +52,14 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
       // Проверяем заполненность контактных данных
       const hasBasicData = user.name && user.family;
       const hasMessenger = user.whatsapp_phone || user.telegram_phone || user.telegram_username;
-      
-      if (hasBasicData && hasMessenger) {
-        // Если все данные есть, пропускаем контактный этап
+
+      // Проверяем верификацию номера
+      const isMessengerVerified = user.whatsapp_phone_verified || user.telegram_phone_verified;
+
+      if (hasBasicData && hasMessenger && isMessengerVerified) {
+        // Если все данные есть и номер подтвержден, пропускаем все до student
         setCurrentStep('student');
-        
+
         // Заполняем contactData из профиля пользователя
         setContactData({
           firstName: user.name || '',
@@ -73,6 +76,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
       }
     }
   }, [isAuthenticated, user])
+
 
   const handleConfirmBooking = async (bookingData: BookingData) => {
     if (!user) {
@@ -216,7 +220,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
         <AuthStep onNext={() => setCurrentStep('contact')} />
       )}
       {currentStep === 'contact' && (
-        <ContactStep 
+        <ContactStep
           onNext={() => setCurrentStep('student')}
           onDataChange={setContactData}
           initialData={contactData}

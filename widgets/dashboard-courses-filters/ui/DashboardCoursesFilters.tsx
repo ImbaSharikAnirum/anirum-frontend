@@ -3,9 +3,24 @@
 import { useState, useEffect } from "react"
 import { TeacherFilter, FormatFilter } from "@/features/courses-filters/ui"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { RotateCcw } from "lucide-react"
+import { PeriodFilter, type PeriodFilterValues } from "@/shared/ui"
+
+const months = [
+  { value: 1, label: 'Январь' },
+  { value: 2, label: 'Февраль' },
+  { value: 3, label: 'Март' },
+  { value: 4, label: 'Апрель' },
+  { value: 5, label: 'Май' },
+  { value: 6, label: 'Июнь' },
+  { value: 7, label: 'Июль' },
+  { value: 8, label: 'Август' },
+  { value: 9, label: 'Сентябрь' },
+  { value: 10, label: 'Октябрь' },
+  { value: 11, label: 'Ноябрь' },
+  { value: 12, label: 'Декабрь' }
+]
 
 type UserRole = 'Manager' | 'Teacher'
 
@@ -34,22 +49,6 @@ export function DashboardCoursesFilters({ onFiltersChange, className, role = 'Ma
     year: currentYear
   })
 
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i) // 2 года назад до 2 лет вперед
-
-  const months = [
-    { value: 1, label: 'Январь' },
-    { value: 2, label: 'Февраль' },
-    { value: 3, label: 'Март' },
-    { value: 4, label: 'Апрель' },
-    { value: 5, label: 'Май' },
-    { value: 6, label: 'Июнь' },
-    { value: 7, label: 'Июль' },
-    { value: 8, label: 'Август' },
-    { value: 9, label: 'Сентябрь' },
-    { value: 10, label: 'Октябрь' },
-    { value: 11, label: 'Ноябрь' },
-    { value: 12, label: 'Декабрь' }
-  ]
 
   // Вызываем onFiltersChange с начальными значениями при монтировании компонента
   useEffect(() => {
@@ -70,14 +69,8 @@ export function DashboardCoursesFilters({ onFiltersChange, className, role = 'Ma
     updateFilters({ format })
   }
 
-  const handleMonthChange = (month: string) => {
-    const monthValue = month === 'all' ? undefined : parseInt(month)
-    updateFilters({ month: monthValue })
-  }
-
-  const handleYearChange = (year: string) => {
-    const yearValue = year === 'all' ? undefined : parseInt(year)
-    updateFilters({ year: yearValue })
+  const handlePeriodChange = (period: PeriodFilterValues) => {
+    updateFilters({ month: period.month, year: period.year })
   }
 
   const handleReset = () => {
@@ -134,47 +127,12 @@ export function DashboardCoursesFilters({ onFiltersChange, className, role = 'Ma
             />
           </div>
 
-          {/* Фильтр по месяцу */}
-          <div className="space-y-2">
-            <Label>Месяц</Label>
-            <Select 
-              value={filters.month?.toString() || 'all'} 
-              onValueChange={handleMonthChange}
-            >
-              <SelectTrigger className="w-auto">
-                <SelectValue placeholder="Все месяцы" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все месяцы</SelectItem>
-                {months.map((month) => (
-                  <SelectItem key={month.value} value={month.value.toString()}>
-                    {month.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Фильтр по году */}
-          <div className="space-y-2">
-            <Label>Год</Label>
-            <Select 
-              value={filters.year?.toString() || 'all'} 
-              onValueChange={handleYearChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Все годы" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все годы</SelectItem>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Фильтр по периоду */}
+          <PeriodFilter
+            value={{ month: filters.month, year: filters.year }}
+            onPeriodChange={handlePeriodChange}
+            monthClassName="w-auto"
+          />
         </div>
 
         {/* Индикатор активных фильтров */}

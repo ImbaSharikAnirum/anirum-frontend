@@ -12,3 +12,9 @@ export { PinterestLogin } from './PinterestLogin'
 
 // Gallery
 export { MasonryGallery } from './MasonryGallery'
+
+// Date filters
+export { MonthFilter } from './month-filter'
+export { YearFilter } from './year-filter'
+export { PeriodFilter } from './period-filter'
+export type { PeriodFilterValues } from './period-filter'

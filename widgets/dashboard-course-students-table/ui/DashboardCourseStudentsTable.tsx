@@ -262,27 +262,27 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
 
   // Расчеты для оплаченных студентов
   const rentPerLesson = course?.isOnline ? 0 : (course?.rentalPrice || 0)
-  // Примерное количество занятий в месяце (можно улучшить позже)
-  const estimatedLessonsPerMonth = 8 
-  const rentTotal = rentPerLesson * estimatedLessonsPerMonth
+  // Используем реальное количество занятий из календаря
+  const actualLessonsCount = courseDates.length
+  const rentTotal = rentPerLesson * actualLessonsCount
   
   // Отладка
   console.log('Course financial data:', {
     isOnline: course?.isOnline,
     rentalPrice: course?.rentalPrice,
     rentPerLesson,
-    estimatedLessonsPerMonth,
+    actualLessonsCount,
     rentTotal,
     paidSum,
     totalSum,
     paidCount
   })
 
-  // Временно убираем аренду из расчета, чтобы проверить
-  const teacherIncomeFromPaid = calculateTeacherIncome(paidSum, 0)
-  const teacherIncomeFromTotal = calculateTeacherIncome(totalSum, 0)
-  const companyProfitFromPaid = calculateCompanyProfit(paidSum, 0)
-  const companyProfitFromTotal = calculateCompanyProfit(totalSum, 0)
+  // Учитываем аренду для офлайн курсов
+  const teacherIncomeFromPaid = calculateTeacherIncome(paidSum, rentTotal)
+  const teacherIncomeFromTotal = calculateTeacherIncome(totalSum, rentTotal)
+  const companyProfitFromPaid = calculateCompanyProfit(paidSum, rentTotal)
+  const companyProfitFromTotal = calculateCompanyProfit(totalSum, rentTotal)
 
   return (
     <Card className={className}>
@@ -340,7 +340,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
                   <div className="text-white">К выплате от оплативших: <span className="font-medium">{teacherIncomeFromPaid.toLocaleString('ru-RU')} {course.currency}</span></div>
                   <div className="text-white">Потенциально от всех: <span className="font-medium">{teacherIncomeFromTotal.toLocaleString('ru-RU')} {course.currency}</span></div>
                   <div className="text-xs text-gray-300 border-t border-gray-600 pt-2">
-                    Расчет: Валовый доход - 10% (налоги + банк) {rentTotal > 0 && '- аренда'} × 70% (ваша доля)
+                    Расчет: Валовый доход - 10% (налоги + банк) {rentTotal > 0 && `- аренда (${rentTotal.toLocaleString('ru-RU')} ${course.currency})`} × 70% (ваша доля)
                   </div>
                 </div>
               ) : (
@@ -351,7 +351,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
                   <div className="text-white">К выплате преподавателю: <span className="font-medium">{teacherIncomeFromPaid.toLocaleString('ru-RU')}/{teacherIncomeFromTotal.toLocaleString('ru-RU')} {course.currency}</span></div>
                   <div className="text-white">Прибыль компании: <span className="font-medium">{companyProfitFromPaid.toLocaleString('ru-RU')}/{companyProfitFromTotal.toLocaleString('ru-RU')} {course.currency}</span></div>
                   <div className="text-xs text-gray-300 border-t border-gray-600 pt-2">
-                    Расчет: Валовый доход - 10% (налоги + банк) {rentTotal > 0 && '- аренда'} → 70% преподавателю, 30% компании
+                    Расчет: Валовый доход - 10% (налоги + банк) {rentTotal > 0 && `- аренда (${rentTotal.toLocaleString('ru-RU')} ${course.currency})`} → 70% преподавателю, 30% компании
                   </div>
                 </div>
               )}
