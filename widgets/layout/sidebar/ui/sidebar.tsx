@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   useSidebar
 } from "@/components/ui/sidebar"
-import { Home, Users, BarChart3, Search, Settings, DollarSign, BookOpen, MessageSquare, CheckCircle, Plus } from "lucide-react"
+import { Home, Users, BarChart3, Search, Settings, DollarSign, BookOpen, MessageSquare, CheckCircle, Plus, TrendingUp } from "lucide-react"
 import { useRole } from "@/shared/hooks"
 
 const navigationItems = [
@@ -22,6 +22,7 @@ const navigationItems = [
 
 const managerItems = [
   { title: "Финансы", url: "/dashboard/manager/finance", icon: DollarSign },
+  // { title: "Аналитика", url: "/dashboard/manager/analytics", icon: TrendingUp },
   { title: "Чат", url: "/dashboard/manager/chat", icon: MessageSquare },
   { title: "Команда", url: "/dashboard/manager/team", icon: Users },
   { title: "Курсы на проверку", url: "/dashboard/manager/courses", icon: CheckCircle },
