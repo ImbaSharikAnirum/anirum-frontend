@@ -54,7 +54,9 @@ export default function ManagerFinancePage() {
     paidStudents: 0,
     // Детальные финансы
     totalRent: 0,
-    taxAndCommission: 0,
+    taxUSN: 0, // 6% УСН
+    bankCommission: 0, // 4% банк
+    taxAndCommission: 0, // общая сумма
     teacherPayments: 0,
     companyProfit: 0
   })
@@ -157,6 +159,8 @@ export default function ManagerFinancePage() {
       })
 
       // Финансовые расчеты (как в таблице студентов)
+      const taxUSNRate = 6 // 6% УСН
+      const bankCommissionRate = 4 // 4% банк
       const taxAndCommissionRate = 10 // 6% налоги + 4% банк
       const teacherShare = 0.7 // 70% преподавателю
 
@@ -175,7 +179,9 @@ export default function ManagerFinancePage() {
       }
 
       // Расчеты по оплаченным инвойсам
-      const taxAndCommission = Math.round(paidRevenue * (taxAndCommissionRate / 100))
+      const taxUSN = Math.round(paidRevenue * (taxUSNRate / 100))
+      const bankCommission = Math.round(paidRevenue * (bankCommissionRate / 100))
+      const taxAndCommission = taxUSN + bankCommission
       const teacherPayments = calculateTeacherIncome(paidRevenue, totalRent)
       const companyProfit = calculateCompanyProfit(paidRevenue, totalRent)
 
@@ -254,6 +260,8 @@ export default function ManagerFinancePage() {
         totalStudents,
         paidStudents,
         totalRent: Math.round(totalRent),
+        taxUSN,
+        bankCommission,
         taxAndCommission,
         teacherPayments,
         companyProfit
@@ -483,7 +491,18 @@ export default function ManagerFinancePage() {
               ) : (
                 <p className="text-3xl font-bold text-orange-600">₽ {financialData.taxAndCommission.toLocaleString('ru-RU')}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">10% от оборота</p>
+              {!isLoading && (
+                <div className="text-xs text-gray-500 mt-1 space-y-1">
+                  <div className="flex justify-between">
+                    <span>УСН (6%):</span>
+                    <span>₽ {financialData.taxUSN.toLocaleString('ru-RU')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Банк (4%):</span>
+                    <span>₽ {financialData.bankCommission.toLocaleString('ru-RU')}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -580,8 +599,12 @@ export default function ManagerFinancePage() {
                       <span className="font-medium">₽ {financialData.totalRent.toLocaleString('ru-RU')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-orange-600">- Налоги и комиссии (10%):</span>
-                      <span className="font-medium">₽ {financialData.taxAndCommission.toLocaleString('ru-RU')}</span>
+                      <span className="text-orange-600">- УСН (6%):</span>
+                      <span className="font-medium">₽ {financialData.taxUSN.toLocaleString('ru-RU')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-orange-600">- Банковские комиссии (4%):</span>
+                      <span className="font-medium">₽ {financialData.bankCommission.toLocaleString('ru-RU')}</span>
                     </div>
                     <div className="flex justify-between border-t pt-1">
                       <span className="text-gray-600">Остается к распределению:</span>

@@ -3,10 +3,10 @@ import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
 
     // Получаем JWT токен из cookies
-    const jwt = cookieStore.get('jwt')?.value
+    const jwt = cookieStore.get('session')?.value
 
     if (!jwt) {
       return NextResponse.json(
