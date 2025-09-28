@@ -18,9 +18,7 @@ import { Course } from "@/entities/course/model/types";
 import { invoiceAPI, Invoice } from "@/entities/invoice";
 import { CourseEnrollmentProgress } from "@/shared/ui/course-enrollment-progress";
 import {
-  calculateNextMonthPricing,
   getAllMonthlyPricing,
-  calculateProRatedPricing,
   formatPrice,
 } from "@/shared/lib/course-pricing";
 
@@ -31,10 +29,10 @@ interface CourseBookingFormProps {
 export function CourseBookingForm({ course }: CourseBookingFormProps) {
   const router = useRouter();
 
-  // Получаем все доступные месяцы для курса на основе startDate и endDate
+  // Получаем все доступные месяцы с оставшимися занятиями
   const availableMonths = getAllMonthlyPricing(course);
 
-  // По умолчанию выбираем первый доступный месяц
+  // Выбираем первый доступный месяц (уже содержит только месяцы с remainingLessons > 0)
   const [selectedMonthKey, setSelectedMonthKey] = useState(
     availableMonths.length > 0
       ? `${availableMonths[0].year}-${availableMonths[0].month}`
@@ -83,31 +81,13 @@ export function CourseBookingForm({ course }: CourseBookingFormProps) {
     (m) => `${m.year}-${m.month}` === selectedMonthKey
   );
 
-  // Рассчитываем частичную оплату для выбранного месяца
-  const selectedProRatedPricing = selectedMonthPricing
-    ? calculateProRatedPricing({
-        fromDate: new Date(), // С сегодняшнего дня
-        year: selectedMonthPricing.year,
-        month: selectedMonthPricing.month,
-        pricePerLesson: course.pricePerLesson,
-        currency: course.currency,
-        weekdays: course.weekdays,
-        courseStartDate: course.startDate,
-        courseEndDate: course.endDate,
-      })
-    : null;
-
-  // Используем pro-rated если есть пропущенные занятия, иначе полную цену
-  const displayPricing = selectedProRatedPricing?.isPartial
-    ? selectedProRatedPricing
-    : selectedMonthPricing
+  // Используем данные из selectedMonthPricing (уже содержат правильное количество оставшихся занятий)
+  const displayPricing = selectedMonthPricing
     ? {
-        ...selectedMonthPricing,
-        completedLessons: 0,
-        remainingLessons: selectedMonthPricing.lessonsCount,
-        isPartial: false,
+        remainingLessons: selectedMonthPricing.lessonsCount, // Уже содержит только оставшиеся
         proRatedPrice: selectedMonthPricing.totalPrice,
         fullPrice: selectedMonthPricing.totalPrice,
+        isPartial: false,
         fromDate: new Date(),
       }
     : null;

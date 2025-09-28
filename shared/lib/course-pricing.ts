@@ -213,22 +213,46 @@ export function calculateNextMonthPricing(course: Course, currentDate: Date = ne
 
 /**
  * Получает все доступные месяцы для курса с расчетом стоимости
+ * Учитывает только месяцы с оставшимися занятиями
  */
-export function getAllMonthlyPricing(course: Course): MonthlyPricing[] {
+export function getAllMonthlyPricing(course: Course, fromDate: Date = new Date()): MonthlyPricing[] {
   const scheduleInfo = getCourseScheduleInfo(course)
   const result: MonthlyPricing[] = []
-  
+
   const currentDate = new Date(scheduleInfo.startDate.getFullYear(), scheduleInfo.startDate.getMonth(), 1)
   const endDate = new Date(scheduleInfo.endDate.getFullYear(), scheduleInfo.endDate.getMonth(), 1)
-  
+
   while (currentDate <= endDate) {
-    const pricing = calculateMonthlyPricing(course, currentDate.getFullYear(), currentDate.getMonth())
-    if (pricing.isAvailable) {
-      result.push(pricing)
+    // Используем countRemainingLessonsFromDate для правильного подсчета
+    const lessonCounts = countRemainingLessonsFromDate(
+      fromDate,
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      scheduleInfo.weekdays,
+      scheduleInfo.startDate,
+      scheduleInfo.endDate
+    )
+
+    // Показываем только месяцы с оставшимися занятиями
+    if (lessonCounts.remaining > 0) {
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      const isAvailable = monthStart >= scheduleInfo.startDate && monthStart <= scheduleInfo.endDate
+
+      result.push({
+        month: currentDate.getMonth(),
+        year: currentDate.getFullYear(),
+        monthName: getMonthName(currentDate.getMonth()),
+        lessonsCount: lessonCounts.remaining, // Оставшиеся занятия
+        totalPrice: lessonCounts.remaining * course.pricePerLesson,
+        pricePerLesson: course.pricePerLesson,
+        currency: course.currency,
+        isAvailable: isAvailable
+      })
     }
+
     currentDate.setMonth(currentDate.getMonth() + 1)
   }
-  
+
   return result
 }
 
