@@ -207,9 +207,17 @@ export function AuthStep({ onNext }: AuthStepProps) {
                 </span>
               </Button>
             </div>
+            <div className="text-right">
+              <a
+                href="/auth/forgot-password"
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                Забыли пароль?
+              </a>
+            </div>
           </div>
 
-          <Button 
+          <Button
             type="submit"
             className="w-full"
             disabled={isLoading}
@@ -218,9 +226,9 @@ export function AuthStep({ onNext }: AuthStepProps) {
           </Button>
 
           <div className="text-center">
-            <Button 
+            <Button
               type="button"
-              variant="link" 
+              variant="link"
               onClick={() => {
                 setIsRegisterMode(true)
                 // Очищаем поля при переходе к регистрации
@@ -231,6 +239,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
                 setError(null)
               }}
               disabled={isLoading}
+              className="whitespace-normal leading-tight"
             >
               Нет аккаунта? Зарегистрироваться
             </Button>
@@ -351,9 +360,9 @@ export function AuthStep({ onNext }: AuthStepProps) {
           </Button>
 
           <div className="text-center">
-            <Button 
+            <Button
               type="button"
-              variant="link" 
+              variant="link"
               onClick={() => {
                 setIsRegisterMode(false)
                 // Очищаем поля при переходе к входу
@@ -364,6 +373,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
                 setError(null)
               }}
               disabled={isLoading}
+              className="whitespace-normal leading-tight"
             >
               Уже есть аккаунт? Войти
             </Button>
