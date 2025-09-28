@@ -28,10 +28,8 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
     firstName: '',
     lastName: '',
     whatsappPhone: '',
-    telegramPhone: '',
     telegramUsername: '',
-    messenger: 'whatsapp',
-    telegramMode: 'phone'
+    messenger: 'whatsapp'
   })
   const [studentData, setStudentData] = useState<StudentData>({
     studentType: null,
@@ -51,7 +49,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
     if (isAuthenticated && user) {
       // Проверяем заполненность контактных данных
       const hasBasicData = user.name && user.family;
-      const hasMessenger = user.whatsapp_phone || user.telegram_phone || user.telegram_username;
+      const hasMessenger = user.whatsapp_phone || user.telegram_username;
 
       // Проверяем верификацию номера
       const isMessengerVerified = user.whatsapp_phone_verified || user.telegram_phone_verified;
@@ -65,10 +63,8 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
           firstName: user.name || '',
           lastName: user.family || '',
           whatsappPhone: user.whatsapp_phone || '',
-          telegramPhone: user.telegram_phone || '',
           telegramUsername: user.telegram_username || '',
-          messenger: user.whatsapp_phone ? 'whatsapp' : 'telegram',
-          telegramMode: user.telegram_username ? 'username' : 'phone'
+          messenger: user.whatsapp_phone ? 'whatsapp' : 'telegram'
         });
       } else {
         // Иначе переходим на контактный этап

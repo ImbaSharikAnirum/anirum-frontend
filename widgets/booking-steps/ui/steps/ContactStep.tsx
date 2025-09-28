@@ -22,10 +22,8 @@ export interface ContactData {
   firstName: string;
   lastName: string;
   whatsappPhone: string;
-  telegramPhone: string;
   telegramUsername: string;
   messenger: "whatsapp" | "telegram";
-  telegramMode: "phone" | "username";
   birthDate?: Date;
 }
 
@@ -42,14 +40,8 @@ export function ContactStep({
   const [whatsappPhone, setWhatsappPhone] = useState(
     initialData?.whatsappPhone || ""
   );
-  const [telegramPhone, setTelegramPhone] = useState(
-    initialData?.telegramPhone || ""
-  );
   const [telegramUsername, setTelegramUsername] = useState(
     initialData?.telegramUsername || ""
-  );
-  const [telegramMode, setTelegramMode] = useState<"phone" | "username">(
-    initialData?.telegramMode || "phone"
   );
   const [birthDate, setBirthDate] = useState<Date | undefined>(
     initialData?.birthDate
@@ -64,7 +56,7 @@ export function ContactStep({
     if (messenger === "whatsapp") {
       return whatsappPhone;
     } else if (messenger === "telegram") {
-      return telegramMode === "phone" ? telegramPhone : telegramUsername;
+      return telegramUsername;
     }
     return "";
   };
@@ -79,38 +71,20 @@ export function ContactStep({
         firstName,
         lastName,
         whatsappPhone: safeValue,
-        telegramPhone,
         telegramUsername,
         messenger,
-        telegramMode,
         birthDate,
       });
     } else if (messenger === "telegram") {
-      if (telegramMode === "phone") {
-        setTelegramPhone(safeValue);
-        onDataChange({
-          firstName,
-          lastName,
-          whatsappPhone,
-          telegramPhone: safeValue,
-          telegramUsername,
-          messenger,
-          telegramMode,
-          birthDate,
-        });
-      } else {
-        setTelegramUsername(safeValue);
-        onDataChange({
-          firstName,
-          lastName,
-          whatsappPhone,
-          telegramPhone,
-          telegramUsername: safeValue,
-          messenger,
-          telegramMode,
-          birthDate,
-        });
-      }
+      setTelegramUsername(safeValue);
+      onDataChange({
+        firstName,
+        lastName,
+        whatsappPhone,
+        telegramUsername: safeValue,
+        messenger,
+        birthDate,
+      });
     }
   };
 
@@ -119,10 +93,8 @@ export function ContactStep({
       firstName,
       lastName,
       whatsappPhone,
-      telegramPhone,
       telegramUsername,
       messenger,
-      telegramMode,
       birthDate,
       [field]: value,
     };
@@ -136,9 +108,6 @@ export function ContactStep({
         break;
       case "messenger":
         setMessenger(value);
-        break;
-      case "telegramMode":
-        setTelegramMode(value);
         break;
       case "birthDate":
         setBirthDate(value);
@@ -187,8 +156,7 @@ export function ContactStep({
       name: firstName,
       family: lastName,
       whatsapp_phone: messenger === 'whatsapp' ? whatsappPhone : undefined,
-      telegram_phone: messenger === 'telegram' && telegramMode === 'phone' ? telegramPhone : undefined,
-      telegram_username: messenger === 'telegram' && telegramMode === 'username' ? telegramUsername : undefined,
+      telegram_username: messenger === 'telegram' ? telegramUsername : undefined,
       birth_date: birthDate ? format(birthDate, 'yyyy-MM-dd') : undefined,
     };
 
@@ -259,10 +227,6 @@ export function ContactStep({
           <MessengerInput
             messenger={messenger}
             onMessengerChange={(value) => handleInputChange("messenger", value)}
-            telegramMode={telegramMode}
-            onTelegramModeChange={(value) =>
-              handleInputChange("telegramMode", value)
-            }
             value={getCurrentContactValue()}
             onValueChange={setCurrentContactValue}
           />

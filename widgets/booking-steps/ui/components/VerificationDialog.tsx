@@ -18,6 +18,20 @@ interface VerificationDialogProps {
 
 type VerificationStatus = 'idle' | 'sending' | 'sent' | 'verifying' | 'verified' | 'error'
 
+interface TelegramResponse {
+  waitingForStart?: boolean;
+  deepLink?: string;
+  instructions?: string;
+  sessionId?: string;
+}
+
+interface SendCodeResponse {
+  success: boolean;
+  message: string;
+  phone: string;
+  telegram?: TelegramResponse;
+}
+
 export function VerificationDialog({
   open,
   onOpenChange,
@@ -29,6 +43,10 @@ export function VerificationDialog({
   const [status, setStatus] = useState<VerificationStatus>('idle')
   const [timeLeft, setTimeLeft] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [telegramDeepLink, setTelegramDeepLink] = useState<string | null>(null)
+  const [telegramInstructions, setTelegramInstructions] = useState<string | null>(null)
+  const [telegramSessionId, setTelegramSessionId] = useState<string | null>(null)
+  const [isWaitingForStart, setIsWaitingForStart] = useState(false)
 
   // Автоматически отправляем код при открытии диалога
   useEffect(() => {
@@ -44,6 +62,10 @@ export function VerificationDialog({
       setStatus('idle')
       setTimeLeft(0)
       setError(null)
+      setTelegramDeepLink(null)
+      setTelegramInstructions(null)
+      setTelegramSessionId(null)
+      setIsWaitingForStart(false)
     }
   }, [open])
 
@@ -81,7 +103,6 @@ export function VerificationDialog({
     setStatus('sending')
     setError(null)
 
-    console.log('📤 Отправка кода верификации:', { phone, messenger })
 
     try {
       const response = await fetch('/api/phone-verification/send-code', {
@@ -96,17 +117,29 @@ export function VerificationDialog({
         })
       })
 
-      const data = await response.json()
-      console.log('📥 Ответ сервера:', { status: response.status, data })
+      const data = await response.json() as SendCodeResponse
 
       if (!response.ok) {
         console.error('❌ Ошибка запроса:', data)
-        throw new Error(data.error?.message || 'Ошибка отправки кода')
+        throw new Error((data as any).error?.message || 'Ошибка отправки кода')
       }
 
-      setStatus('sent')
-      setTimeLeft(300) // 5 минут
-      toast.success(`Код отправлен в ${messenger === 'whatsapp' ? 'WhatsApp' : 'Telegram'}`)
+      // Обрабатываем ответ для Telegram
+      if (messenger === 'telegram' && data.telegram?.waitingForStart) {
+        // Новый flow - ждем /start от пользователя
+        setTelegramDeepLink(data.telegram.deepLink || null)
+        setTelegramInstructions(data.telegram.instructions || null)
+        setTelegramSessionId(data.telegram.sessionId || null)
+        setIsWaitingForStart(true)
+        setStatus('sent')
+        setTimeLeft(300) // 5 минут
+        toast.success('Перейдите к боту и нажмите /start для получения кода')
+      } else {
+        // Обычный режим - код отправлен напрямую (WhatsApp)
+        setStatus('sent')
+        setTimeLeft(300) // 5 минут
+        toast.success(`Код отправлен в ${messenger === 'whatsapp' ? 'WhatsApp' : 'Telegram'}`)
+      }
 
     } catch (error) {
       console.error('Ошибка отправки кода:', error)
@@ -227,6 +260,40 @@ export function VerificationDialog({
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
                   {error}
+                </div>
+              )}
+
+              {/* Инструкции для Telegram (новый flow) */}
+              {messenger === 'telegram' && isWaitingForStart && telegramDeepLink && (
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded text-center space-y-3">
+                  <div className="text-blue-600 text-2xl mb-2">🤖</div>
+                  <p className="text-sm text-blue-700 font-medium">
+                    Для получения кода верификации:
+                  </p>
+                  <div className="bg-white border border-blue-300 p-3 rounded text-left">
+                    <ol className="text-sm text-blue-800 space-y-1">
+                      <li>1. Нажмите кнопку "Открыть Telegram"</li>
+                      <li>2. В боте нажмите <code className="bg-blue-100 px-1 rounded">/start</code></li>
+                      <li>3. Получите код и введите его выше</li>
+                    </ol>
+                  </div>
+                  <Button
+                    onClick={() => window.open(telegramDeepLink, '_blank')}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Открыть Telegram
+                  </Button>
+                  {telegramInstructions && (
+                    <p className="text-xs text-blue-600 italic">
+                      {telegramInstructions}
+                    </p>
+                  )}
+                  {telegramSessionId && (
+                    <p className="text-xs text-gray-500">
+                      Session: {telegramSessionId.split('_').pop()}
+                    </p>
+                  )}
                 </div>
               )}
 

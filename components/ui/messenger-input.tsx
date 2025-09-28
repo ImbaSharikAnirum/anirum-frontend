@@ -20,8 +20,6 @@ interface MessengerInputProps {
   onValueChange?: (value: string | undefined) => void
   messenger?: 'whatsapp' | 'telegram'
   onMessengerChange?: (messenger: 'whatsapp' | 'telegram') => void
-  telegramMode?: 'phone' | 'username'
-  onTelegramModeChange?: (mode: 'phone' | 'username') => void
   className?: string
   placeholder?: string
   disabled?: boolean
@@ -46,8 +44,6 @@ export function MessengerInput({
   onValueChange,
   messenger = 'whatsapp',
   onMessengerChange,
-  telegramMode = 'phone',
-  onTelegramModeChange,
   placeholder,
   disabled = false,
   ...props
@@ -56,11 +52,11 @@ export function MessengerInput({
 
   const getPlaceholder = () => {
     if (placeholder) return placeholder
-    
+
     if (messenger === 'whatsapp') {
       return "+7 9123456789"
     } else if (messenger === 'telegram') {
-      return telegramMode === 'phone' ? "+7 9123456789" : "username"
+      return "username"
     }
     return "Введите контакт"
   }
@@ -93,34 +89,17 @@ export function MessengerInput({
         </SelectContent>
       </Select>
 
-      {/* Если Telegram - выбор между телефоном и username */}
-      {messenger === 'telegram' && (
-        <Select 
-          value={telegramMode} 
-          onValueChange={(value) => onTelegramModeChange?.(value as 'phone' | 'username')}
-          disabled={disabled}
-        >
-          <SelectTrigger>
-            <SelectValue>
-              {telegramMode === 'phone' ? 'Номер телефона' : 'Имя пользователя'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="phone">Номер телефона</SelectItem>
-            <SelectItem value="username">Имя пользователя (@username)</SelectItem>
-          </SelectContent>
-        </Select>
-      )}
+      {/* Для Telegram показываем только username режим */}
 
       {/* Поле ввода */}
-      {(messenger === 'whatsapp' || (messenger === 'telegram' && telegramMode === 'phone')) ? (
+      {messenger === 'whatsapp' ? (
         <PhoneNumberInput
           value={value}
           onValueChange={onValueChange}
           placeholder={getPlaceholder()}
           disabled={disabled}
         />
-      ) : messenger === 'telegram' && telegramMode === 'username' ? (
+      ) : messenger === 'telegram' ? (
         <TelegramUsernameInput
           value={value}
           onValueChange={onValueChange}
