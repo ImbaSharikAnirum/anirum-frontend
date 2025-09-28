@@ -114,9 +114,7 @@ export function ConfirmationStep({
     if (contactData.messenger === "whatsapp") {
       return contactData.whatsappPhone;
     } else if (contactData.messenger === "telegram") {
-      return contactData.telegramMode === "phone"
-        ? contactData.telegramPhone
-        : contactData.telegramUsername;
+      return contactData.telegramUsername;
     }
     return "";
   };
@@ -181,9 +179,7 @@ export function ConfirmationStep({
             {contactData.messenger === "telegram" && (
               <p>
                 <span className="font-medium">Тип:</span>{" "}
-                {contactData.telegramMode === "phone"
-                  ? "Номер телефона"
-                  : "Username"}
+                Username
               </p>
             )}
           </div>
