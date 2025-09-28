@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Если сброс успешен и пользователь авторизован, устанавливаем cookie
     if (data.jwt) {
-      const cookieStore = cookies()
+      const cookieStore = await cookies()
       cookieStore.set('session', data.jwt, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
