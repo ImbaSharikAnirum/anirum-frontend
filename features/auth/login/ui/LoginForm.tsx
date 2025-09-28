@@ -3,32 +3,32 @@
  * @layer features/auth
  */
 
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
-import { useLogin } from '../model/useLogin'
-import { Eye, EyeOff } from 'lucide-react'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { useLogin } from "../model/useLogin";
+import { Eye, EyeOff } from "lucide-react";
 
 interface LoginFormProps extends React.ComponentProps<"form"> {}
 
 export function LoginForm({ className, ...props }: LoginFormProps) {
-  const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const { login, isLoading, error } = useLogin()
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, isLoading, error } = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await login({ identifier, password })
-  }
+    e.preventDefault();
+    await login({ identifier, password });
+  };
 
   return (
-    <form 
-      className={cn("flex flex-col gap-6", className)} 
+    <form
+      className={cn("flex flex-col gap-6", className)}
       onSubmit={handleSubmit}
       {...props}
     >
@@ -38,23 +38,23 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           Введите ваш email для входа в аккаунт
         </p>
       </div>
-      
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
           {error}
         </div>
       )}
-      
+
       <div className="grid gap-6">
         <div className="grid gap-3">
           <Label htmlFor="email">Email</Label>
-          <Input 
-            id="email" 
+          <Input
+            id="email"
             name="email"
-            type="email" 
-            placeholder="m@example.com" 
+            type="email"
+            placeholder="m@example.com"
             autoComplete="email"
-            required 
+            required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             disabled={isLoading}
@@ -63,21 +63,21 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         <div className="grid gap-3">
           <div className="flex items-center">
             <Label htmlFor="password">Пароль</Label>
-            {/* <a
+            <a
               href="/auth/forgot-password"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Забыли пароль?
-            </a> */}
+            </a>
           </div>
           <div className="relative">
-            <Input 
-              id="password" 
+            <Input
+              id="password"
               name="password"
-              type={showPassword ? "text" : "password"} 
+              type={showPassword ? "text" : "password"}
               placeholder="Введите пароль"
               autoComplete="current-password"
-              required 
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
@@ -103,9 +103,9 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           </div>
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Входим...' : 'Войти'}
+          {isLoading ? "Входим..." : "Войти"}
         </Button>
-        
+
         {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
           <span className="bg-background text-muted-foreground relative z-10 px-2">
             Или продолжить через
@@ -140,5 +140,5 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         </a>
       </div>
     </form>
-  )
+  );
 }

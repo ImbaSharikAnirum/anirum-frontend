@@ -13,7 +13,8 @@ const protectedRoutes = [
 const guestOnlyRoutes = [
   '/auth/login',
   '/auth/signup',
-  '/auth/forgot-password'
+  '/auth/forgot-password',
+  '/auth/reset-password'
 ]
 
 // Роуты для ролей
