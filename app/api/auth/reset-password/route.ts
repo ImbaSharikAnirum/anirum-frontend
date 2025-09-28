@@ -54,20 +54,40 @@ export async function POST(request: NextRequest) {
 
     // Если сброс успешен и пользователь авторизован, устанавливаем cookie
     if (data.jwt) {
+      const { jwt, user } = data
+
+      // Получаем полные данные пользователя с ролью
+      const userResponse = await fetch(`${strapiUrl}/users/me?populate=role`, {
+        headers: {
+          'Authorization': `Bearer ${jwt}`,
+        },
+      })
+
+      const userWithRole = await userResponse.json()
+
+      if (!userResponse.ok) {
+        return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
+      }
+
       const cookieStore = await cookies()
-      cookieStore.set('session', data.jwt, {
+      cookieStore.set('session', jwt, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         path: '/',
         maxAge: 7 * 24 * 60 * 60, // 7 дней
       })
+
+      return NextResponse.json({
+        success: true,
+        message: 'Пароль успешно изменен',
+        user: userWithRole
+      })
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Пароль успешно изменен',
-      user: data.user
+      message: 'Пароль успешно изменен'
     })
 
   } catch (error) {
