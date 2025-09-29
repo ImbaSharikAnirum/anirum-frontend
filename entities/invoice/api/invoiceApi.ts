@@ -113,6 +113,28 @@ export interface BulkSendPaymentMessagesResponse {
   }
 }
 
+export interface CopyInvoicesToNextMonthData {
+  courseId: string
+  currentMonth: number
+  currentYear: number
+}
+
+export interface CopyInvoicesToNextMonthResponse {
+  success: boolean
+  message: string
+  results: {
+    originalCount: number
+    copiedCount: number
+    nextMonth: number
+    nextYear: number
+    lessonsCount: number
+    monthlySum: number
+    pricePerLesson: number
+    currency: string
+    newInvoices: Invoice[]
+  }
+}
+
 interface StrapiResponse<T> {
   data: T
   meta: {}
@@ -454,6 +476,26 @@ export class InvoiceAPI extends BaseAPI {
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.error?.message || 'Failed to send bulk payment messages')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Копировать счета текущего месяца на следующий месяц
+   */
+  async copyInvoicesToNextMonth(data: CopyInvoicesToNextMonthData): Promise<CopyInvoicesToNextMonthResponse> {
+    const response = await fetch('/api/invoices/copy-to-next-month', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to copy invoices to next month')
     }
 
     return response.json()
