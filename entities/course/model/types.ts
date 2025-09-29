@@ -82,6 +82,18 @@ export interface User {
   lastName?: string
   confirmed: boolean
   blocked: boolean
+  whatsapp_phone?: string
+  whatsapp_phone_verified?: boolean
+  telegram_username?: string
+  telegram_phone?: string
+  telegram_phone_verified?: boolean
+  telegram_chat_id?: string
+  role?: {
+    id: number
+    name: string
+    description?: string
+    type?: string
+  }
   createdAt: string
   updatedAt: string
 }

@@ -93,6 +93,26 @@ export interface SendPaymentMessageResponse {
   messenger: 'whatsapp' | 'telegram'
 }
 
+export interface BulkSendPaymentMessagesData {
+  courseId: string
+}
+
+export interface BulkSendPaymentMessagesResponse {
+  success: boolean
+  message: string
+  results: {
+    total: number
+    sent: number
+    failed: number
+    details: Array<{
+      studentName: string
+      success: boolean
+      messenger?: 'whatsapp' | 'telegram'
+      error?: string
+    }>
+  }
+}
+
 interface StrapiResponse<T> {
   data: T
   meta: {}
@@ -232,13 +252,16 @@ export class InvoiceAPI extends BaseAPI {
       searchParams.append('filters[startDate][$lte]', endDate);
     }
 
+    // Добавляем populate для owner, чтобы получить информацию о мессенджерах
+    searchParams.append('populate[0]', 'owner');
+
     const queryString = searchParams.toString();
     const response = await fetch(`/api/invoices?${queryString}`);
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch course invoices')
     }
-    
+
     const result = await response.json()
     return result.data;
   }
@@ -411,6 +434,26 @@ export class InvoiceAPI extends BaseAPI {
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.error?.message || 'Failed to send payment message')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Массовая отправка сообщений с оплатой всем студентам курса
+   */
+  async bulkSendPaymentMessages(data: BulkSendPaymentMessagesData): Promise<BulkSendPaymentMessagesResponse> {
+    const response = await fetch('/api/invoices/bulk-send-payment-messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to send bulk payment messages')
     }
 
     return response.json()

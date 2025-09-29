@@ -13,11 +13,12 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight, Info, Copy, Users } from "lucide-react"
+import { Calendar, CheckCircle, XCircle, CreditCard, ChevronDown, ChevronRight, Info, Copy, Users, MessageSquare } from "lucide-react"
 import { generateCourseDates, formatAttendanceDate } from "@/shared/lib/attendance-utils"
 import { StudentActionsDropdown } from "@/shared/ui/student-actions-dropdown"
 import { StudentAttendanceCell } from './StudentAttendanceCell'
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import type { Course } from "@/entities/course"
 
@@ -36,6 +37,10 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isBulkSending, setIsBulkSending] = useState(false)
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
+  const [bulkResults, setBulkResults] = useState<any>(null)
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false)
 
   // Инициализируем attendance manager для всей таблицы
   const attendanceManager = useAttendanceManager({ invoices })
@@ -69,6 +74,19 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
       })
       
       setInvoices(sortedInvoices)
+
+      // Отладочная информация для проверки populate
+      console.log('📊 Invoices loaded:', {
+        count: sortedInvoices.length,
+        sample: sortedInvoices[0],
+        ownersInfo: sortedInvoices.map(inv => ({
+          name: `${inv.name} ${inv.family}`,
+          hasOwner: !!inv.owner,
+          whatsappVerified: inv.owner?.whatsapp_phone_verified,
+          telegramVerified: inv.owner?.telegram_phone_verified,
+          telegramChatId: inv.owner?.telegram_chat_id
+        }))
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка при загрузке студентов")
     } finally {
@@ -94,7 +112,7 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
     }
 
     // Получаем информацию о преподавателе
-    const teacherInfo = course.teacher 
+    const teacherInfo = course.teacher
       ? `${course.teacher.name || ''} ${course.teacher.family || ''}`.trim()
       : 'Не указан'
 
@@ -118,6 +136,65 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
       document.execCommand('copy')
       document.body.removeChild(textArea)
       toast.success('Список студентов скопирован')
+    }
+  }
+
+  const handleBulkSendPaymentMessages = async () => {
+    if (!course) {
+      toast.error('Курс не выбран')
+      return
+    }
+
+    if (invoices.length === 0) {
+      toast.error('Нет студентов для отправки сообщений')
+      return
+    }
+
+    // Подсчитываем студентов с верифицированными контактами
+    const studentsWithContacts = invoices.filter(invoice =>
+      invoice.owner && (
+        (invoice.owner.whatsapp_phone_verified && invoice.owner.whatsapp_phone) ||
+        (invoice.owner.telegram_phone_verified && invoice.owner.telegram_chat_id)
+      )
+    )
+
+    if (studentsWithContacts.length === 0) {
+      toast.error('У студентов нет верифицированных контактов в мессенджерах')
+      return
+    }
+
+    setIsBulkSending(true)
+    setIsBulkDialogOpen(false)
+
+    try {
+      const response = await invoiceAPI.bulkSendPaymentMessages({
+        courseId: course.documentId
+      })
+
+      if (response.success) {
+        setBulkResults(response.results)
+        setIsResultsDialogOpen(true)
+
+        toast.success(
+          `Отправка завершена: ${response.results.sent} из ${response.results.total} сообщений отправлено`,
+          {
+            description: response.results.failed > 0
+              ? `${response.results.failed} сообщений не удалось отправить. Нажмите для просмотра деталей`
+              : 'Все сообщения отправлены успешно',
+            action: {
+              label: 'Подробнее',
+              onClick: () => setIsResultsDialogOpen(true)
+            }
+          }
+        )
+      } else {
+        toast.error('Ошибка при массовой отправке сообщений')
+      }
+    } catch (error) {
+      console.error('Ошибка массовой отправки:', error)
+      toast.error(error instanceof Error ? error.message : 'Ошибка при отправке сообщений')
+    } finally {
+      setIsBulkSending(false)
     }
   }
 
@@ -299,23 +376,209 @@ export function DashboardCourseStudentsTable({ course, month, year, className, o
               {attendanceManager.hasPendingUpdates && " • Есть несохраненные изменения"}
             </span>
             
-            {/* Кнопка копирования списка студентов */}
+            {/* Кнопки управления студентами */}
             {invoices.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopyStudentsList}
-                    className="h-6 w-6 p-0 hover:bg-gray-100"
-                  >
-                    <Users className="h-4 w-4 text-gray-900 hover:text-blue-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-white">Скопировать список студентов</p>
-                </TooltipContent>
-              </Tooltip>
+              <div className="flex items-center gap-1">
+                {/* Кнопка копирования списка студентов */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyStudentsList}
+                      className="h-6 w-6 p-0 hover:bg-gray-100"
+                    >
+                      <Users className="h-4 w-4 text-gray-900 hover:text-blue-600" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-white">Скопировать список студентов</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Кнопка массовой отправки сообщений - только для менеджеров */}
+                {role === 'Manager' && (
+                  <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isBulkSending}
+                            className="h-6 w-6 p-0 hover:bg-gray-100"
+                          >
+                            <MessageSquare className="h-4 w-4 text-gray-900 hover:text-green-600" />
+                          </Button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-white">Отправить сообщения с оплатой всем студентам</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Массовая отправка сообщений</DialogTitle>
+                        <DialogDescription>
+                          Вы действительно хотите отправить сообщения с информацией об оплате всем студентам курса?
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="py-4">
+                        <div className="space-y-2 text-sm">
+                          <p><strong>Курс:</strong> {course.direction}</p>
+                          <p><strong>Всего студентов:</strong> {invoices.length}</p>
+                          <p><strong>С верифицированными контактами:</strong> {
+                            invoices.filter(invoice =>
+                              invoice.owner && (
+                                (invoice.owner.whatsapp_phone_verified && invoice.owner.whatsapp_phone) ||
+                                (invoice.owner.telegram_phone_verified && invoice.owner.telegram_chat_id)
+                              )
+                            ).length
+                          }</p>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Внимание:</strong> Сообщения будут отправлены только студентам с верифицированными
+                            номерами телефонов в WhatsApp или Telegram. Приоритет отдается WhatsApp.
+                          </p>
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsBulkDialogOpen(false)}
+                        >
+                          Отмена
+                        </Button>
+                        <Button
+                          onClick={handleBulkSendPaymentMessages}
+                          disabled={isBulkSending}
+                        >
+                          {isBulkSending ? 'Отправляется...' : 'Отправить сообщения'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+            )}
+
+            {/* Dialog с результатами массовой отправки */}
+            {bulkResults && (
+              <Dialog open={isResultsDialogOpen} onOpenChange={setIsResultsDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Результаты массовой отправки</DialogTitle>
+                    <DialogDescription>
+                      Детальная информация о результатах отправки сообщений студентам
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="py-4">
+                    {/* Общая статистика */}
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{bulkResults.total}</div>
+                        <div className="text-sm text-blue-800">Всего студентов</div>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{bulkResults.sent}</div>
+                        <div className="text-sm text-green-800">Отправлено</div>
+                      </div>
+                      <div className="text-center p-3 bg-red-50 rounded-lg">
+                        <div className="text-2xl font-bold text-red-600">{bulkResults.failed}</div>
+                        <div className="text-sm text-red-800">Ошибок</div>
+                      </div>
+                    </div>
+
+                    {/* Детальный список */}
+                    <div className="max-h-80 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Студент</TableHead>
+                            <TableHead>Статус</TableHead>
+                            <TableHead>Мессенджер</TableHead>
+                            <TableHead>Ошибка</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {bulkResults.details?.map((detail: any, index: number) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">
+                                {detail.studentName}
+                              </TableCell>
+                              <TableCell>
+                                {detail.success ? (
+                                  <Badge variant="default" className="bg-green-100 text-green-800">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Отправлено
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="bg-red-100 text-red-800">
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Ошибка
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {detail.messenger ? (
+                                  <Badge variant="outline" className="capitalize">
+                                    {detail.messenger === 'whatsapp' ? '📱 WhatsApp' : '📱 Telegram'}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {detail.error ? (
+                                  <span className="text-sm text-red-600">{detail.error}</span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        // Экспорт результатов в текст
+                        const exportText = `Результаты массовой отправки сообщений
+Курс: ${course.direction}
+Дата: ${new Date().toLocaleString('ru-RU')}
+
+Общая статистика:
+- Всего студентов: ${bulkResults.total}
+- Отправлено: ${bulkResults.sent}
+- Ошибок: ${bulkResults.failed}
+
+Детальные результаты:
+${bulkResults.details?.map((detail: any, index: number) =>
+  `${index + 1}. ${detail.studentName} - ${detail.success ? `Отправлено (${detail.messenger})` : `Ошибка: ${detail.error}`}`
+).join('\n')}`;
+
+                        navigator.clipboard.writeText(exportText);
+                        toast.success('Результаты скопированы в буфер обмена');
+                      }}
+                    >
+                      📋 Копировать отчет
+                    </Button>
+                    <Button onClick={() => setIsResultsDialogOpen(false)}>
+                      Закрыть
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
           

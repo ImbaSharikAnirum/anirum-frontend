@@ -19,6 +19,7 @@ export interface User {
   whatsapp_phone?: string
   telegram_username?: string
   telegram_phone?: string
+  telegram_chat_id?: string
   whatsapp_phone_verified?: boolean
   telegram_phone_verified?: boolean
   birth_date?: string
