@@ -27,6 +27,7 @@ import {
   Edit,
   Copy,
   MessageSquare,
+  Send,
 } from "lucide-react";
 import { invoiceAPI } from "@/entities/invoice/api/invoiceApi";
 import { StudentContactDialog } from "./student-contact-dialog";
@@ -75,6 +76,7 @@ export function StudentActionsDropdown({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSendingPayment, setIsSendingPayment] = useState(false);
   const { timezone: userTimezone, loading: timezoneLoading } =
     useUserTimezone();
 
@@ -175,6 +177,32 @@ ${
     setIsDropdownOpen(false);
   };
 
+  const handleSendPaymentMessage = async () => {
+    if (!courseId || !invoiceDocumentId) {
+      toast.error("Ошибка: нет данных курса или счета");
+      return;
+    }
+
+    try {
+      setIsSendingPayment(true);
+      setIsDropdownOpen(false);
+
+      // Используем API из entities
+      const result = await invoiceAPI.sendPaymentMessage({
+        invoiceDocumentId,
+        courseId
+      });
+
+      toast.success(`Счет отправлен в ${result.messenger === 'whatsapp' ? 'WhatsApp' : 'Telegram'}`);
+
+    } catch (error) {
+      console.error('Ошибка отправки сообщения:', error);
+      toast.error(error instanceof Error ? error.message : 'Ошибка отправки сообщения');
+    } finally {
+      setIsSendingPayment(false);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     try {
       setIsDeleting(true);
@@ -216,6 +244,16 @@ ${
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Сообщение с оплатой
               </DropdownMenuItem>
+              {/* Отправка в мессенджер только для менеджеров */}
+              {role === "Manager" && (
+                <DropdownMenuItem
+                  onClick={handleSendPaymentMessage}
+                  disabled={isSendingPayment}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {isSendingPayment ? "Отправляем..." : "Отправить счет в мессенджер"}
+                </DropdownMenuItem>
+              )}
             </>
           )}
           {/* Редактирование и удаление только для менеджеров */}

@@ -82,6 +82,17 @@ export interface TinkoffPaymentResponse {
   message: string
 }
 
+export interface SendPaymentMessageData {
+  invoiceDocumentId: string
+  courseId: string
+}
+
+export interface SendPaymentMessageResponse {
+  success: boolean
+  message: string
+  messenger: 'whatsapp' | 'telegram'
+}
+
 interface StrapiResponse<T> {
   data: T
   meta: {}
@@ -380,6 +391,26 @@ export class InvoiceAPI extends BaseAPI {
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.error?.message || 'Failed to create Tinkoff payment')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Отправить сообщение с оплатой в мессенджер
+   */
+  async sendPaymentMessage(data: SendPaymentMessageData): Promise<SendPaymentMessageResponse> {
+    const response = await fetch('/api/invoices/send-payment-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to send payment message')
     }
 
     return response.json()
