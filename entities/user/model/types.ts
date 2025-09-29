@@ -16,6 +16,12 @@ export interface User {
   role?: UserRole
   name?: string
   family?: string
+  avatar?: {
+    id: number
+    url: string
+    name: string
+    alternativeText?: string
+  } // Аватар пользователя (Strapi media field)
   whatsapp_phone?: string
   telegram_username?: string
   telegram_phone?: string
