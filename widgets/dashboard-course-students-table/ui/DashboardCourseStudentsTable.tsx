@@ -222,6 +222,8 @@ export function DashboardCourseStudentsTable({
     try {
       const response = await invoiceAPI.bulkSendPaymentMessages({
         courseId: course.documentId,
+        month,
+        year,
       });
 
       if (response.success) {

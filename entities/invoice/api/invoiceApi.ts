@@ -95,6 +95,8 @@ export interface SendPaymentMessageResponse {
 
 export interface BulkSendPaymentMessagesData {
   courseId: string
+  month?: number
+  year?: number
 }
 
 export interface BulkSendPaymentMessagesResponse {
