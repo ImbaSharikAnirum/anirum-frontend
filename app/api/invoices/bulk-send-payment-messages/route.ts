@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { courseId } = body
+    const { courseId, month, year } = body
 
     if (!courseId) {
       return NextResponse.json(
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ courseId })
+      body: JSON.stringify({ courseId, month, year })
     })
 
     const data = await strapiResponse.json()

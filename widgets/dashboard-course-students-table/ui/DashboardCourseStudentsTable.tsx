@@ -220,6 +220,14 @@ export function DashboardCourseStudentsTable({
     setIsBulkDialogOpen(false);
 
     try {
+      console.log(`📤 Отправляем запрос на массовую отправку:`, {
+        courseId: course.documentId,
+        month,
+        year,
+        monthType: typeof month,
+        yearType: typeof year
+      });
+
       const response = await invoiceAPI.bulkSendPaymentMessages({
         courseId: course.documentId,
         month,
@@ -564,6 +572,9 @@ export function DashboardCourseStudentsTable({
                         <div className="space-y-2 text-sm">
                           <p>
                             <strong>Курс:</strong> {course.direction}
+                          </p>
+                          <p>
+                            <strong>Выбранный период:</strong> {month || 'не указан'}/{year || 'не указан'}
                           </p>
                           <p>
                             <strong>Всего студентов:</strong> {invoices.length}
