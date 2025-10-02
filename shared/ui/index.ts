@@ -18,3 +18,6 @@ export { MonthFilter } from './month-filter'
 export { YearFilter } from './year-filter'
 export { PeriodFilter } from './period-filter'
 export type { PeriodFilterValues } from './period-filter'
+
+// Image upload
+export { ImageUploadDialog } from './image-upload-dialog'

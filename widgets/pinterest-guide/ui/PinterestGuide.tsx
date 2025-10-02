@@ -11,8 +11,10 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { ArrowLeft, Share2 } from 'lucide-react'
+import { ArrowLeft, Share2, Upload } from 'lucide-react'
 import { pinterestAPI, type PinterestPin } from '@/entities/pinterest'
+import { creationAPI } from '@/entities/creation'
+import { ImageUploadDialog } from '@/shared/ui'
 import type { User } from '@/entities/user/model/types'
 
 interface PinterestGuideProps {
@@ -65,6 +67,10 @@ export function PinterestGuide({ pinId, user }: PinterestGuideProps) {
   })
 
   const [error, setError] = useState<string | null>(null)
+
+  // Состояние для диалога загрузки изображения
+  const [showUploadDialog, setShowUploadDialog] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   // API запрос только если данных нет в state
   useEffect(() => {
@@ -134,6 +140,29 @@ export function PinterestGuide({ pinId, user }: PinterestGuideProps) {
       // Fallback: копирование в буфер обмена
       navigator.clipboard.writeText(window.location.href)
       toast.success('Ссылка скопирована в буфер обмена')
+    }
+  }
+
+  const handleUploadImage = async (file: File) => {
+    if (!pin || !user) {
+      toast.error('Необходимо войти в систему')
+      return
+    }
+
+    try {
+      setIsUploading(true)
+
+      // Загрузка через creationAPI
+      await creationAPI.uploadCreation(file, pin)
+
+      toast.success('Изображение успешно загружено и сохранено как гайд!')
+      setShowUploadDialog(false)
+    } catch (error) {
+      console.error('Ошибка загрузки изображения:', error)
+      const message = error instanceof Error ? error.message : 'Не удалось загрузить изображение'
+      toast.error(message)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -209,10 +238,18 @@ export function PinterestGuide({ pinId, user }: PinterestGuideProps) {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Назад
         </Button>
-        <Button onClick={handleShare} variant="outline" size="sm">
-          <Share2 className="w-4 h-4 mr-2" />
-          Поделиться
-        </Button>
+        <div className="flex gap-2">
+          {user && (
+            <Button onClick={() => setShowUploadDialog(true)} variant="outline" size="sm">
+              <Upload className="w-4 h-4 mr-2" />
+              Загрузить изображение
+            </Button>
+          )}
+          <Button onClick={handleShare} variant="outline" size="sm">
+            <Share2 className="w-4 h-4 mr-2" />
+            Поделиться
+          </Button>
+        </div>
       </div>
 
       {/* Desktop Layout */}
@@ -306,6 +343,14 @@ export function PinterestGuide({ pinId, user }: PinterestGuideProps) {
         </div>
       </div>
 
+      {/* Диалог загрузки изображения */}
+      <ImageUploadDialog
+        open={showUploadDialog}
+        onOpenChange={setShowUploadDialog}
+        onUpload={handleUploadImage}
+        isUploading={isUploading}
+        pinTitle={pin.title}
+      />
     </div>
   )
 }
