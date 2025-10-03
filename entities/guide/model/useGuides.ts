@@ -37,7 +37,7 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
 
       switch (type) {
         case 'popular':
-          // Популярные гайды - пока просто все гайды, отсортированные по дате создания
+          // Популярные гайды - пока просто все гайды (как было раньше)
           response = await guideAPI.getGuides({ page, pageSize })
           break
 
@@ -68,7 +68,22 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
           throw new Error(`Unknown guides type: ${type}`)
       }
 
-      const newGuides = response.data || []
+      let newGuides = response.data || []
+
+      // Для популярных - фильтруем только гайды с креативами
+      if (type === 'popular') {
+        newGuides = newGuides.filter(guide => {
+          const creationsCount = (guide as any).creations?.length || 0
+          return creationsCount > 0
+        })
+      }
+
+      // Логируем что пришло
+      console.log('=== useGuides DEBUG ===')
+      console.log('Type:', type)
+      console.log('Original count:', response.data?.length || 0)
+      console.log('Filtered count:', newGuides.length)
+      console.log('First guide:', newGuides[0])
 
       if (reset || page === 1) {
         setGuides(newGuides)
