@@ -6,7 +6,7 @@
 
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { PinterestGuide } from '@/widgets/pinterest-guide'
+import { ContentViewer } from '@/widgets/content-viewer'
 import { getServerUser } from '@/shared/lib/auth'
 
 interface PinterestPinPageProps {
@@ -25,7 +25,7 @@ export default async function PinterestPinPage({ params }: PinterestPinPageProps
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <PinterestGuide pinId={pinId} user={user} />
+        <ContentViewer type="pin" id={pinId} user={user} />
       </div>
     </div>
   )

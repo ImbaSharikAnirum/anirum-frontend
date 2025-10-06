@@ -22,13 +22,7 @@ export class GuideAPI extends BaseAPI {
   async getGuides(params?: { page?: number; pageSize?: number }): Promise<GuidesResponse> {
     const { page = 1, pageSize = 20 } = params || {}
 
-    // Пока делаем простой запрос без параметров
-    console.log('=== GuideAPI.getGuides - SIMPLE REQUEST ===')
-    console.log('Requesting:', this.basePath)
-
     const response = await this.request<GuidesResponse>(this.basePath)
-
-    console.log('Response:', response)
 
     return response
   }

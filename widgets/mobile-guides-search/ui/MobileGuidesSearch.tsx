@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Command, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
-import { Clock, Bookmark, FileText, Search, X, ChevronLeft, Link2, Image, TrendingUp, PlusCircle } from "lucide-react"
+import { Clock, Bookmark, FileText, Search, X, ChevronLeft, Link2, Image, TrendingUp, PlusCircle, Download } from "lucide-react"
 import { usePinterestActions } from '@/shared/hooks'
 import { useGalleryView } from '@/shared/contexts/GalleryViewContext'
 import type { User } from '@/entities/user/model/types'
@@ -48,7 +48,8 @@ export function MobileGuidesSearch({ isOpen, onClose, user, pinterestStatus }: M
           action.icon === 'FileText' ? FileText :
           action.icon === 'Image' ? Image :
           action.icon === 'Link2' ? Link2 :
-          action.icon === 'PlusCircle' ? PlusCircle : Bookmark,
+          action.icon === 'PlusCircle' ? PlusCircle :
+          action.icon === 'Download' ? Download : Bookmark,
     label: action.label,
     action: action.action
   }))
@@ -239,17 +240,31 @@ export function MobileGuidesSearch({ isOpen, onClose, user, pinterestStatus }: M
                 {/* Быстрые действия показываем только когда поле пустое */}
                 {!value && (
                   <CommandGroup heading="Интересное" className="mb-6">
-                    {quickActions.map((item) => (
-                      <CommandItem
-                        key={item.action}
-                        value={item.label}
-                        onSelect={() => handleActionSelect(item.action)}
-                        className="flex items-center gap-3 py-3 rounded-lg"
-                      >
-                        <item.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <span>{item.label}</span>
-                      </CommandItem>
-                    ))}
+                    {quickActions.map((item) => {
+                      // Если это заголовок - рендерим как неактивный элемент
+                      if (item.action.startsWith('header-')) {
+                        return (
+                          <div
+                            key={item.action}
+                            className="px-2 py-1.5 text-xs font-semibold text-muted-foreground"
+                          >
+                            {item.label}
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <CommandItem
+                          key={item.action}
+                          value={item.label}
+                          onSelect={() => handleActionSelect(item.action)}
+                          className="flex items-center gap-3 py-3 rounded-lg"
+                        >
+                          <item.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span>{item.label}</span>
+                        </CommandItem>
+                      )
+                    })}
                   </CommandGroup>
                 )}
 

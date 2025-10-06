@@ -8,21 +8,19 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { Heart, BookmarkPlus, ExternalLink, User } from 'lucide-react'
 import type { Guide } from '@/entities/guide/model/types'
 import type { PinterestPin } from '@/entities/pinterest/model/types'
 
 type GalleryItem = Guide | PinterestPin
 
-interface MasonryGalleryProps {
-  items: GalleryItem[]
+interface MasonryGalleryProps<T extends GalleryItem = GalleryItem> {
+  items: T[]
   loading?: boolean
   loadingMore?: boolean
   onLoadMore?: () => void
   hasMore?: boolean
-  onItemClick?: (item: GalleryItem) => void
-  onSaveItem?: (item: GalleryItem) => void
+  onItemClick?: (item: T) => void
+  onSaveItem?: (item: T) => void
   savingItems?: Set<string>
   type: 'guides' | 'pins'
   emptyTitle?: string
@@ -30,7 +28,7 @@ interface MasonryGalleryProps {
   emptyIcon?: React.ReactNode
 }
 
-export function MasonryGallery({
+export function MasonryGallery<T extends GalleryItem = GalleryItem>({
   items,
   loading = false,
   loadingMore = false,
@@ -43,9 +41,17 @@ export function MasonryGallery({
   emptyTitle = 'Пока ничего нет',
   emptyDescription = 'Скоро здесь появится контент',
   emptyIcon
-}: MasonryGalleryProps) {
+}: MasonryGalleryProps<T>) {
+  // Флаг монтирования для предотвращения hydration mismatch
+  const [mounted, setMounted] = useState(false)
+
   // Начинаем с 2 колонок по умолчанию для SSR (mobile-first)
   const [columnsCount, setColumnsCount] = useState(2)
+
+  // Устанавливаем флаг после монтирования
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Определяем количество колонок только на клиенте
   useEffect(() => {
@@ -72,7 +78,7 @@ export function MasonryGallery({
 
   // Распределяем элементы по колонкам для Masonry layout
   const columns = useMemo(() => {
-    const cols: GalleryItem[][] = Array.from({ length: columnsCount }, () => [])
+    const cols: T[][] = Array.from({ length: columnsCount }, () => [])
 
     items.forEach((item, index) => {
       const columnIndex = index % columnsCount
@@ -171,8 +177,8 @@ export function MasonryGallery({
     </div>
   )
 
-  if (loading) {
-    // Показываем скелетон с правильным количеством колонок только после клиентской гидратации
+  // Показываем скелетон только если не смонтирован ИЛИ действительно загружается
+  if (!mounted || loading) {
     return renderSkeleton()
   }
 
@@ -195,8 +201,8 @@ export function MasonryGallery({
                 link={getItemLink(item)}
                 author={getItemAuthor(item)}
                 type={type}
-                onClick={() => onItemClick?.(item)}
-                onSave={() => onSaveItem?.(item)}
+                onClick={() => onItemClick?.(item as T)}
+                onSave={() => onSaveItem?.(item as T)}
                 isSaving={savingItems.has(getItemId(item))}
               />
             ))}
@@ -267,59 +273,9 @@ function GalleryItem({
             loading="lazy"
           />
 
-          {/* Overlay с действиями */}
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <div className="flex gap-2">
-              {onSave && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSave()
-                  }}
-                  disabled={isSaving}
-                  className="bg-white/90 hover:bg-white"
-                >
-                  {type === 'pins' ? (
-                    <Heart className="h-4 w-4" />
-                  ) : (
-                    <BookmarkPlus className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-
-              {link && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    window.open(link, '_blank', 'noopener,noreferrer')
-                  }}
-                  className="bg-white/90 hover:bg-white"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+          {/* Серый overlay при наведении */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
           </div>
-        </div>
-      )}
-
-      {/* Информация об элементе (только для гайдов) */}
-      {type === 'guides' && (
-        <div className="p-3">
-          <h3 className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">
-            {title}
-          </h3>
-
-          {author && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <User className="h-3 w-3" />
-              <span>{author}</span>
-            </div>
-          )}
         </div>
       )}
     </div>

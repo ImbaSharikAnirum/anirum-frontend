@@ -15,14 +15,90 @@ interface UseGuidesParams {
 }
 
 export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
-  const [guides, setGuides] = useState<Guide[]>([])
-  const [loading, setLoading] = useState(true)
+  // Генерируем уникальный ключ для кеша на основе параметров
+  const cacheKey = `guides-cache-${type}-${userId || ''}-${query || ''}-${(tags || []).join(',')}`
+
+  // Инициализация из кеша
+  const [guides, setGuides] = useState<Guide[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return cachedData.guides || []
+        }
+      } catch (error) {
+        // Ошибка чтения кеша
+      }
+    }
+    return []
+  })
+
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return !cachedData.guides || cachedData.guides.length === 0
+        }
+      } catch (error) {
+        // Ошибка проверки кеша
+      }
+    }
+    return true
+  })
+
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
+
+  const [hasMore, setHasMore] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return cachedData.hasMore !== false
+        }
+      } catch (error) {
+        // Ошибка чтения hasMore
+      }
+    }
+    return true
+  })
+
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          return cachedData.currentPage || 1
+        }
+      } catch (error) {
+        // Ошибка чтения currentPage
+      }
+    }
+    return 1
+  })
 
   const pageSize = 20
+
+  // Функция сохранения в кеш
+  const saveToCache = (guidesData: Guide[], page: number, hasMoreValue: boolean, scrollPosition?: number) => {
+    try {
+      const cacheData = {
+        guides: guidesData,
+        currentPage: page,
+        hasMore: hasMoreValue,
+        scrollPosition: scrollPosition ?? window.scrollY,
+        timestamp: Date.now()
+      }
+      sessionStorage.setItem(cacheKey, JSON.stringify(cacheData))
+    } catch (error) {
+      // Ошибка сохранения в кеш
+    }
+  }
 
   const fetchGuides = async (page: number = 1, reset: boolean = true) => {
     try {
@@ -70,35 +146,26 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
 
       let newGuides = response.data || []
 
-      // Для популярных - фильтруем только гайды с креативами
-      if (type === 'popular') {
-        newGuides = newGuides.filter(guide => {
-          const creationsCount = (guide as any).creations?.length || 0
-          return creationsCount > 0
-        })
-      }
+      // Для популярных - фильтрация и сортировка уже выполнена на бэкенде
+      // Бэкенд возвращает только гайды с creationsCount > 0, отсортированные по популярности
 
-      // Логируем что пришло
-      console.log('=== useGuides DEBUG ===')
-      console.log('Type:', type)
-      console.log('Original count:', response.data?.length || 0)
-      console.log('Filtered count:', newGuides.length)
-      console.log('First guide:', newGuides[0])
+      const pagination = response.meta?.pagination
+      const hasMoreValue = pagination ? pagination.page < pagination.pageCount : false
+      const currentPageValue = pagination ? pagination.page : page
 
       if (reset || page === 1) {
         setGuides(newGuides)
+        saveToCache(newGuides, currentPageValue, hasMoreValue)
       } else {
-        setGuides(prev => [...prev, ...newGuides])
+        setGuides(prev => {
+          const updatedGuides = [...prev, ...newGuides]
+          saveToCache(updatedGuides, currentPageValue, hasMoreValue)
+          return updatedGuides
+        })
       }
 
-      // Проверяем, есть ли еще страницы
-      const pagination = response.meta?.pagination
-      if (pagination) {
-        setHasMore(pagination.page < pagination.pageCount)
-        setCurrentPage(pagination.page)
-      } else {
-        setHasMore(false)
-      }
+      setHasMore(hasMoreValue)
+      setCurrentPage(currentPageValue)
 
     } catch (err) {
       console.error('Ошибка загрузки гайдов:', err)
@@ -120,8 +187,31 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
     fetchGuides(1, true)
   }
 
-  // Автозагрузка при изменении параметров
+  // Автозагрузка при изменении параметров - только если нет кеша
   useEffect(() => {
+    // Если гайды уже загружены из кеша, не делаем API запрос
+    if (guides.length > 0) {
+      // Восстанавливаем позицию скролла из кеша
+      try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const cachedData = JSON.parse(cached)
+          if (cachedData.scrollPosition) {
+            // Даем время на рендер, затем восстанавливаем скролл
+            setTimeout(() => {
+              window.scrollTo({
+                top: cachedData.scrollPosition,
+                behavior: 'auto' // Мгновенный скролл без анимации
+              })
+            }, 100)
+          }
+        }
+      } catch (error) {
+        // Ошибка восстановления позиции скролла
+      }
+      return
+    }
+
     fetchGuides(1, true)
   }, [type, userId, query, JSON.stringify(tags)])
 

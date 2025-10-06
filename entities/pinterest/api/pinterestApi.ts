@@ -160,6 +160,44 @@ export class PinterestAPI extends BaseAPI {
       throw new Error('Ошибка при сохранении пина')
     }
   }
+
+  /**
+   * Массовое сохранение всех пинов как гайдов (только для менеджеров)
+   */
+  async saveAllPins(): Promise<{
+    success: boolean
+    results: {
+      success: Array<{ pinId: string; guideId: string; tagsCount: number }>
+      skipped: Array<{ pinId: string; reason: string; guideId: string }>
+      errors: Array<{ pinId: string; error: string }>
+    }
+    summary: {
+      total: number
+      saved: number
+      skipped: number
+      errors: number
+    }
+  }> {
+    const response = await fetch('/api/pinterest/save-all-pins', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Необходима авторизация')
+      }
+      if (response.status === 403) {
+        throw new Error('Доступно только для менеджеров')
+      }
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Ошибка при массовом сохранении пинов')
+    }
+
+    return response.json()
+  }
 }
 
 // Синглтон экземпляр

@@ -7,10 +7,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Heart, Download } from 'lucide-react'
 import { pinterestAPI, type PinterestPin } from '@/entities/pinterest'
 import type { User } from '@/entities/user/model/types'
 
@@ -18,7 +16,7 @@ interface PinterestGalleryProps {
   user: User
 }
 
-export function PinterestGallery({ user }: PinterestGalleryProps) {
+export function PinterestGallery({}: PinterestGalleryProps) {
   const router = useRouter()
 
   // Инициализация с проверкой кеша
@@ -84,8 +82,6 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
     return true
   })
 
-  const [savingPins, setSavingPins] = useState<Set<string>>(new Set())
-
   const pageSize = 50
 
   // Функция сохранения состояния в кеш
@@ -104,31 +100,33 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
     }
   }, [])
 
-  // Начинаем с 2 колонок по умолчанию для SSR (mobile-first)
-  const [columnsCount, setColumnsCount] = useState(2)
+  // Вспомогательная функция для определения количества колонок
+  const getColumnsCount = useCallback(() => {
+    if (typeof window === 'undefined') return 2 // SSR fallback
+    const width = window.innerWidth
+    if (width >= 1536) return 7 // 2xl
+    if (width >= 1280) return 6 // xl
+    if (width >= 1024) return 5 // lg
+    if (width >= 768) return 3  // md
+    if (width >= 640) return 2  // sm
+    return 2 // xs
+  }, [])
+
+  // Инициализируем с правильным количеством колонок сразу
+  const [columnsCount, setColumnsCount] = useState(() => getColumnsCount())
 
   // Определяем количество колонок только на клиенте
   useEffect(() => {
-    const getColumnsCount = () => {
-      const width = window.innerWidth
-      if (width >= 1536) return 7 // 2xl
-      if (width >= 1280) return 6 // xl
-      if (width >= 1024) return 5 // lg
-      if (width >= 768) return 3  // md
-      if (width >= 640) return 2  // sm
-      return 2 // xs (320px и меньше) - гарантированно 2 колонки
-    }
-
     const handleResize = () => {
       setColumnsCount(getColumnsCount())
     }
 
-    // Устанавливаем правильное количество колонок после гидратации
+    // Обновляем количество колонок после монтирования
     setColumnsCount(getColumnsCount())
 
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [getColumnsCount])
 
   // Создаем masonry колонки
   const masonryColumns = useMemo(() => {
@@ -255,61 +253,6 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
     router.push(url)
   }
 
-  // Двухэтапное сохранение пина как гайда
-  const handleSavePin = async (pin: PinterestPin) => {
-    // ВРЕМЕННО ОТКЛЮЧЕНО
-    toast.info('Функция сохранения временно отключена')
-    return
-
-    /* if (savingPins.has(pin.id) || pin.isSaved) {
-      return
-    }
-
-    try {
-      setSavingPins(prev => new Set(prev).add(pin.id))
-
-      const imageUrl = pin.media?.images?.['1200x']?.url ||
-                      pin.media?.images?.['736x']?.url ||
-                      Object.values(pin.media?.images || {})[0]?.url
-
-      if (!imageUrl) {
-        throw new Error('Изображение недоступно')
-      }
-
-      // Шаг 1: Загружаем изображение через прокси
-      const uploadedImage = await pinterestAPI.uploadPinterestImage(imageUrl)
-
-      if (!uploadedImage?.id) {
-        throw new Error('Не удалось загрузить изображение')
-      }
-
-      // Шаг 2: Создаем гайд с загруженным изображением
-      await pinterestAPI.savePinAsGuide({
-        imageId: uploadedImage.id,
-        title: pin.title || 'Pinterest Pin',
-        text: pin.description || '',
-        link: pin.link,
-        tags: [],
-        approved: false, // Всегда требует модерации
-      })
-
-      // Обновляем статус пина
-      setPins(prev => prev.map(p =>
-        p.id === pin.id ? { ...p, isSaved: true } : p
-      ))
-
-      toast.success('Пин сохранен как гайд!')
-    } catch (error) {
-      // Ошибка сохранения пина
-      toast.error('Не удалось сохранить пин')
-    } finally {
-      setSavingPins(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(pin.id)
-        return newSet
-      })
-    } */
-  }
 
   if (loading) {
     return (
@@ -351,12 +294,10 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
 
               if (!imageUrl) return null
 
-              const isSaving = savingPins.has(pin.id)
-
               return (
                 <div
                   key={pin.id}
-                  className="group relative overflow-hidden rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow w-full max-w-full cursor-pointer"
+                  className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
                   onClick={() => handlePinClick(pin)}
                 >
                   <div className="relative">
@@ -370,35 +311,7 @@ export function PinterestGallery({ user }: PinterestGalleryProps) {
                     {/* Серый overlay при наведении */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                     </div>
-
-                    {/* Кнопки - ВРЕМЕННО ОТКЛЮЧЕНО */}
-                    {/* <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleSavePin(pin)}
-                          disabled={isSaving || pin.isSaved}
-                          className="bg-white text-black hover:bg-gray-100"
-                        >
-                          {isSaving ? (
-                            'Сохраняю...'
-                          ) : pin.isSaved ? (
-                            <>
-                              <Heart className="w-4 h-4 mr-1 fill-current" />
-                              Сохранено
-                            </>
-                          ) : (
-                            <>
-                              <Download className="w-4 h-4 mr-1" />
-                              Сохранить
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div> */}
                   </div>
-
                 </div>
               )
             })}

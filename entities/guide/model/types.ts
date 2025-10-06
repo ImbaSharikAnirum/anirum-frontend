@@ -13,6 +13,7 @@ export interface Guide {
   approved: boolean
   createdAt: string
   updatedAt: string
+  creationsCount?: number // Количество креативов (для популярных гайдов)
   image?: {
     id: string
     url: string

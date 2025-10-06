@@ -5,12 +5,30 @@
  * @layer widgets
  */
 
+import { useRouter } from 'next/navigation'
 import { FileText, Image, TrendingUp, Bookmark, PlusCircle, Search } from 'lucide-react'
 import { PinterestGallery } from '@/widgets/pinterest-gallery'
 import { MasonryGallery } from '@/shared/ui'
 import { useGalleryView } from '@/shared/contexts/GalleryViewContext'
 import { useGuides, useGuideSave } from '@/entities/guide'
 import type { User } from '@/entities/user/model/types'
+import type { Guide } from '@/entities/guide/model/types'
+
+/**
+ * Сохраняет текущую позицию скролла в кеш перед переходом на детальную страницу
+ */
+function saveScrollPosition(cacheKey: string) {
+  try {
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      const cachedData = JSON.parse(cached)
+      cachedData.scrollPosition = window.scrollY
+      sessionStorage.setItem(cacheKey, JSON.stringify(cachedData))
+    }
+  } catch (error) {
+    // Ошибка сохранения позиции скролла
+  }
+}
 
 interface PinterestStatus {
   isConnected: boolean
@@ -50,10 +68,20 @@ export function GuidesGallery({ user, pinterestStatus }: GuidesGalleryProps) {
  * Популярные гайды
  */
 function PopularContent({ user }: { user: User }) {
+  const router = useRouter()
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'popular'
   })
   const { savingGuides, toggleSave } = useGuideSave()
+
+  const handleGuideClick = (guide: Guide) => {
+    // Сохраняем позицию скролла перед переходом
+    saveScrollPosition('guides-cache-popular--')
+
+    // Сохраняем данные гайда в history state для мгновенного рендера
+    window.history.pushState({ guideData: guide }, '', `/guides/${guide.documentId}`)
+    router.push(`/guides/${guide.documentId}`)
+  }
 
   const handleSaveGuide = async (guide: any) => {
     if (!user.documentId) {
@@ -74,6 +102,7 @@ function PopularContent({ user }: { user: User }) {
       loadingMore={loadingMore}
       hasMore={hasMore}
       onLoadMore={loadMore}
+      onItemClick={handleGuideClick}
       onSaveItem={handleSaveGuide}
       savingItems={savingGuides}
       type="guides"
@@ -88,12 +117,22 @@ function PopularContent({ user }: { user: User }) {
  * Мои гайды
  */
 function GuidesContent({ user }: { user: User }) {
+  const router = useRouter()
   const shouldFetch = Boolean(user.documentId && user.documentId !== '')
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'user',
     userId: user.documentId || ''
   })
   const { savingGuides, toggleSave } = useGuideSave()
+
+  const handleGuideClick = (guide: Guide) => {
+    // Сохраняем позицию скролла перед переходом
+    saveScrollPosition(`guides-cache-user-${user.documentId || ''}--`)
+
+    // Сохраняем данные гайда в history state для мгновенного рендера
+    window.history.pushState({ guideData: guide }, '', `/guides/${guide.documentId}`)
+    router.push(`/guides/${guide.documentId}`)
+  }
 
   const handleSaveGuide = async (guide: any) => {
     if (!user.documentId) {
@@ -132,6 +171,7 @@ function GuidesContent({ user }: { user: User }) {
       loadingMore={loadingMore}
       hasMore={hasMore}
       onLoadMore={loadMore}
+      onItemClick={handleGuideClick}
       onSaveItem={handleSaveGuide}
       savingItems={savingGuides}
       type="guides"
@@ -146,12 +186,22 @@ function GuidesContent({ user }: { user: User }) {
  * Сохраненные гайды
  */
 function SavedContent({ user }: { user: User }) {
+  const router = useRouter()
   const shouldFetch = Boolean(user.documentId && user.documentId !== '')
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'saved',
     userId: user.documentId || ''
   })
   const { savingGuides, toggleSave } = useGuideSave()
+
+  const handleGuideClick = (guide: Guide) => {
+    // Сохраняем позицию скролла перед переходом
+    saveScrollPosition(`guides-cache-saved-${user.documentId || ''}--`)
+
+    // Сохраняем данные гайда в history state для мгновенного рендера
+    window.history.pushState({ guideData: guide }, '', `/guides/${guide.documentId}`)
+    router.push(`/guides/${guide.documentId}`)
+  }
 
   const handleSaveGuide = async (guide: any) => {
     if (!user.documentId) {
@@ -190,6 +240,7 @@ function SavedContent({ user }: { user: User }) {
       loadingMore={loadingMore}
       hasMore={hasMore}
       onLoadMore={loadMore}
+      onItemClick={handleGuideClick}
       onSaveItem={handleSaveGuide}
       savingItems={savingGuides}
       type="guides"
@@ -204,6 +255,7 @@ function SavedContent({ user }: { user: User }) {
  * Результаты поиска
  */
 function SearchContent({ user }: { user: User }) {
+  const router = useRouter()
   const { searchQuery, searchTags } = useGalleryView()
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'search',
@@ -211,6 +263,15 @@ function SearchContent({ user }: { user: User }) {
     tags: searchTags
   })
   const { savingGuides, toggleSave } = useGuideSave()
+
+  const handleGuideClick = (guide: Guide) => {
+    // Сохраняем позицию скролла перед переходом
+    saveScrollPosition(`guides-cache-search--${searchQuery || ''}-${(searchTags || []).join(',')}`)
+
+    // Сохраняем данные гайда в history state для мгновенного рендера
+    window.history.pushState({ guideData: guide }, '', `/guides/${guide.documentId}`)
+    router.push(`/guides/${guide.documentId}`)
+  }
 
   const handleSaveGuide = async (guide: any) => {
     if (!user.documentId) {
@@ -242,6 +303,7 @@ function SearchContent({ user }: { user: User }) {
       loadingMore={loadingMore}
       hasMore={hasMore}
       onLoadMore={loadMore}
+      onItemClick={handleGuideClick}
       onSaveItem={handleSaveGuide}
       savingItems={savingGuides}
       type="guides"

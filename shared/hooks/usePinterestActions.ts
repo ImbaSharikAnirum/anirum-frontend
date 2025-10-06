@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useGalleryView } from '@/shared/contexts/GalleryViewContext'
+import { pinterestAPI } from '@/entities/pinterest'
 import type { User } from '@/entities/user/model/types'
 
 interface PinterestStatus {
@@ -92,6 +93,58 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
     router.push('/guides/create')
   }
 
+  // Сохранение всех пинов как гайдов (только для менеджеров)
+  const saveAllPins = async () => {
+    if (!user || user.role?.type !== 'manager') {
+      toast.error('Доступно только для менеджеров')
+      return
+    }
+
+    if (!pinterestStatus?.isConnected) {
+      toast.error('Pinterest не подключен')
+      return
+    }
+
+    try {
+      toast.info('Начинается массовое сохранение пинов...', {
+        duration: 3000
+      })
+
+      const result = await pinterestAPI.saveAllPins()
+
+      // Показываем детальную статистику
+      if (result.summary.saved > 0) {
+        toast.success(
+          `Успешно сохранено ${result.summary.saved} из ${result.summary.total} пинов!`,
+          { duration: 5000 }
+        )
+      }
+
+      if (result.summary.skipped > 0) {
+        toast.info(
+          `Пропущено ${result.summary.skipped} дубликатов`,
+          { duration: 4000 }
+        )
+      }
+
+      if (result.summary.errors > 0) {
+        toast.warning(
+          `Ошибок при сохранении: ${result.summary.errors}`,
+          { duration: 4000 }
+        )
+      }
+
+      if (result.summary.saved === 0 && result.summary.total === 0) {
+        toast.info('Нет пинов для сохранения')
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      toast.error(`Ошибка массового сохранения: ${message}`)
+      console.error('Save all pins error:', error)
+    }
+  }
+
   // Обработчик действий поиска
   const handleSearchAction = (action: string) => {
     switch (action) {
@@ -119,6 +172,10 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
         goToCreateGuide()
         break
 
+      case 'save-all-pins':
+        saveAllPins()
+        break
+
       // case 'disconnect-pinterest':
       //   // TODO: Реализовать через настройки
       //   break
@@ -130,7 +187,12 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
 
   // Получаем список доступных действий в зависимости от статуса
   const getQuickActions = () => {
-    const baseActions = [
+    const actions: Array<{
+      icon: string;
+      label: string;
+      action: string;
+      isHeader?: boolean;
+    }> = [
       { icon: 'TrendingUp', label: "Популярные", action: "popular" },
       { icon: 'Bookmark', label: "Сохраненные", action: "saved" },
       { icon: 'FileText', label: "Мои гайды", action: "my-guides" },
@@ -138,22 +200,40 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
     ]
 
     if (pinterestStatus?.isConnected) {
+      // Добавляем заголовок Pinterest
+      actions.push({
+        icon: '',
+        label: "Pinterest",
+        action: "header-pinterest",
+        isHeader: true
+      })
+
       // Pinterest подключен - показываем "Мои пины"
-      baseActions.push({
+      actions.push({
         icon: 'Image',
         label: "Мои пины",
         action: "my-pins"
       })
+
+      // Для менеджеров добавляем "Сохранить все пины"
+      const isManager = user?.role?.type === 'manager'
+      if (isManager) {
+        actions.push({
+          icon: 'Download',
+          label: "Сохранить все пины",
+          action: "save-all-pins"
+        })
+      }
     } else {
       // Pinterest не подключен - показываем "Подключить Pinterest"
-      baseActions.push({
+      actions.push({
         icon: 'Link2',
         label: "Подключить Pinterest",
         action: "connect-pinterest"
       })
     }
 
-    return baseActions
+    return actions
   }
 
   return {
