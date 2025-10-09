@@ -11,13 +11,21 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/search`, {
+    // 🔧 Извлекаем page и pageSize из body и передаем в query параметры
+    const { page = 1, pageSize = 20, ...searchParams } = body
+
+    const queryParams = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize)
+    })
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/search?${queryParams}`, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(searchParams), // query, tags, userId
     })
 
     if (!response.ok) {

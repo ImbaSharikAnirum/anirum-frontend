@@ -3,7 +3,7 @@
  * @layer entities
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { guideAPI } from '../api/guideApi'
 import type { Guide, GuidesResponse } from './types'
 
@@ -18,74 +18,86 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
   // Генерируем уникальный ключ для кеша на основе параметров
   const cacheKey = `guides-cache-${type}-${userId || ''}-${query || ''}-${(tags || []).join(',')}`
 
-  // Инициализация из кеша
+  // Популярные НЕ кешируем - всегда свежие данные
+  // Поиск КЕШИРУЕМ - для быстрого возврата назад, но проверяем актуальность
+  const shouldUseCache = type !== 'popular'
+
+  // 🔧 Lazy init - проверяем кеш при инициализации состояния
   const [guides, setGuides] = useState<Guide[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem(cacheKey)
-        if (cached) {
-          const cachedData = JSON.parse(cached)
-          return cachedData.guides || []
+    if (!shouldUseCache || typeof window === 'undefined') return []
+
+    try {
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        const data = JSON.parse(cached)
+        const cacheAge = Date.now() - (data.timestamp || 0)
+        const maxAge = type === 'search' ? 5 * 60 * 1000 : 30 * 60 * 1000
+
+        if (data.guides && cacheAge <= maxAge) {
+          console.log('🚀 Init with cache:', data.guides.length, 'guides')
+          return data.guides
         }
-      } catch (error) {
-        // Ошибка чтения кеша
       }
+    } catch (e) {
+      // Игнорируем ошибки кеша
     }
     return []
   })
 
   const [loading, setLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem(cacheKey)
-        if (cached) {
-          const cachedData = JSON.parse(cached)
-          return !cachedData.guides || cachedData.guides.length === 0
-        }
-      } catch (error) {
-        // Ошибка проверки кеша
-      }
-    }
-    return true
+    // Если есть закешированные данные - не показываем loading
+    return guides.length === 0
   })
 
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [hasMore, setHasMore] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem(cacheKey)
-        if (cached) {
-          const cachedData = JSON.parse(cached)
-          return cachedData.hasMore !== false
-        }
-      } catch (error) {
-        // Ошибка чтения hasMore
+    if (!shouldUseCache || typeof window === 'undefined') return true
+
+    try {
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        const data = JSON.parse(cached)
+        return data.hasMore !== false
       }
+    } catch (e) {
+      // Игнорируем ошибки
     }
     return true
   })
 
   const [currentPage, setCurrentPage] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem(cacheKey)
-        if (cached) {
-          const cachedData = JSON.parse(cached)
-          return cachedData.currentPage || 1
-        }
-      } catch (error) {
-        // Ошибка чтения currentPage
+    if (!shouldUseCache || typeof window === 'undefined') return 1
+
+    try {
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        const data = JSON.parse(cached)
+        return data.currentPage || 1
       }
+    } catch (e) {
+      // Игнорируем ошибки
     }
     return 1
   })
 
-  const pageSize = 20
+  // 🔧 Адаптивный размер страницы для заполнения экрана без белых пятен
+  // Мобильные: 20 (1-2 колонки), Планшеты: 30 (3 колонки), Десктоп: 40 (4-5 колонок)
+  const getPageSize = () => {
+    if (typeof window === 'undefined') return 40 // SSR fallback
+    const width = window.innerWidth
+    if (width < 768) return 20 // mobile
+    if (width < 1280) return 30 // tablet
+    return 40 // desktop
+  }
 
-  // Функция сохранения в кеш
+  const pageSize = getPageSize()
+
+  // Функция сохранения в кеш (только для не-популярных)
   const saveToCache = (guidesData: Guide[], page: number, hasMoreValue: boolean, scrollPosition?: number) => {
+    if (!shouldUseCache) return // Не кешируем популярные
+
     try {
       const cacheData = {
         guides: guidesData,
@@ -135,6 +147,7 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
           response = await guideAPI.searchGuides({
             query,
             tags,
+            userId, // 🔧 Передаем userId для специальных запросов
             page,
             pageSize
           })
@@ -158,7 +171,10 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
         saveToCache(newGuides, currentPageValue, hasMoreValue)
       } else {
         setGuides(prev => {
-          const updatedGuides = [...prev, ...newGuides]
+          // Фильтруем дубликаты по documentId
+          const existingIds = new Set(prev.map(guide => guide.documentId))
+          const uniqueNewGuides = newGuides.filter(guide => !existingIds.has(guide.documentId))
+          const updatedGuides = [...prev, ...uniqueNewGuides]
           saveToCache(updatedGuides, currentPageValue, hasMoreValue)
           return updatedGuides
         })
@@ -187,33 +203,54 @@ export function useGuides({ type, userId, query, tags }: UseGuidesParams) {
     fetchGuides(1, true)
   }
 
-  // Автозагрузка при изменении параметров - только если нет кеша
+  // Ref для отслеживания первого рендера
+  const isInitialMount = useRef(true)
+
+  // Автозагрузка при изменении параметров
   useEffect(() => {
-    // Если гайды уже загружены из кеша, не делаем API запрос
-    if (guides.length > 0) {
-      // Восстанавливаем позицию скролла из кеша
-      try {
-        const cached = sessionStorage.getItem(cacheKey)
-        if (cached) {
-          const cachedData = JSON.parse(cached)
-          if (cachedData.scrollPosition) {
-            // Даем время на рендер, затем восстанавливаем скролл
-            setTimeout(() => {
-              window.scrollTo({
-                top: cachedData.scrollPosition,
-                behavior: 'auto' // Мгновенный скролл без анимации
-              })
-            }, 100)
+    console.log(`📍 useGuides effect triggered:`, {
+      type,
+      query,
+      cacheKey,
+      hasInitialData: guides.length > 0,
+      isInitialMount: isInitialMount.current
+    })
+
+    // При первом монтировании - если есть данные из lazy init, только восстанавливаем скролл
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+
+      if (guides.length > 0 && shouldUseCache) {
+        console.log('✅ Using cached data from initialization')
+
+        // Восстанавливаем скролл из кеша
+        try {
+          const cached = sessionStorage.getItem(cacheKey)
+          if (cached) {
+            const cachedData = JSON.parse(cached)
+            if (cachedData.scrollPosition) {
+              setTimeout(() => {
+                window.scrollTo({ top: cachedData.scrollPosition, behavior: 'instant' })
+                console.log('📍 Scroll restored:', cachedData.scrollPosition)
+              }, 100)
+            }
           }
+        } catch (e) {
+          // Игнорируем
         }
-      } catch (error) {
-        // Ошибка восстановления позиции скролла
+
+        return // Не делаем запрос
       }
-      return
     }
 
+    // При изменении параметров - всегда делаем запрос
+    setLoading(true)
+    setError(null)
+
+    console.log(`🌐 Fetching from API (${shouldUseCache ? 'params changed' : 'caching disabled'})`)
     fetchGuides(1, true)
-  }, [type, userId, query, JSON.stringify(tags)])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, userId, query, JSON.stringify(tags), cacheKey])
 
   return {
     guides,

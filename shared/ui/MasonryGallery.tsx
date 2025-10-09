@@ -42,39 +42,83 @@ export function MasonryGallery<T extends GalleryItem = GalleryItem>({
   emptyDescription = 'Скоро здесь появится контент',
   emptyIcon
 }: MasonryGalleryProps<T>) {
+  // Функция определения количества колонок
+  const getColumnsCount = () => {
+    if (typeof window === 'undefined') return 2 // SSR fallback
+    const width = window.innerWidth
+    if (width >= 1536) return 7 // 2xl
+    if (width >= 1280) return 6 // xl
+    if (width >= 1024) return 5 // lg
+    if (width >= 768) return 3  // md
+    if (width >= 640) return 2  // sm
+    return 2 // xs (320px и меньше)
+  }
+
   // Флаг монтирования для предотвращения hydration mismatch
   const [mounted, setMounted] = useState(false)
 
-  // Начинаем с 2 колонок по умолчанию для SSR (mobile-first)
-  const [columnsCount, setColumnsCount] = useState(2)
+  // Инициализируем с правильным количеством колонок сразу
+  const [columnsCount, setColumnsCount] = useState(() => getColumnsCount())
 
   // Устанавливаем флаг после монтирования
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Определяем количество колонок только на клиенте
+  // Обновляем колонки при resize
   useEffect(() => {
-    const getColumnsCount = () => {
-      const width = window.innerWidth
-      if (width >= 1536) return 7 // 2xl
-      if (width >= 1280) return 6 // xl
-      if (width >= 1024) return 5 // lg
-      if (width >= 768) return 3  // md
-      if (width >= 640) return 2  // sm
-      return 2 // xs (320px и меньше) - гарантированно 2 колонки
-    }
-
     const handleResize = () => {
       setColumnsCount(getColumnsCount())
     }
 
-    // Устанавливаем правильное количество колонок после гидратации
-    setColumnsCount(getColumnsCount())
-
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Infinite scroll: автоматически загружаем больше при достижении конца страницы
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || loadingMore || loading) return
+
+    const handleScroll = () => {
+      // Проверяем, достиг ли пользователь конца страницы (за 1000px до конца)
+      if (
+        window.innerHeight + document.documentElement.scrollTop
+        >= document.documentElement.offsetHeight - 1000
+      ) {
+        onLoadMore()
+      }
+    }
+
+    // 🔧 Автозагрузка если контент не заполняет экран
+    const checkContentHeight = () => {
+      if (!mounted) return
+
+      // Проверяем есть ли скроллбар
+      const hasScroll = document.documentElement.scrollHeight > window.innerHeight + 100
+
+      // Если контент не создает скролл и есть еще данные - загружаем больше
+      if (!hasScroll && items.length > 0) {
+        console.log('📍 Content too short, auto-loading more items...', {
+          scrollHeight: document.documentElement.scrollHeight,
+          windowHeight: window.innerHeight,
+          itemsCount: items.length
+        })
+        onLoadMore()
+      }
+    }
+
+    // Проверяем сразу после рендера
+    checkContentHeight()
+
+    // И через небольшую задержку для загрузки изображений
+    const timeoutId = setTimeout(checkContentHeight, 300)
+
+    window.addEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      clearTimeout(timeoutId)
+    }
+  }, [onLoadMore, hasMore, loadingMore, loading, mounted, items.length])
 
   // Распределяем элементы по колонкам для Masonry layout
   const columns = useMemo(() => {
@@ -177,8 +221,13 @@ export function MasonryGallery<T extends GalleryItem = GalleryItem>({
     </div>
   )
 
-  // Показываем скелетон только если не смонтирован ИЛИ действительно загружается
-  if (!mounted || loading) {
+  // Показываем пустой div до монтирования для предотвращения hydration mismatch
+  if (!mounted) {
+    return <div className="h-screen" /> // Placeholder для SSR
+  }
+
+  // После монтирования показываем skeleton если загружается
+  if (loading) {
     return renderSkeleton()
   }
 

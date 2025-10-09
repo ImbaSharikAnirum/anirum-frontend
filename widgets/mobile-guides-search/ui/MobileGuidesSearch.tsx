@@ -39,7 +39,7 @@ export function MobileGuidesSearch({ isOpen, onClose, user, pinterestStatus }: M
   })
 
   // Gallery view context
-  const { switchToSearch } = useGalleryView()
+  const { switchToSearch, switchToPopular } = useGalleryView()
 
   // Получаем динамический список действий
   const quickActions = getQuickActions().map(action => ({
@@ -105,13 +105,35 @@ export function MobileGuidesSearch({ isOpen, onClose, user, pinterestStatus }: M
     search.toLowerCase().includes(value.toLowerCase())
   )
 
+  // 🔍 Debounce: автоматический поиск через 600мс после остановки печати (без скролла)
+  useEffect(() => {
+    // Если поле очищено - возвращаемся к популярным гайдам БЕЗ скролла
+    if (!value.trim()) {
+      const timeoutId = setTimeout(() => {
+        console.log('🔄 Search cleared (mobile), returning to popular (no scroll)')
+        switchToPopular(false) // false = не скроллить
+      }, 300)
+      return () => clearTimeout(timeoutId)
+    }
+
+    const timeoutId = setTimeout(() => {
+      console.log('🤖 AI Auto-search triggered (mobile):', value)
+      addToRecentSearches(value.trim())
+      switchToSearch(value.trim(), [], false) // false = не скроллить при автопоиске
+      onClose() // Закрываем модалку после автопоиска
+    }, 600) // 600мс задержка
+
+    // Очищаем таймер если пользователь продолжает печатать
+    return () => clearTimeout(timeoutId)
+  }, [value, switchToSearch, switchToPopular, onClose])
+
   const handleSelect = (selectedValue: string) => {
     setValue(selectedValue)
     onClose()
 
-    // Запуск поиска
+    // Запуск поиска БЕЗ скролла (пользователь уже на странице гайдов)
     console.log('Поиск:', selectedValue)
-    switchToSearch(selectedValue)
+    switchToSearch(selectedValue, [], false)
   }
 
   const handleActionSelect = (action: string) => {
@@ -125,7 +147,7 @@ export function MobileGuidesSearch({ isOpen, onClose, user, pinterestStatus }: M
       addToRecentSearches(value.trim())
       onClose()
       console.log('Поиск по Enter:', value.trim())
-      switchToSearch(value.trim())
+      switchToSearch(value.trim(), [], false) // false = не скроллить (уже на странице)
     }
   }
 

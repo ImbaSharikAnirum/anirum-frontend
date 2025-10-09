@@ -24,20 +24,30 @@ interface GuidesSearchProps {
 }
 
 export function GuidesSearch({ user, pinterestStatus }: GuidesSearchProps) {
+  // Gallery view context - получаем текущий query
+  const { switchToSearch, switchToPopular, searchQuery } = useGalleryView()
+
+  // 🔧 Инициализируем поле поиска из контекста (восстанавливается из sessionStorage)
   const [open, setOpen] = useState(false)
-  const [value, setValue] = useState("")
+  const [value, setValue] = useState(searchQuery || "")
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // 🔧 Синхронизируем value с searchQuery при возврате со страницы
+  useEffect(() => {
+    if (searchQuery && searchQuery !== value) {
+      console.log('🔄 Restoring search query:', searchQuery)
+      setValue(searchQuery)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   // Pinterest actions hook
   const { handleSearchAction, getQuickActions } = usePinterestActions({
     user,
     initialPinterestStatus: pinterestStatus || null
   })
-
-  // Gallery view context
-  const { switchToSearch } = useGalleryView()
 
   // Получаем динамический список действий
   const quickActions = getQuickActions().map(action => ({
@@ -106,6 +116,27 @@ export function GuidesSearch({ user, pinterestStatus }: GuidesSearchProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // 🔍 Debounce: автоматический поиск через 600мс после остановки печати (без скролла)
+  useEffect(() => {
+    // Если поле очищено - возвращаемся к популярным гайдам БЕЗ скролла
+    if (!value.trim()) {
+      const timeoutId = setTimeout(() => {
+        console.log('🔄 Search cleared, returning to popular (no scroll)')
+        switchToPopular(false) // false = не скроллить
+      }, 300)
+      return () => clearTimeout(timeoutId)
+    }
+
+    const timeoutId = setTimeout(() => {
+      console.log('🤖 AI Auto-search triggered:', value)
+      addToRecentSearches(value.trim())
+      switchToSearch(value.trim(), [], false) // false = не скроллить при автопоиске
+    }, 600) // 600мс задержка
+
+    // Очищаем таймер если пользователь продолжает печатать
+    return () => clearTimeout(timeoutId)
+  }, [value, switchToSearch, switchToPopular])
+
   const handleInputFocus = () => {
     setOpen(true)
   }
@@ -123,9 +154,9 @@ export function GuidesSearch({ user, pinterestStatus }: GuidesSearchProps) {
     setOpen(false)
     inputRef.current?.blur()
 
-    // Запуск поиска
+    // Запуск поиска БЕЗ скролла (пользователь уже на странице гайдов)
     console.log('Поиск:', selectedValue)
-    switchToSearch(selectedValue)
+    switchToSearch(selectedValue, [], false)
   }
 
   const handleActionSelect = (action: string) => {
@@ -141,7 +172,7 @@ export function GuidesSearch({ user, pinterestStatus }: GuidesSearchProps) {
       setOpen(false)
       inputRef.current?.blur()
       console.log('Поиск по Enter:', value.trim())
-      switchToSearch(value.trim())
+      switchToSearch(value.trim(), [], false) // false = не скроллить (уже на странице)
     }
   }
 

@@ -197,17 +197,22 @@ interface FileUploadProps {
   maxFiles?: number
   minFiles?: number
   maxSizeMB?: number
+  uploadedGuides?: number[]
+  onGuideDrop?: (guideNum: number) => void
 }
 
-export function FileUpload({ 
-  onFilesChange, 
-  maxFiles = 10, 
-  minFiles = 5, 
-  maxSizeMB = 5 
+export function FileUpload({
+  onFilesChange,
+  maxFiles = 10,
+  minFiles = 5,
+  maxSizeMB = 5,
+  uploadedGuides = [],
+  onGuideDrop
 }: FileUploadProps) {
   const maxSize = maxSizeMB * 1024 * 1024
 
   const [activeId, setActiveId] = React.useState<string | null>(null)
+  const [isDraggingGuide, setIsDraggingGuide] = React.useState(false)
 
   const [
     { files, isDragging, errors },
@@ -238,6 +243,32 @@ export function FileUpload({
     onFilesChange?.(actualFiles)
   }, [files, onFilesChange])
 
+  // Обработка перетаскивания гайдов
+  const handleGuideDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    const guideNumber = e.dataTransfer.types.includes('guide-number')
+    if (guideNumber) {
+      setIsDraggingGuide(true)
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  const handleGuideDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget === e.target) {
+      setIsDraggingGuide(false)
+    }
+  }
+
+  const handleGuideDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingGuide(false)
+
+    const guideNumber = e.dataTransfer.getData('guide-number')
+    if (guideNumber && onGuideDrop) {
+      onGuideDrop(parseInt(guideNumber))
+    }
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -266,13 +297,31 @@ export function FileUpload({
     <div className="flex flex-col gap-2">
       {/* Drop area */}
       <div
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        data-dragging={isDragging || undefined}
-        data-files={files.length > 0 || undefined}
-        className="border-input data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex min-h-52 flex-col items-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors not-data-[files]:justify-center has-[input:focus]:ring-[3px]"
+        onDragEnter={(e) => {
+          handleDragEnter(e)
+          if (e.dataTransfer.types.includes('guide-number')) {
+            setIsDraggingGuide(true)
+          }
+        }}
+        onDragLeave={(e) => {
+          handleDragLeave(e)
+          handleGuideDragLeave(e)
+        }}
+        onDragOver={(e) => {
+          handleDragOver(e)
+          handleGuideDragOver(e)
+        }}
+        onDrop={(e) => {
+          // Проверяем, это гайд или обычный файл
+          if (e.dataTransfer.types.includes('guide-number')) {
+            handleGuideDrop(e)
+          } else {
+            handleDrop(e)
+          }
+        }}
+        data-dragging={isDragging || isDraggingGuide || undefined}
+        data-files={files.length > 0 || uploadedGuides.length > 0 || undefined}
+        className="border-input data-[dragging=true]:bg-accent/50 data-[dragging=true]:border-primary has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex h-60 flex-col items-center overflow-hidden rounded-xl border border-dashed p-3 transition-all not-data-[files]:justify-center has-[input:focus]:ring-[3px]"
       >
         <input
           {...getInputProps()}

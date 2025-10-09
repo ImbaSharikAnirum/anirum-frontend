@@ -78,7 +78,7 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
 
   // Переход к популярным гайдам
   const goToPopular = () => {
-    switchToPopular()
+    switchToPopular(false) // false = не скроллить (пользователь уже на странице)
     toast.success('Показаны популярные гайды')
   }
 

@@ -65,7 +65,7 @@ export function GuidesGallery({ user, pinterestStatus }: GuidesGalleryProps) {
 }
 
 /**
- * Популярные гайды
+ * Популярные гайды (всегда свежие данные без кеша)
  */
 function PopularContent({ user }: { user: User }) {
   const router = useRouter()
@@ -260,7 +260,8 @@ function SearchContent({ user }: { user: User }) {
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'search',
     query: searchQuery,
-    tags: searchTags
+    tags: searchTags,
+    userId: user.documentId // 🔧 Передаем userId для специальных запросов
   })
   const { savingGuides, toggleSave } = useGuideSave()
 

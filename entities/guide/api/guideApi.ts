@@ -22,7 +22,13 @@ export class GuideAPI extends BaseAPI {
   async getGuides(params?: { page?: number; pageSize?: number }): Promise<GuidesResponse> {
     const { page = 1, pageSize = 20 } = params || {}
 
-    const response = await this.request<GuidesResponse>(this.basePath)
+    const searchParams = new URLSearchParams({
+      'pagination[page]': page.toString(),
+      'pagination[pageSize]': pageSize.toString(),
+      'populate': 'image,users_permissions_user,savedBy'
+    })
+
+    const response = await this.request<GuidesResponse>(`${this.basePath}?${searchParams}`)
 
     return response
   }
@@ -83,13 +89,24 @@ export class GuideAPI extends BaseAPI {
   }
 
   /**
-   * Поиск гайдов
+   * Поиск гайдов (через Next.js API route для корректной передачи пагинации)
    */
   async searchGuides(params: SearchGuidesRequest): Promise<GuidesResponse> {
-    return this.request<GuidesResponse>(`${this.basePath}/search`, {
+    // Используем Next.js API route вместо прямого вызова Strapi
+    const response = await fetch('/api/guides/search', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(params),
     })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error?.error || 'Ошибка при поиске гайдов')
+    }
+
+    return response.json()
   }
 
   /**

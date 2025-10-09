@@ -2,21 +2,21 @@
 
 /**
  * Контекст для управления видом галереи (гайды/пины)
+ * Использует GalleryPersistenceManager для сохранения состояния
  * @layer shared/contexts
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-
-type GalleryView = 'popular' | 'guides' | 'pins' | 'saved' | 'search'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { galleryPersistence, type GalleryView } from '@/shared/lib/galleryPersistence'
 
 interface GalleryViewContextType {
   currentView: GalleryView
   setCurrentView: (view: GalleryView) => void
-  switchToPopular: () => void
+  switchToPopular: (shouldScroll?: boolean) => void
   switchToMyPins: () => void
   switchToMyGuides: () => void
   switchToSaved: () => void
-  switchToSearch: (query: string, tags?: string[]) => void
+  switchToSearch: (query: string, tags?: string[], shouldScroll?: boolean) => void
   searchQuery: string
   searchTags: string[]
 }
@@ -29,9 +29,32 @@ interface GalleryViewProviderProps {
 }
 
 export function GalleryViewProvider({ children, defaultView = 'popular' }: GalleryViewProviderProps) {
-  const [currentView, setCurrentView] = useState<GalleryView>(defaultView)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchTags, setSearchTags] = useState<string[]>([])
+  // 🔧 Восстанавливаем состояние через GalleryPersistenceManager
+  const [currentView, setCurrentView] = useState<GalleryView>(() => {
+    const saved = galleryPersistence.restore()
+    return saved?.view || defaultView
+  })
+
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const saved = galleryPersistence.restore()
+    return saved?.query || ''
+  })
+
+  const [searchTags, setSearchTags] = useState<string[]>(() => {
+    const saved = galleryPersistence.restore()
+    return saved?.tags || []
+  })
+
+  // 🔧 Автосохранение при изменении состояния
+  useEffect(() => {
+    // Сохраняем searchQuery и tags только если мы в режиме поиска
+    // Иначе сохраняем пустые значения
+    galleryPersistence.save({
+      view: currentView,
+      query: currentView === 'search' ? searchQuery : '',
+      tags: currentView === 'search' ? searchTags : []
+    })
+  }, [currentView, searchQuery, searchTags])
 
   // Обработка hash в URL для переключения на Pinterest
   useEffect(() => {
@@ -62,16 +85,28 @@ export function GalleryViewProvider({ children, defaultView = 'popular' }: Galle
     }
   }, [])
 
-  const switchToPopular = () => {
+  const switchToPopular = useCallback((shouldScroll = true) => {
     setCurrentView('popular')
-    // Скролл к галерее
-    setTimeout(() => {
-      const galleryElement = document.querySelector('.guides-gallery')
-      if (galleryElement) {
-        galleryElement.scrollIntoView({ behavior: 'smooth' })
-      }
-    }, 100)
-  }
+    // Очищаем поисковый запрос при переходе на популярные
+    setSearchQuery('')
+    setSearchTags([])
+
+    // Скролл только если явно запрошено
+    if (shouldScroll) {
+      setTimeout(() => {
+        const galleryElement = document.querySelector('.guides-gallery')
+        if (galleryElement) {
+          const rect = galleryElement.getBoundingClientRect()
+          const isVisible = rect.top >= 0 && rect.top <= window.innerHeight
+
+          // Скроллим только если не видна
+          if (!isVisible) {
+            galleryElement.scrollIntoView({ behavior: 'smooth' })
+          }
+        }
+      }, 100)
+    }
+  }, [])
 
   const switchToMyPins = () => {
     setCurrentView('pins')
@@ -106,18 +141,27 @@ export function GalleryViewProvider({ children, defaultView = 'popular' }: Galle
     }, 100)
   }
 
-  const switchToSearch = (query: string, tags: string[] = []) => {
+  const switchToSearch = useCallback((query: string, tags: string[] = [], shouldScroll = false) => {
     setSearchQuery(query)
     setSearchTags(tags)
     setCurrentView('search')
-    // Скролл к галерее
-    setTimeout(() => {
-      const galleryElement = document.querySelector('.guides-gallery')
-      if (galleryElement) {
-        galleryElement.scrollIntoView({ behavior: 'smooth' })
-      }
-    }, 100)
-  }
+
+    // Скролл только если галерея не видна И пользователь явно запросил действие
+    if (shouldScroll) {
+      setTimeout(() => {
+        const galleryElement = document.querySelector('.guides-gallery')
+        if (galleryElement) {
+          const rect = galleryElement.getBoundingClientRect()
+          const isVisible = rect.top >= 0 && rect.top <= window.innerHeight
+
+          // Скроллим только если галерея не видна на экране
+          if (!isVisible) {
+            galleryElement.scrollIntoView({ behavior: 'smooth' })
+          }
+        }
+      }, 100)
+    }
+  }, [])
 
   return (
     <GalleryViewContext.Provider
