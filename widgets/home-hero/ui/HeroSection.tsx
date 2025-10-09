@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { SkillTreeMockup } from "./SkillTreeMockup";
 
-export default function HeroSection() {
+export function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-white via-blue-50/30 to-white pb-0">
       <div className="container mx-auto px-4 py-12 md:py-16">
