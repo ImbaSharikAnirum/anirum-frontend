@@ -195,26 +195,32 @@ export function FeaturesSection() {
                 </div>
               )}
 
-              <h3 className="text-xl font-bold text-slate-900 mb-6 h-14 flex items-start">
+              <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-6 h-14 flex items-start">
                 {feature.sectionTitle}
               </h3>
               <div className="flex items-start gap-6 flex-1">
-                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-semibold text-slate-900 text-center px-3 leading-tight">
                     {feature.price}
                   </span>
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <h3 className="text-lg font-semibold text-slate-900 leading-snug mb-3">
+                  <h3 className="text-base md:text-lg font-semibold text-slate-900 leading-snug mb-3">
                     {feature.title}
                   </h3>
                   {feature.options && (
-                    <div className="grid grid-cols-2 gap-y-1 gap-x-4 mt-auto">
+                    <div className={`grid gap-y-1 gap-x-4 mt-auto ${
+                      feature.options.length > 2
+                        ? "grid-cols-1 md:grid-cols-2"
+                        : "grid-cols-2"
+                    }`}>
                       {feature.options.map((option, idx) => (
                         <div
                           key={idx}
                           className={`text-sm text-slate-700 ${
-                            option.position === "left"
+                            feature.options.length > 2
+                              ? "text-left"
+                              : option.position === "left"
                               ? "text-left"
                               : "text-right"
                           }`}

@@ -21,3 +21,7 @@ export type { PeriodFilterValues } from './period-filter'
 
 // Image upload
 export { ImageUploadDialog } from './image-upload-dialog'
+
+// React Flow nodes
+export { SkillNode, GuideNode } from './react-flow-nodes'
+export type { SkillNodeData, GuideNodeData } from './react-flow-nodes'
