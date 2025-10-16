@@ -114,8 +114,39 @@ const CUSTOM_SKILL_EDGES_KEY_PREFIX = 'anirum_custom_skill_edges_';
 
 export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onPublish, onDelete }: SkillsTreeFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultInitialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges || defaultInitialEdges)
+  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges || defaultInitialEdges)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  // Кастомный обработчик изменения edges с сохранением стилей выделения
+  const onEdgesChange = useCallback((changes: any[]) => {
+    onEdgesChangeInternal(changes)
+
+    // После применения изменений обновляем стили с учетом selected
+    setEdges((eds) =>
+      eds.map((edge) => {
+        const sourceNode = nodes.find((n) => n.id === edge.source)
+        const targetNode = nodes.find((n) => n.id === edge.target)
+
+        const isSourceCompleted = sourceNode?.data?.completed === true
+        const isTargetCompleted = targetNode?.data?.completed === true
+        const bothCompleted = isSourceCompleted && isTargetCompleted
+
+        const baseStroke = bothCompleted ? '#f97316' : '#9ca3af'
+        const baseStrokeWidth = 2
+
+        return {
+          ...edge,
+          // Анимация: либо при selected, либо при bothCompleted
+          animated: edge.selected || bothCompleted,
+          style: {
+            stroke: edge.selected ? '#3b82f6' : baseStroke,
+            strokeDasharray: edge.selected ? '5,5' : (bothCompleted ? 'none' : '5,5'),
+            strokeWidth: edge.selected ? 3 : baseStrokeWidth,
+          },
+        }
+      })
+    )
+  }, [onEdgesChangeInternal, setEdges, nodes])
 
   // Обновляем mode во всех нодах при изменении режима
   useEffect(() => {
@@ -127,27 +158,29 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     )
   }, [mode, setNodes])
 
-  // Обновляем стили линий в зависимости от completed статуса узлов
+  // Обновляем стили линий только при изменении nodes (completed статус)
   useEffect(() => {
-    if (nodes.length === 0) return; // Ждем загрузки нод
+    if (nodes.length === 0) return;
 
     setEdges((eds) =>
       eds.map((edge) => {
         const sourceNode = nodes.find((n) => n.id === edge.source)
         const targetNode = nodes.find((n) => n.id === edge.target)
 
-        // Проверяем, оба ли навыка completed (все гайды пройдены)
         const isSourceCompleted = sourceNode?.data?.completed === true
         const isTargetCompleted = targetNode?.data?.completed === true
         const bothCompleted = isSourceCompleted && isTargetCompleted
 
+        const baseStroke = bothCompleted ? '#f97316' : '#9ca3af'
+
         return {
           ...edge,
-          animated: bothCompleted,
+          animated: edge.selected || bothCompleted,
           style: {
-            stroke: bothCompleted ? '#f97316' : '#9ca3af',
-            strokeDasharray: bothCompleted ? 'none' : '5,5',
-            strokeWidth: 2,
+            ...edge.style,
+            stroke: edge.selected ? '#3b82f6' : baseStroke,
+            strokeDasharray: edge.selected ? '5,5' : (bothCompleted ? 'none' : '5,5'),
+            strokeWidth: edge.selected ? 3 : 2,
           },
         }
       })

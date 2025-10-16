@@ -109,8 +109,38 @@ const treesData: Record<string, { title: string; thumbnail: string; skillCount: 
   },
 }
 
+// Моковые данные гайдов - должны совпадать с SkillGuidesFlow
+const skillGuidesCountMock: Record<string, number> = {
+  'skill-1': 4,  // 3D моделирование
+  'skill-2': 3,  // Текстурирование
+  'skill-3': 1,  // Анимация
+  'skill-4': 1,  // Рендеринг
+  'skill-5': 1,  // Композитинг
+};
+
+// Функция для подсчёта гайдов навыка из localStorage
+const countGuidesForSkill = (skillId: string, isCustomTree: boolean, treeId: string): number => {
+  if (typeof window === 'undefined') return 0;
+
+  // Для кастомных деревьев читаем из localStorage
+  if (isCustomTree) {
+    try {
+      const stored = localStorage.getItem(`anirum_custom_guides_${skillId}`);
+      if (!stored) return 0;
+      const guides = JSON.parse(stored);
+      return Object.keys(guides).length;
+    } catch (error) {
+      console.error('Ошибка подсчёта гайдов:', error);
+      return 0;
+    }
+  }
+
+  // Для встроенных деревьев используем моковые данные
+  return skillGuidesCountMock[skillId] || 0;
+};
+
 // Функция для генерации нод из данных навыков
-const generateNodesFromSkills = (skillsData: Record<string, any>, treeId: string) => {
+const generateNodesFromSkills = (skillsData: Record<string, any>, treeId: string, isCustomTree: boolean) => {
   const skills = Object.entries(skillsData)
   const cols = Math.ceil(Math.sqrt(skills.length))
 
@@ -121,7 +151,8 @@ const generateNodesFromSkills = (skillsData: Record<string, any>, treeId: string
       label: data.label,
       color: data.color,
       thumbnail: data.thumbnail,
-      guideCount: data.guideCount,
+      // Подсчитываем реальное количество гайдов
+      guideCount: countGuidesForSkill(id, isCustomTree, treeId),
       completed: data.completed || false,
     },
     position: {
@@ -246,11 +277,16 @@ export default function SkillsPage() {
 
   const currentTreeData = useMemo(() => {
     if (isCustomTree && customTree) {
+      // Подсчитываем реальное количество гайдов для всех навыков
+      const totalGuides = Object.keys(customSkills).reduce((sum: number, skillId: string) => {
+        return sum + countGuidesForSkill(skillId, isCustomTree, treeId);
+      }, 0);
+
       return {
         title: customTree.title,
         thumbnail: customTree.thumbnail || '',
         skillCount: Object.keys(customSkills).length,
-        guideCount: Object.values(customSkills).reduce((sum: number, skill: any) => sum + (skill.guideCount || 0), 0)
+        guideCount: totalGuides
       }
     }
     return treesData[treeId] || treesData['2d-drawing']
@@ -265,8 +301,8 @@ export default function SkillsPage() {
   // Генерируем ноды и связи для текущего дерева (мемоизируем для производительности)
   const treeNodes = useMemo(() => {
     if (Object.keys(currentSkillsData).length === 0) return [];
-    return generateNodesFromSkills(currentSkillsData, treeId);
-  }, [treeId, currentSkillsData]);
+    return generateNodesFromSkills(currentSkillsData, treeId, isCustomTree);
+  }, [treeId, currentSkillsData, isCustomTree]);
 
   const treeEdges = useMemo(() => {
     if (Object.keys(currentSkillsData).length === 0) return [];
@@ -327,7 +363,10 @@ export default function SkillsPage() {
             title: customTree.title,
             thumbnail: customTree.thumbnail || '',
             skillCount: Object.keys(customSkills).length,
-            guideCount: Object.values(customSkills).reduce((sum: number, skill: any) => sum + (skill.guideCount || 0), 0)
+            // Подсчитываем реальное количество гайдов для всех навыков
+            guideCount: Object.keys(customSkills).reduce((sum: number, skillId: string) => {
+              return sum + countGuidesForSkill(skillId, isCustomTree, treeId);
+            }, 0)
           }
         : (treesData[treeId] || treesData['2d-drawing']);
 
@@ -363,14 +402,16 @@ export default function SkillsPage() {
         skillColor: skillData.color,
       })
       // Показываем информацию о навыке при открытии
+      // Подсчитываем реальное количество гайдов
+      const actualGuideCount = countGuidesForSkill(skillId, isCustomTree, treeId);
       setSelectedItem({
         type: 'skill',
         title: skillData.label,
         thumbnail: skillData.thumbnail,
-        guideCount: skillData.guideCount,
+        guideCount: actualGuideCount,
       })
     }
-  }, [currentSkillsData])
+  }, [currentSkillsData, isCustomTree, treeId])
 
   const handleBackToTree = useCallback(() => {
     setView({ type: 'tree' })
