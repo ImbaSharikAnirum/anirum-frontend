@@ -14,9 +14,6 @@ export default async function GuidesPage() {
   const user = await getServerUser();
   const initialPinterestStatus = user ? await getServerPinterestStatus() : null;
 
-  const isAuthenticated = !!user;
-  const isPinterestConnected = initialPinterestStatus?.isConnected;
-
   return (
     <GalleryViewProvider defaultView="popular">
       <div className="mx-auto px-4 sm:px-6 md:px-8 py-8">
@@ -26,12 +23,10 @@ export default async function GuidesPage() {
             <GuidesSearchBar user={user} pinterestStatus={initialPinterestStatus} />
           </div>
 
-          {/* Галерея гайдов и пинов */}
-          {isAuthenticated && (
-            <div className="guides-gallery">
-              <GuidesGallery user={user} pinterestStatus={initialPinterestStatus} />
-            </div>
-          )}
+          {/* Галерея гайдов и пинов - доступна всем, но с ограниченным функционалом для неавторизованных */}
+          <div className="guides-gallery">
+            <GuidesGallery user={user} pinterestStatus={initialPinterestStatus} />
+          </div>
         </div>
       </div>
     </GalleryViewProvider>

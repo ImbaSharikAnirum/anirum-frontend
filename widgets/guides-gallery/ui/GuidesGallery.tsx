@@ -38,7 +38,7 @@ interface PinterestStatus {
 type GalleryView = 'popular' | 'guides' | 'pins' | 'saved' | 'search'
 
 interface GuidesGalleryProps {
-  user: User
+  user: User | null
   pinterestStatus: PinterestStatus | null
 }
 
@@ -54,10 +54,14 @@ export function GuidesGallery({ user, pinterestStatus }: GuidesGalleryProps) {
       {currentView === 'saved' && <SavedContent user={user} />}
       {currentView === 'search' && <SearchContent user={user} />}
       {currentView === 'pins' && (
-        isPinterestConnected ? (
-          <PinterestGallery user={user} />
+        user ? (
+          isPinterestConnected ? (
+            <PinterestGallery user={user} />
+          ) : (
+            <PinterestNotConnected />
+          )
         ) : (
-          <PinterestNotConnected />
+          <AuthRequired />
         )
       )}
     </div>
@@ -65,9 +69,9 @@ export function GuidesGallery({ user, pinterestStatus }: GuidesGalleryProps) {
 }
 
 /**
- * Популярные гайды (всегда свежие данные без кеша)
+ * Популярные гайды (доступны всем, но сохранение только для авторизованных)
  */
-function PopularContent({ user }: { user: User }) {
+function PopularContent({ user }: { user: User | null }) {
   const router = useRouter()
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'popular'
@@ -84,8 +88,9 @@ function PopularContent({ user }: { user: User }) {
   }
 
   const handleSaveGuide = async (guide: any) => {
-    if (!user.documentId) {
-      console.error('User documentId not found')
+    // Если пользователь не авторизован - ничего не делаем
+    if (!user?.documentId) {
+      console.warn('Сохранение доступно только авторизованным пользователям')
       return
     }
     try {
@@ -103,7 +108,7 @@ function PopularContent({ user }: { user: User }) {
       hasMore={hasMore}
       onLoadMore={loadMore}
       onItemClick={handleGuideClick}
-      onSaveItem={handleSaveGuide}
+      onSaveItem={user ? handleSaveGuide : undefined} // Кнопка сохранения только для авторизованных
       savingItems={savingGuides}
       type="guides"
       emptyTitle="Популярные гайды"
@@ -116,18 +121,18 @@ function PopularContent({ user }: { user: User }) {
 /**
  * Мои гайды
  */
-function GuidesContent({ user }: { user: User }) {
+function GuidesContent({ user }: { user: User | null }) {
   const router = useRouter()
-  const shouldFetch = Boolean(user.documentId && user.documentId !== '')
+  const shouldFetch = Boolean(user?.documentId && user.documentId !== '')
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'user',
-    userId: user.documentId || ''
+    userId: user?.documentId || ''
   })
   const { savingGuides, toggleSave } = useGuideSave()
 
   const handleGuideClick = (guide: Guide) => {
     // Сохраняем позицию скролла перед переходом
-    saveScrollPosition(`guides-cache-user-${user.documentId || ''}--`)
+    saveScrollPosition(`guides-cache-user-${user?.documentId || ''}--`)
 
     // Сохраняем данные гайда в history state для мгновенного рендера
     window.history.pushState({ guideData: guide }, '', `/guides/${guide.documentId}`)
@@ -135,7 +140,7 @@ function GuidesContent({ user }: { user: User }) {
   }
 
   const handleSaveGuide = async (guide: any) => {
-    if (!user.documentId) {
+    if (!user?.documentId) {
       console.error('User documentId not found')
       return
     }
@@ -146,17 +151,17 @@ function GuidesContent({ user }: { user: User }) {
     }
   }
 
-  if (!shouldFetch) {
+  if (!user) {
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto space-y-4">
           <FileText className="h-12 w-12 mx-auto text-gray-400" />
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Ошибка загрузки
+              Требуется авторизация
             </h3>
             <p className="text-gray-600 mb-4">
-              Не удалось определить пользователя
+              Войдите в систему, чтобы увидеть ваши гайды
             </p>
           </div>
         </div>
@@ -185,18 +190,18 @@ function GuidesContent({ user }: { user: User }) {
 /**
  * Сохраненные гайды
  */
-function SavedContent({ user }: { user: User }) {
+function SavedContent({ user }: { user: User | null }) {
   const router = useRouter()
-  const shouldFetch = Boolean(user.documentId && user.documentId !== '')
+  const shouldFetch = Boolean(user?.documentId && user.documentId !== '')
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'saved',
-    userId: user.documentId || ''
+    userId: user?.documentId || ''
   })
   const { savingGuides, toggleSave } = useGuideSave()
 
   const handleGuideClick = (guide: Guide) => {
     // Сохраняем позицию скролла перед переходом
-    saveScrollPosition(`guides-cache-saved-${user.documentId || ''}--`)
+    saveScrollPosition(`guides-cache-saved-${user?.documentId || ''}--`)
 
     // Сохраняем данные гайда в history state для мгновенного рендера
     window.history.pushState({ guideData: guide }, '', `/guides/${guide.documentId}`)
@@ -204,7 +209,7 @@ function SavedContent({ user }: { user: User }) {
   }
 
   const handleSaveGuide = async (guide: any) => {
-    if (!user.documentId) {
+    if (!user?.documentId) {
       console.error('User documentId not found')
       return
     }
@@ -215,17 +220,17 @@ function SavedContent({ user }: { user: User }) {
     }
   }
 
-  if (!shouldFetch) {
+  if (!user) {
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto space-y-4">
           <Bookmark className="h-12 w-12 mx-auto text-gray-400" />
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Ошибка загрузки
+              Требуется авторизация
             </h3>
             <p className="text-gray-600 mb-4">
-              Не удалось определить пользователя
+              Войдите в систему, чтобы увидеть сохраненные гайды
             </p>
           </div>
         </div>
@@ -252,16 +257,16 @@ function SavedContent({ user }: { user: User }) {
 }
 
 /**
- * Результаты поиска
+ * Результаты поиска (доступны всем, но сохранение только для авторизованных)
  */
-function SearchContent({ user }: { user: User }) {
+function SearchContent({ user }: { user: User | null }) {
   const router = useRouter()
   const { searchQuery, searchTags } = useGalleryView()
   const { guides, loading, loadingMore, hasMore, loadMore } = useGuides({
     type: 'search',
     query: searchQuery,
     tags: searchTags,
-    userId: user.documentId // 🔧 Передаем userId для специальных запросов
+    userId: user?.documentId // 🔧 Передаем userId для специальных запросов (если авторизован)
   })
   const { savingGuides, toggleSave } = useGuideSave()
 
@@ -275,8 +280,8 @@ function SearchContent({ user }: { user: User }) {
   }
 
   const handleSaveGuide = async (guide: any) => {
-    if (!user.documentId) {
-      console.error('User documentId not found')
+    if (!user?.documentId) {
+      console.warn('Сохранение доступно только авторизованным пользователям')
       return
     }
     try {
@@ -305,7 +310,7 @@ function SearchContent({ user }: { user: User }) {
       hasMore={hasMore}
       onLoadMore={loadMore}
       onItemClick={handleGuideClick}
-      onSaveItem={handleSaveGuide}
+      onSaveItem={user ? handleSaveGuide : undefined} // Кнопка сохранения только для авторизованных
       savingItems={savingGuides}
       type="guides"
       emptyTitle="Результаты поиска"
@@ -329,6 +334,27 @@ function PinterestNotConnected() {
           </h3>
           <p className="text-gray-600 mb-4">
             Подключите Pinterest через поиск, чтобы импортировать ваши пины
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Требуется авторизация
+ */
+function AuthRequired() {
+  return (
+    <div className="text-center py-12">
+      <div className="max-w-md mx-auto space-y-4">
+        <PlusCircle className="h-12 w-12 mx-auto text-gray-400" />
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Требуется авторизация
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Войдите в систему, чтобы получить доступ к этому разделу
           </p>
         </div>
       </div>

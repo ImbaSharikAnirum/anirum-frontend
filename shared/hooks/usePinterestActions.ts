@@ -66,12 +66,20 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
 
   // Переход к пинам пользователя
   const goToMyPins = () => {
+    if (!user) {
+      toast.error('Войдите в систему, чтобы увидеть ваши пины')
+      return
+    }
     switchToMyPins()
     toast.success('Переключено на ваши пины')
   }
 
   // Переход к гайдам пользователя
   const goToMyGuides = () => {
+    if (!user) {
+      toast.error('Войдите в систему, чтобы увидеть ваши гайды')
+      return
+    }
     switchToMyGuides()
     toast.success('Переключено на ваши гайды')
   }
@@ -84,12 +92,20 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
 
   // Переход к сохраненным гайдам
   const goToSaved = () => {
+    if (!user) {
+      toast.error('Войдите в систему, чтобы увидеть сохраненные гайды')
+      return
+    }
     switchToSaved()
     toast.success('Показаны сохраненные гайды')
   }
 
   // Переход к созданию гайда
   const goToCreateGuide = () => {
+    if (!user) {
+      toast.error('Войдите в систему, чтобы создать гайд')
+      return
+    }
     router.push('/guides/create')
   }
 
@@ -192,14 +208,20 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
       label: string;
       action: string;
       isHeader?: boolean;
-    }> = [
-      { icon: 'TrendingUp', label: "Популярные", action: "popular" },
+    }> = []
+
+    // Популярные гайды доступны всем
+    actions.push({ icon: 'TrendingUp', label: "Популярные", action: "popular" })
+
+    // Показываем все опции для всех пользователей (toast при клике для неавторизованных)
+    actions.push(
       { icon: 'Bookmark', label: "Сохраненные", action: "saved" },
       { icon: 'FileText', label: "Мои гайды", action: "my-guides" },
       { icon: 'PlusCircle', label: "Создать гайд", action: "create-guide" }
-    ]
+    )
 
-    if (pinterestStatus?.isConnected) {
+    // Pinterest секция - показываем всегда
+    if (pinterestStatus?.isConnected && user) {
       // Добавляем заголовок Pinterest
       actions.push({
         icon: '',
@@ -224,8 +246,8 @@ export function usePinterestActions({ user, initialPinterestStatus }: UsePintere
           action: "save-all-pins"
         })
       }
-    } else {
-      // Pinterest не подключен - показываем "Подключить Pinterest"
+    } else if (user) {
+      // Pinterest не подключен, но пользователь авторизован - показываем "Подключить Pinterest"
       actions.push({
         icon: 'Link2',
         label: "Подключить Pinterest",
