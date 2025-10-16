@@ -8,11 +8,16 @@ import { AuthButtons } from "./AuthButtons"
 import { UserMenu } from "./UserMenu"
 import Link from "next/link"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
 
 export function Header() {
   const { user, clearAuth } = useUser()
   const { isStaff, role, roleName, isAuthenticated } = useRole()
-  
+  const pathname = usePathname()
+
+  // Проверяем, находимся ли мы на странице skills
+  const isSkillsPage = pathname?.startsWith("/skills")
+
   // Безопасно получаем sidebar состояние только если есть провайдер
   let open = false
   try {
@@ -30,11 +35,19 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
-        {/* SidebarTrigger показываем только для авторизованных пользователей:
-            - Staff: всегда
-            - Остальные: только когда сайдбар может быть виден (когда навигация в header скрыта) */}
-        {isAuthenticated && (
-          <div className={`mr-4 ${isStaff ? 'flex' : `hidden ${open ? 'md:flex lg:hidden' : 'sm:flex md:hidden'}`}`}>
+        {/* SidebarTrigger показываем:
+            - На странице /skills: всем пользователям (авторизованным и неавторизованным)
+            - На остальных страницах: только авторизованным
+              • Staff: всегда
+              • Остальные: только когда сайдбар может быть виден (когда навигация в header скрыта) */}
+        {(isSkillsPage || isAuthenticated) && (
+          <div className={`mr-4 ${
+            isSkillsPage
+              ? 'flex'  // На /skills - всегда показываем для всех
+              : isStaff
+                ? 'flex'  // Staff - всегда
+                : `hidden ${open ? 'md:flex lg:hidden' : 'sm:flex md:hidden'}`  // Остальные - адаптивно
+          }`}>
             <SidebarTrigger />
           </div>
         )}

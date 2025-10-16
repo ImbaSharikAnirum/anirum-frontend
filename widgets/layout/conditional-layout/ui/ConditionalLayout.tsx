@@ -12,6 +12,7 @@ import { AppSidebar } from "@/widgets/layout/sidebar"
 import { Footer } from "@/widgets/layout/footer"
 import { MobileNav } from "@/widgets/layout/mobile-nav"
 import { useRole } from "@/shared/hooks"
+import { usePathname } from "next/navigation"
 
 interface ConditionalLayoutProps {
   children: ReactNode
@@ -20,9 +21,33 @@ interface ConditionalLayoutProps {
 
 export function ConditionalLayout({ children, defaultOpen = true }: ConditionalLayoutProps) {
   const { isStaff, isAuthenticated } = useRole()
+  const pathname = usePathname()
 
-  // Для неавторизованных пользователей используем простой layout без сайдбара
+  // Проверяем, находимся ли мы на странице skills
+  const isSkillsPage = pathname?.startsWith("/skills")
+
+  // Для неавторизованных пользователей:
+  // - На странице /skills используем layout с сайдбаром
+  // - На остальных страницах используем простой layout без сайдбара
   if (!isAuthenticated) {
+    if (isSkillsPage) {
+      return (
+        <SidebarProvider defaultOpen={defaultOpen}>
+          <AppSidebar />
+
+          <SidebarInset>
+            <Header />
+            <main className="flex-1 pb-16 md:pb-0">
+              {children}
+            </main>
+            <Footer />
+          </SidebarInset>
+
+          <MobileNav />
+        </SidebarProvider>
+      )
+    }
+
     return (
       <div className="min-h-screen flex flex-col">
         <Header />

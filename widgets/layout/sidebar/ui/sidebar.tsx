@@ -64,7 +64,16 @@ const teacherItems = [
 ];
 
 export function AppSidebar() {
-  const { open } = useSidebar();
+  // Безопасно получаем sidebar состояние только если есть провайдер
+  let open = false;
+  try {
+    const sidebar = useSidebar();
+    open = sidebar.open;
+  } catch (error) {
+    // Если нет SidebarProvider, используем значение по умолчанию
+    open = false;
+  }
+
   const { isManager, isTeacher, isStaff, isAuthenticated } = useRole();
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
@@ -79,13 +88,18 @@ export function AppSidebar() {
   return (
     <Sidebar
       className={`${
-        !isStaff ? (open ? "md:flex lg:hidden" : "sm:flex md:hidden") : ""
+        // На странице /skills показываем всегда, на остальных - адаптивно в зависимости от роли
+        isSkillsPage
+          ? ""  // На /skills - всегда показываем (без дополнительных классов)
+          : !isStaff
+            ? (open ? "md:flex lg:hidden" : "sm:flex md:hidden")  // Не staff - адаптивно
+            : ""  // Staff - всегда показываем
       }`}
     >
       <SidebarContent>
         {/* Основная навигация - всем */}
         {isSkillsPage ? (
-          <SidebarGroup className={`hidden mt-4 ${open ? "md:block lg:hidden" : "sm:block md:hidden"}`}>
+          <SidebarGroup className="mt-4">
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
