@@ -26,8 +26,8 @@ import Image from "next/image";
 import { CreateBranchDialog } from "@/features/branch-create";
 import { skillTreeAPI, SkillTree as APISkillTree } from "@/entities/skill-tree";
 
-// Расширяем интерфейс для UI
-interface SkillTree extends Partial<APISkillTree> {
+// Расширяем интерфейс для UI (исключаем id из API типа чтобы избежать конфликта)
+interface SkillTree extends Omit<Partial<APISkillTree>, 'id'> {
   id: string;
   documentId: string;
   title: string;
