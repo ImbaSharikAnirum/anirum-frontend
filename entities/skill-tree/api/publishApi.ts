@@ -72,12 +72,17 @@ export async function publishSkillTree(
     const skills: SkillPublishData[] = skillNodes.map(node => {
       const existingSkill = apiTree.skills?.find(s => s.documentId === node.id);
 
+      // Передаём изображение только если это base64 (новое или изменённое изображение)
+      // Если это URL (http/https), значит изображение не менялось - не передаём его
+      const thumbnail = node.data.thumbnail as string | undefined;
+      const isBase64 = thumbnail && thumbnail.startsWith('data:image');
+
       const skillData: SkillPublishData = {
         documentId: existingSkill ? node.id : undefined,
         tempId: existingSkill ? undefined : node.id,
         title: node.data.label as string,
         position: node.position,
-        image: node.data.thumbnail as string | undefined, // base64 или URL
+        image: isBase64 ? thumbnail : undefined, // Передаём только base64
       };
 
       return skillData;
@@ -106,13 +111,17 @@ export async function publishSkillTree(
       guides = guideNodes.map(node => {
         const existingGuide = existingSkill?.guides?.find(g => g.documentId === node.id);
 
+        // Передаём изображение только если это base64
+        const thumbnail = node.data.thumbnail as string | undefined;
+        const isBase64 = thumbnail && thumbnail.startsWith('data:image');
+
         return {
           documentId: existingGuide ? node.id : undefined,
           tempId: existingGuide ? undefined : node.id,
           title: node.data.title as string,
           text: node.data.text as string | undefined,
           link: node.data.link as string | undefined,
-          image: node.data.thumbnail as string | undefined,
+          image: isBase64 ? thumbnail : undefined,
           skillId: skillId,
         };
       });
@@ -137,7 +146,10 @@ export async function publishSkillTree(
       status: 'Сохранение изменений на сервер...',
     });
 
-    const response = await fetch(`/api/skill-trees/${treeId}/publish`, {
+    // Используем числовой id для Strapi endpoint
+    const numericId = apiTree.id;
+
+    const response = await fetch(`/api/skill-trees/${numericId}/publish`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

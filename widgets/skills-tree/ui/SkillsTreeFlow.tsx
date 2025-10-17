@@ -361,7 +361,7 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         }}
         connectionMode={ConnectionMode.Loose}
         elevateEdgesOnSelect
-        nodesDraggable={mode === 'edit'}
+        nodesDraggable={true}
         nodesConnectable={mode === 'edit'}
         elementsSelectable={true}
         edgesReconnectable={mode === 'edit'}
