@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { SkillTree } from '../model/types';
+import { skillTreeAPI } from './skillTreeApi';
 
 export interface PublishProgress {
   phase: 'preparing' | 'uploading' | 'complete';
