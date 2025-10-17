@@ -22,6 +22,7 @@ export interface PublishResult {
  */
 interface GuidePublishData {
   id?: number; // Numeric ID для существующих гайдов
+  documentId?: string; // Document ID для существующих гайдов из Strapi
   tempId?: string; // Временный ID для новых гайдов
   title: string;
   text?: string;
@@ -172,6 +173,7 @@ export async function publishSkillTree(
 
         const guideData = {
           id: !isNewGuide && typeof guideDocId === 'number' ? guideDocId : undefined, // Numeric ID для существующих
+          documentId: existingGuide ? existingGuide.documentId : undefined, // Document ID для существующих гайдов
           tempId: isNewGuide ? node.id : undefined, // Временный ID для новых гайдов
           title: node.data.title as string,
           text: node.data.text as string | undefined,
