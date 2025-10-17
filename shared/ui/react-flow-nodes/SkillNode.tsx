@@ -32,7 +32,7 @@ export const SkillNode = memo(({ data, selected }: NodeProps) => {
   }, [label])
 
   // Динамическая высота контейнера (базовая + дополнительно для счётчика гайдов)
-  const containerHeight = 195 + 16 // +16px для строки с количеством гайдов
+  const containerHeight = 125 + 16 // +16px для строки с количеством гайдов
 
   return (
     <div
@@ -41,17 +41,17 @@ export const SkillNode = memo(({ data, selected }: NodeProps) => {
         'hover:scale-105',
         selected && 'scale-110'
       )}
-      style={{ width: '160px', height: `${containerHeight}px` }}
+      style={{ width: '100px', height: `${containerHeight}px` }}
     >
       <div
         className={cn(
-          'rounded-full border-4 transition-all duration-300 overflow-hidden relative',
-          selected ? 'ring-4 ring-offset-4 shadow-2xl' : 'shadow-lg',
+          'rounded-full border-3 transition-all duration-300 overflow-hidden relative',
+          selected ? 'ring-3 ring-offset-2 shadow-xl' : 'shadow-md',
           completed ? 'border-orange-500' : 'border-gray-400'
         )}
         style={{
-          width: '160px',
-          height: '160px',
+          width: '100px',
+          height: '100px',
           flexShrink: 0,
           ...(selected ? { '--tw-ring-color': completed ? '#f97316' : '#9ca3af' } as any : {}),
         }}
@@ -84,12 +84,12 @@ export const SkillNode = memo(({ data, selected }: NodeProps) => {
       </div>
 
       {/* Текст под кругом */}
-      <div className="w-full mt-2 px-1">
-        <p ref={labelRef} className="text-sm font-semibold text-center leading-tight line-clamp-2">
+      <div className="w-full mt-1.5 px-1">
+        <p ref={labelRef} className="text-xs font-semibold text-center leading-tight line-clamp-2">
           {label}
         </p>
         {/* Количество гайдов */}
-        <p className="text-xs text-muted-foreground text-center mt-1">
+        <p className="text-[10px] text-muted-foreground text-center mt-0.5">
           {guideCount} {guideCount === 1 ? 'гайд' : guideCount >= 2 && guideCount <= 4 ? 'гайда' : 'гайдов'}
         </p>
       </div>
@@ -98,16 +98,16 @@ export const SkillNode = memo(({ data, selected }: NodeProps) => {
       <Handle
         type="target"
         position={Position.Top}
-        className={cn("z-50", mode === 'edit' ? 'w-4 h-4' : 'w-1 h-1 opacity-0')}
-        style={{ top: mode === 'edit' ? -6 : 0, backgroundColor: completed ? '#f97316' : '#9ca3af' }}
+        className={cn("z-50", mode === 'edit' ? 'w-3 h-3' : 'w-1 h-1 opacity-0')}
+        style={{ top: mode === 'edit' ? -4 : 0, backgroundColor: completed ? '#f97316' : '#9ca3af' }}
         isConnectable={mode === 'edit'}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className={cn("z-50", mode === 'edit' ? 'w-4 h-4' : 'w-1 h-1 opacity-0')}
+        className={cn("z-50", mode === 'edit' ? 'w-3 h-3' : 'w-1 h-1 opacity-0')}
         style={{
-          bottom: labelLines === 2 ? (mode === 'edit' ? -12 : -8) : (mode === 'edit' ? -6 : 0),
+          bottom: labelLines === 2 ? (mode === 'edit' ? -18 : -14) : (mode === 'edit' ? -4 : 0),
           backgroundColor: completed ? '#f97316' : '#9ca3af'
         }}
         isConnectable={mode === 'edit'}
@@ -115,15 +115,15 @@ export const SkillNode = memo(({ data, selected }: NodeProps) => {
       <Handle
         type="source"
         position={Position.Left}
-        className={cn("z-50", mode === 'edit' ? 'w-4 h-4' : 'w-1 h-1 opacity-0')}
-        style={{ left: mode === 'edit' ? -6 : 0, top: '80px', backgroundColor: completed ? '#f97316' : '#9ca3af' }}
+        className={cn("z-50", mode === 'edit' ? 'w-3 h-3' : 'w-1 h-1 opacity-0')}
+        style={{ left: mode === 'edit' ? -4 : 0, top: '50px', backgroundColor: completed ? '#f97316' : '#9ca3af' }}
         isConnectable={mode === 'edit'}
       />
       <Handle
         type="source"
         position={Position.Right}
-        className={cn("z-50", mode === 'edit' ? 'w-4 h-4' : 'w-1 h-1 opacity-0')}
-        style={{ right: mode === 'edit' ? -6 : 0, top: '80px', backgroundColor: completed ? '#f97316' : '#9ca3af' }}
+        className={cn("z-50", mode === 'edit' ? 'w-3 h-3' : 'w-1 h-1 opacity-0')}
+        style={{ right: mode === 'edit' ? -4 : 0, top: '50px', backgroundColor: completed ? '#f97316' : '#9ca3af' }}
         isConnectable={mode === 'edit'}
       />
     </div>
