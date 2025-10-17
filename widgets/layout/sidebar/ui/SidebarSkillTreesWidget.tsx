@@ -24,9 +24,10 @@ import {
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import { CreateBranchDialog } from "@/features/branch-create";
+import { skillTreeAPI, SkillTree as APISkillTree } from "@/entities/skill-tree";
 
-// TODO: Создать entities/skill-tree когда будет готов бэкенд
-interface SkillTree {
+// Расширяем интерфейс для UI
+interface SkillTree extends Partial<APISkillTree> {
   id: string;
   documentId: string;
   title: string;
@@ -39,42 +40,6 @@ interface SkillTree {
 }
 
 type TreeCategory = 'all' | 'my' | 'bookmarked' | 'popular';
-
-// Моковые данные деревьев навыков
-const mockSkillTrees: SkillTree[] = [
-  {
-    id: "1",
-    documentId: "2d-drawing",
-    title: "2D рисование",
-    thumbnail: "/home/features_guide1.jpeg",
-  },
-  {
-    id: "2",
-    documentId: "3d-modeling",
-    title: "3D моделирование",
-    thumbnail: "/home/features_guide2.jpeg",
-  },
-  {
-    id: "3",
-    documentId: "animation",
-    title: "Анимация",
-    thumbnail: "/home/features_guide3.jpeg",
-  },
-  {
-    id: "4",
-    documentId: "game-design",
-    title: "Геймдизайн",
-    thumbnail: "/home/features_guide4.jpeg",
-  },
-  {
-    id: "5",
-    documentId: "programming",
-    title: "Программирование",
-    thumbnail: "/home/features_guide5.jpeg",
-  },
-];
-
-const CUSTOM_TREES_KEY = 'anirum_custom_skill_trees';
 
 export function SidebarSkillTreesWidget() {
   const router = useRouter();
@@ -94,27 +59,6 @@ export function SidebarSkillTreesWidget() {
     setMounted(true);
   }, []);
 
-  // Загрузка кастомных деревьев из localStorage
-  const loadCustomTrees = (): SkillTree[] => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const stored = localStorage.getItem(CUSTOM_TREES_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Ошибка загрузки кастомных деревьев:', error);
-      return [];
-    }
-  };
-
-  // Сохранение кастомных деревьев в localStorage
-  const saveCustomTrees = (trees: SkillTree[]) => {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(CUSTOM_TREES_KEY, JSON.stringify(trees));
-    } catch (error) {
-      console.error('Ошибка сохранения кастомных деревьев:', error);
-    }
-  };
 
   // Загрузка при монтировании
   useEffect(() => {
@@ -137,31 +81,46 @@ export function SidebarSkillTreesWidget() {
     };
   }, []);
 
-  const loadSkillTrees = (query: string, category: TreeCategory = activeCategory) => {
+  const loadSkillTrees = async (query: string, category: TreeCategory = activeCategory) => {
     setLoading(true);
     try {
-      // Объединяем моковые и кастомные деревья
-      const customTrees = loadCustomTrees();
-      const allTrees = [...mockSkillTrees, ...customTrees];
+      // Загружаем деревья из API
+      const { skillTrees: apiTrees } = await skillTreeAPI.getSkillTrees({
+        pageSize: 100, // Загружаем все деревья
+      });
+
+      // Преобразуем API деревья в UI формат
+      const treesFromAPI: SkillTree[] = apiTrees.map(tree => ({
+        id: tree.id.toString(),
+        documentId: tree.documentId,
+        title: tree.title,
+        thumbnail: tree.image && typeof tree.image === 'object' ? tree.image.url : undefined,
+        bookmarked: false, // TODO: добавить в схему Strapi
+        createdAt: tree.createdAt,
+        ownerId: tree.owner?.documentId,
+        createdBy: tree.owner?.username,
+        isPublic: !!tree.publishedAt, // Опубликованные деревья считаем публичными
+      }));
 
       // Фильтрация по категории
       let filteredByCategory: SkillTree[] = [];
       switch (category) {
         case 'all':
-          filteredByCategory = allTrees;
+          filteredByCategory = treesFromAPI;
           break;
         case 'my':
           // Показываем только деревья текущего пользователя
-          filteredByCategory = customTrees.filter(tree => tree.ownerId === user?.documentId);
+          filteredByCategory = treesFromAPI.filter(tree => tree.ownerId === user?.documentId);
           break;
         case 'bookmarked':
-          filteredByCategory = allTrees.filter(tree => tree.bookmarked);
+          filteredByCategory = treesFromAPI.filter(tree => tree.bookmarked);
           break;
         case 'popular':
-          filteredByCategory = mockSkillTrees;
+          // Популярные = опубликованные деревья из API
+          filteredByCategory = treesFromAPI.filter(tree => tree.isPublic);
           break;
         default:
-          filteredByCategory = allTrees;
+          filteredByCategory = treesFromAPI;
       }
 
       // Фильтрация по поисковому запросу
@@ -171,6 +130,7 @@ export function SidebarSkillTreesWidget() {
       setSkillTrees(filtered);
     } catch (error) {
       console.error("Ошибка загрузки деревьев навыков:", error);
+      setSkillTrees([]);
     } finally {
       setLoading(false);
     }
@@ -209,63 +169,32 @@ export function SidebarSkillTreesWidget() {
     router.push(`/skills?tree=${tree.documentId}`, { scroll: false });
   };
 
-  // Подсчет количества деревьев в категориях
-  const getCategoryCounts = () => {
-    const customTrees = loadCustomTrees();
-    const allTrees = [...mockSkillTrees, ...customTrees];
-
-    return {
-      all: allTrees.length,
-      my: customTrees.filter(tree => tree.ownerId === user?.documentId).length,
-      bookmarked: allTrees.filter(tree => tree.bookmarked).length,
-      popular: mockSkillTrees.length,
-    };
+  // Подсчет количества деревьев в категориях из текущего состояния
+  const counts = {
+    all: skillTrees.length,
+    my: skillTrees.filter(tree => tree.ownerId === user?.documentId).length,
+    bookmarked: skillTrees.filter(tree => tree.bookmarked).length,
+    popular: skillTrees.filter(tree => tree.isPublic).length,
   };
 
-  const counts = getCategoryCounts();
-
-  // Конвертация File в base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Создание нового дерева навыков
+  // Создание нового дерева навыков через API
   const handleCreateTree = async (data: { label: string; thumbnail?: File }) => {
-    const newTreeId = `custom-tree-${Date.now()}`;
+    try {
+      const newTree = await skillTreeAPI.createSkillTree({
+        title: data.label,
+        description: '',
+        image: data.thumbnail,
+      });
 
-    // Конвертируем изображение в base64 если есть
-    let thumbnailBase64: string | undefined;
-    if (data.thumbnail) {
-      thumbnailBase64 = await fileToBase64(data.thumbnail);
+      // Обновляем список
+      await loadSkillTrees(activeQuery, activeCategory);
+
+      // Переходим на новое дерево
+      router.push(`/skills?tree=${newTree.documentId}`, { scroll: false });
+    } catch (error) {
+      console.error('Ошибка создания дерева:', error);
+      alert('Произошла ошибка при создании дерева навыков');
     }
-
-    const newTree: SkillTree = {
-      id: newTreeId,
-      documentId: newTreeId,
-      title: data.label,
-      thumbnail: thumbnailBase64,
-      bookmarked: false,
-      createdAt: new Date().toISOString(),
-      ownerId: user?.documentId || 'guest',  // ID текущего пользователя
-      createdBy: user?.username || 'Гость',   // Имя пользователя
-      isPublic: true,  // По умолчанию публичное
-    };
-
-    // Сохраняем в localStorage
-    const customTrees = loadCustomTrees();
-    const updatedTrees = [...customTrees, newTree];
-    saveCustomTrees(updatedTrees);
-
-    // Обновляем список
-    loadSkillTrees(activeQuery, activeCategory);
-
-    // Переходим на новое дерево
-    router.push(`/skills?tree=${newTreeId}`, { scroll: false });
   };
 
   // Открыть диалог удаления
@@ -276,33 +205,16 @@ export function SidebarSkillTreesWidget() {
     setIsDeleteDialogOpen(true);
   };
 
-  // Подтвердить удаление дерева
-  const handleDeleteConfirm = () => {
+  // Подтвердить удаление дерева через API
+  const handleDeleteConfirm = async () => {
     if (!treeToDelete) return;
 
     try {
-      // Удаляем все навыки дерева
-      const CUSTOM_SKILLS_KEY_PREFIX = 'anirum_custom_skills_';
-      const skillsData = localStorage.getItem(`${CUSTOM_SKILLS_KEY_PREFIX}${treeToDelete.documentId}`);
-      if (skillsData) {
-        const skills = JSON.parse(skillsData);
-        const skillIds = Object.keys(skills);
-        skillIds.forEach(skillId => {
-          localStorage.removeItem(`anirum_custom_guides_${skillId}`);
-          localStorage.removeItem(`anirum_custom_guide_edges_${skillId}`);
-        });
-      }
-
-      // Удаляем навыки дерева
-      localStorage.removeItem(`${CUSTOM_SKILLS_KEY_PREFIX}${treeToDelete.documentId}`);
-
-      // Удаляем дерево из списка
-      const customTrees = loadCustomTrees();
-      const updated = customTrees.filter((t) => t.documentId !== treeToDelete.documentId);
-      saveCustomTrees(updated);
+      // Удаляем дерево через API
+      await skillTreeAPI.deleteSkillTree(treeToDelete.documentId);
 
       // Обновляем список
-      loadSkillTrees(activeQuery, activeCategory);
+      await loadSkillTrees(activeQuery, activeCategory);
 
       // Закрываем диалог
       setIsDeleteDialogOpen(false);

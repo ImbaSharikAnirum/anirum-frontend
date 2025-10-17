@@ -221,6 +221,52 @@ const skillEdgesData: Record<string, Edge[]> = {
 const CUSTOM_GUIDES_KEY_PREFIX = 'anirum_custom_guides_';
 const CUSTOM_GUIDE_EDGES_KEY_PREFIX = 'anirum_custom_guide_edges_';
 
+// Функции для работы с локальными черновиками гайдов
+export function getLocalGuides(skillId: string): { nodes: Node[] | null; edges: Edge[] | null } {
+  if (typeof window === 'undefined') return { nodes: null, edges: null };
+
+  try {
+    const storedNodes = localStorage.getItem(`${CUSTOM_GUIDES_KEY_PREFIX}${skillId}`);
+    const storedEdges = localStorage.getItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`);
+
+    let nodes: Node[] | null = null;
+    let edges: Edge[] | null = null;
+
+    if (storedNodes) {
+      const guidesData = JSON.parse(storedNodes);
+      nodes = Object.entries(guidesData).map(([id, data]: [string, any]) => ({
+        id,
+        type: 'guide',
+        data: {
+          title: data.title,
+          guideId: data.guideId,
+          status: data.status,
+          difficulty: data.difficulty,
+          thumbnail: data.thumbnail,
+          text: data.text,
+          link: data.link,
+        },
+        position: data.position,
+      }));
+    }
+
+    if (storedEdges) {
+      edges = JSON.parse(storedEdges);
+    }
+
+    return { nodes, edges };
+  } catch (error) {
+    console.error('Ошибка загрузки локальных гайдов:', error);
+    return { nodes: null, edges: null };
+  }
+}
+
+export function clearLocalGuides(skillId: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(`${CUSTOM_GUIDES_KEY_PREFIX}${skillId}`);
+  localStorage.removeItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`);
+}
+
 export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowProps>(({ skillId, skillData, onItemSelect, mode = 'view', shouldShowPublish = false, onPublish, onDelete }, ref) => {
   // Загрузка гайдов из localStorage для кастомных навыков
   const loadCustomGuides = useCallback((skillId: string): Node[] => {

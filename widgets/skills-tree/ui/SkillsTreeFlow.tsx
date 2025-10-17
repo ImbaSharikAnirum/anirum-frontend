@@ -20,8 +20,27 @@ interface SkillsTreeFlowProps {
   initialEdges?: Edge[]
   mode?: 'view' | 'edit'
   isCustomTree?: boolean
-  onPublish?: () => void
+  onPublish?: () => Promise<void>
   onDelete?: () => void
+}
+
+// Функции для работы с локальными изменениями
+export function clearLocalDraft(treeId: string) {
+  localStorage.removeItem(`${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`);
+  localStorage.removeItem(`${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`);
+}
+
+export function getLocalDraft(treeId: string): { nodes: Node[] | null; edges: Edge[] | null } {
+  const localNodesKey = `${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`;
+  const localEdgesKey = `${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`;
+
+  const savedNodes = localStorage.getItem(localNodesKey);
+  const savedEdges = localStorage.getItem(localEdgesKey);
+
+  return {
+    nodes: savedNodes ? JSON.parse(savedNodes) : null,
+    edges: savedEdges ? JSON.parse(savedEdges) : null,
+  };
 }
 
 // Данные навыков по умолчанию (позже вынести в API)
@@ -108,14 +127,16 @@ const defaultInitialEdges: Edge[] = [
   },
 ]
 
-const BRANCH_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e']
 const CUSTOM_SKILLS_KEY_PREFIX = 'anirum_custom_skills_';
 const CUSTOM_SKILL_EDGES_KEY_PREFIX = 'anirum_custom_skill_edges_';
+const LOCAL_DRAFT_NODES_KEY_PREFIX = 'anirum_draft_nodes_';
+const LOCAL_DRAFT_EDGES_KEY_PREFIX = 'anirum_draft_edges_';
 
 export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onPublish, onDelete }: SkillsTreeFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultInitialNodes)
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges || defaultInitialEdges)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [hasLocalChanges, setHasLocalChanges] = useState(false)
 
   // Кастомный обработчик изменения edges с сохранением стилей выделения
   const onEdgesChange = useCallback((changes: any[]) => {
@@ -147,6 +168,36 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       })
     )
   }, [onEdgesChangeInternal, setEdges, nodes])
+
+  // Загрузка локальных изменений при монтировании
+  useEffect(() => {
+    if (!isCustomTree || !treeId) return;
+
+    const localNodesKey = `${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`;
+    const localEdgesKey = `${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`;
+
+    const savedNodes = localStorage.getItem(localNodesKey);
+    const savedEdges = localStorage.getItem(localEdgesKey);
+
+    if (savedNodes) {
+      try {
+        const parsedNodes = JSON.parse(savedNodes);
+        setNodes(parsedNodes);
+        setHasLocalChanges(true);
+      } catch (error) {
+        console.error('Ошибка загрузки локальных nodes:', error);
+      }
+    }
+
+    if (savedEdges) {
+      try {
+        const parsedEdges = JSON.parse(savedEdges);
+        setEdges(parsedEdges);
+      } catch (error) {
+        console.error('Ошибка загрузки локальных edges:', error);
+      }
+    }
+  }, [treeId, isCustomTree]);
 
   // Обновляем mode во всех нодах при изменении режима
   useEffect(() => {
@@ -226,7 +277,6 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       if (node.type === 'skill') {
         skillsData[node.id] = {
           label: node.data.label,
-          color: node.data.color,
           thumbnail: node.data.thumbnail,
           guideCount: node.data.guideCount || 0,
         };
@@ -236,12 +286,23 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     localStorage.setItem(`${CUSTOM_SKILLS_KEY_PREFIX}${treeId}`, JSON.stringify(skillsData));
   }, [treeId]);
 
-  // Сохранение связей при их изменении
+  // Сохранение nodes локально при их изменении в режиме редактирования
   useEffect(() => {
-    if (isCustomTree && edges.length > 0) {
-      localStorage.setItem(`${CUSTOM_SKILL_EDGES_KEY_PREFIX}${treeId}`, JSON.stringify(edges));
-    }
-  }, [edges, isCustomTree, treeId]);
+    if (!isCustomTree || mode !== 'edit' || nodes.length === 0) return;
+
+    const localNodesKey = `${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`;
+    localStorage.setItem(localNodesKey, JSON.stringify(nodes));
+    setHasLocalChanges(true);
+  }, [nodes, isCustomTree, mode, treeId]);
+
+  // Сохранение edges локально при их изменении в режиме редактирования
+  useEffect(() => {
+    if (!isCustomTree || mode !== 'edit') return;
+
+    const localEdgesKey = `${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`;
+    localStorage.setItem(localEdgesKey, JSON.stringify(edges));
+    setHasLocalChanges(true);
+  }, [edges, isCustomTree, mode, treeId]);
 
   // Конвертация File в base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -256,7 +317,6 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
   // Создание нового навыка
   const handleCreateSkill = useCallback(async (data: { label: string; thumbnail?: File }) => {
     const newId = `skill-${Date.now()}`
-    const randomColor = BRANCH_COLORS[Math.floor(Math.random() * BRANCH_COLORS.length)]
 
     // Конвертируем изображение в base64 если есть
     let thumbnailBase64: string | undefined;
@@ -269,7 +329,6 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       type: 'skill',
       data: {
         label: data.label,
-        color: randomColor,
         thumbnail: thumbnailBase64,
         guideCount: 0,
         mode,
