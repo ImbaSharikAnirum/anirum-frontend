@@ -71,6 +71,7 @@ export class SkillTreeAPI extends BaseAPI {
     const searchParams = new URLSearchParams();
 
     // Популяция по умолчанию включает навыки с их изображениями, гайдами и связями
+    // В Strapi 5 используем нотацию с точками для глубокой популяции
     const defaultPopulate = populate || [
       "image",
       "owner",
@@ -78,9 +79,12 @@ export class SkillTreeAPI extends BaseAPI {
       "skills.guides.image",
     ];
 
-    defaultPopulate.forEach((field, index) => {
-      searchParams.append(`populate[${index}]`, field);
+    defaultPopulate.forEach((field) => {
+      searchParams.append('populate', field);
     });
+
+    // Получаем все гайды независимо от статуса публикации (draft + published)
+    searchParams.append('publicationState', 'preview');
 
     const queryString = searchParams.toString();
     const endpoint = `/skill-trees/${documentId}?${queryString}`;

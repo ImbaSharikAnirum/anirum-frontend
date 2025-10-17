@@ -46,6 +46,7 @@ export default function SkillsPage() {
   const [isMounted, setIsMounted] = useState(false)
   const [apiTree, setApiTree] = useState<SkillTree | null>(null)
   const [loadingTree, setLoadingTree] = useState(false)
+  const [localStorageVersion, setLocalStorageVersion] = useState(0) // Триггер для обновления
 
   useEffect(() => {
     setIsMounted(true)
@@ -86,39 +87,71 @@ export default function SkillsPage() {
     return { title: '', thumbnail: '', skillCount: 0, guideCount: 0 };
   }, [apiTree]);
 
-  // Определяем данные навыков текущего дерева
-  const currentSkillsData = useMemo(() => {
-    if (apiTree && apiTree.skills) {
-      // Преобразуем навыки из API в формат для UI
-      const skillsMap: Record<string, any> = {};
-      apiTree.skills.forEach(skill => {
-        skillsMap[skill.documentId] = {
+  // Слушатель изменений localStorage для реактивного обновления
+  useEffect(() => {
+    if (!treeId) return;
+
+    const handleStorageChange = () => {
+      setLocalStorageVersion(v => v + 1);
+    };
+
+    // Слушаем события storage (работает между вкладками)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Для изменений в той же вкладке используем кастомное событие
+    window.addEventListener('local-draft-updated', handleStorageChange as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('local-draft-updated', handleStorageChange as EventListener);
+    };
+  }, [treeId]);
+
+  // Генерируем ноды для текущего дерева (API + локальные черновики)
+  const treeNodes = useMemo(() => {
+    // 1. Загружаем ноды из API
+    let nodes: Node[] = [];
+
+    if (apiTree && apiTree.skills && apiTree.skills.length > 0) {
+      nodes = apiTree.skills.map(skill => ({
+        id: skill.documentId,
+        type: 'skill',
+        data: {
           label: skill.title,
           thumbnail: skill.image && typeof skill.image === 'object' ? skill.image.url : undefined,
           guideCount: skill.guides?.length || 0,
-        };
-      });
-      return skillsMap;
+          completed: false,
+        },
+        position: skill.position || { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
+      }));
     }
-    return {};
-  }, [apiTree]);
 
-  // Генерируем ноды и связи для текущего дерева из API
-  const treeNodes = useMemo(() => {
-    if (!apiTree || !apiTree.skills || apiTree.skills.length === 0) return [];
+    // 2. Если есть локальные изменения, используем их
+    if (treeId) {
+      const localDraft = getLocalDraft(treeId);
+      if (localDraft.nodes && localDraft.nodes.length > 0) {
+        nodes = localDraft.nodes;
+      }
+    }
 
-    return apiTree.skills.map(skill => ({
-      id: skill.documentId,
-      type: 'skill',
-      data: {
-        label: skill.title,
-        thumbnail: skill.image && typeof skill.image === 'object' ? skill.image.url : undefined,
-        guideCount: skill.guides?.length || 0,
-        completed: false, // TODO: добавить статус выполнения в схему
-      },
-      position: skill.position || { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
-    }));
-  }, [apiTree]);
+    return nodes;
+  }, [apiTree, treeId, localStorageVersion]);
+
+  // Определяем данные навыков текущего дерева (API + локальные из treeNodes)
+  const currentSkillsData = useMemo(() => {
+    const skillsMap: Record<string, any> = {};
+
+    // Используем treeNodes, который уже содержит как API, так и локальные навыки
+    treeNodes.forEach(node => {
+      skillsMap[node.id] = {
+        label: node.data.label,
+        thumbnail: node.data.thumbnail,
+        guideCount: node.data.guideCount || 0,
+      };
+    });
+
+    return skillsMap;
+  }, [treeNodes]);
 
   const treeEdges = useMemo(() => {
     if (!apiTree) return [];
@@ -208,6 +241,8 @@ export default function SkillsPage() {
         thumbnail: skillData.thumbnail,
         guideCount: skillData.guideCount || 0,
       })
+    } else {
+      console.error('Навык не найден:', skillId)
     }
   }, [currentSkillsData])
 
@@ -253,6 +288,14 @@ export default function SkillsPage() {
     }
 
     setIsPublishing(true);
+
+    console.log('🎯 Публикация - данные перед отправкой:');
+    console.log('🎯 view.type:', view.type);
+    console.log('🎯 currentSkillId:', currentSkillId);
+    console.log('🎯 localGuides.nodes:', localGuides.nodes?.length);
+    console.log('🎯 localGuides.edges:', localGuides.edges?.length);
+    console.log('🎯 localDraft.nodes:', localDraft.nodes?.length);
+    console.log('🎯 localDraft.edges:', localDraft.edges?.length);
 
     try {
       // Используем централизованную функцию публикации
@@ -505,6 +548,7 @@ export default function SkillsPage() {
           />
         ) : (
           <SkillGuidesFlow
+            key={`${view.skillId}-${apiTree?.updatedAt || ''}`}
             ref={skillGuidesFlowRef}
             skillId={view.skillId}
             skillData={{
@@ -516,6 +560,8 @@ export default function SkillsPage() {
             shouldShowPublish={!!apiTree}
             onPublish={handlePublish}
             onDelete={handleDeleteClick}
+            apiGuides={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guides}
+            apiGuideEdges={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guideEdges}
           />
         )}
       </div>

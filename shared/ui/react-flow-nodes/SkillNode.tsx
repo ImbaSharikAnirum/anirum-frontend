@@ -63,18 +63,20 @@ export const SkillNode = memo(({ data, selected }: NodeProps) => {
               src={thumbnail}
               alt={label}
               fill
-              className={cn(
-                'object-cover transition-all duration-500',
-                // В режиме редактирования всегда цветная
-                mode === 'edit' && 'grayscale-0',
-                // В режиме просмотра зависит от completed
-                mode === 'view' && (completed ? 'grayscale-0' : 'grayscale')
-              )}
+              className="object-cover transition-all duration-500"
+              // Закомментировано: фильтр черно-белого при невыполненном навыке
+              // className={cn(
+              //   'object-cover transition-all duration-500',
+              //   // В режиме редактирования всегда цветная
+              //   mode === 'edit' && 'grayscale-0',
+              //   // В режиме просмотра зависит от completed
+              //   mode === 'view' && (completed ? 'grayscale-0' : 'grayscale')
+              // )}
             />
-            {/* Затемнение для читаемости текста - убираем если выполнено или в режиме редактирования */}
-            {!(completed || mode === 'edit') && (
+            {/* Закомментировано: затемнение для читаемости текста */}
+            {/* {!(completed || mode === 'edit') && (
               <div className="absolute inset-0 bg-black/40" />
-            )}
+            )} */}
           </>
         ) : (
           <div className="absolute inset-0" style={{ backgroundColor: `${color}10` }} />

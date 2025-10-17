@@ -16,6 +16,20 @@ export interface SkillGuidesFlowRef {
   addGuide: (guideData: { id: string; title: string; thumbnail?: string }) => void
 }
 
+export interface ApiGuide {
+  documentId: string
+  id: number
+  title: string
+  image?: {
+    url: string
+    formats?: {
+      thumbnail?: {
+        url: string
+      }
+    }
+  }
+}
+
 interface SkillGuidesFlowProps {
   skillId: string
   skillData?: {
@@ -27,6 +41,8 @@ interface SkillGuidesFlowProps {
   shouldShowPublish?: boolean
   onPublish?: () => void
   onDelete?: () => void
+  apiGuides?: ApiGuide[]
+  apiGuideEdges?: Edge[]
 }
 
 // Данные гайдов по навыкам (позже вынести в API)
@@ -267,7 +283,25 @@ export function clearLocalGuides(skillId: string) {
   localStorage.removeItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`);
 }
 
-export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowProps>(({ skillId, skillData, onItemSelect, mode = 'view', shouldShowPublish = false, onPublish, onDelete }, ref) => {
+export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowProps>(({ skillId, skillData, onItemSelect, mode = 'view', shouldShowPublish = false, onPublish, onDelete, apiGuides, apiGuideEdges }, ref) => {
+  // Загрузка гайдов из API
+  const loadApiGuides = useCallback((): Node[] => {
+    if (!apiGuides || apiGuides.length === 0) return [];
+
+    return apiGuides.map((guide) => ({
+      id: guide.documentId,
+      type: 'guide' as const,
+      data: {
+        title: guide.title,
+        guideId: guide.id, // numeric ID
+        status: 'not_started',
+        difficulty: 'beginner',
+        thumbnail: guide.image?.formats?.thumbnail?.url || guide.image?.url,
+      },
+      position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
+    }));
+  }, [apiGuides]);
+
   // Загрузка гайдов из localStorage для кастомных навыков
   const loadCustomGuides = useCallback((skillId: string): Node[] => {
     if (typeof window === 'undefined' || !skillId.startsWith('skill-')) return [];
@@ -305,14 +339,63 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
     }
   }, []);
 
-  // Определяем начальные данные: кастомные или моковые
+  // Определяем начальные данные: приоритет localStorage > API > моковые данные
   const isCustomSkill = skillId.startsWith('skill-') && !skillGuidesData[skillId];
-  const initialNodes = isCustomSkill ? loadCustomGuides(skillId) : (skillGuidesData[skillId] || []);
-  const initialEdges = isCustomSkill ? loadCustomEdges(skillId) : (skillEdgesData[skillId] || []);
+  const localGuides = loadCustomGuides(skillId);
+  const hasLocalDraft = localGuides.length > 0;
+
+  // Используем локальные данные если есть, иначе данные из API, иначе моковые
+  const initialNodes = hasLocalDraft
+    ? localGuides
+    : (apiGuides && apiGuides.length > 0
+      ? loadApiGuides()
+      : (skillGuidesData[skillId] || []));
+
+  const localEdges = loadCustomEdges(skillId);
+  const hasLocalEdges = localEdges.length > 0;
+
+  const initialEdges = hasLocalEdges
+    ? localEdges
+    : (apiGuideEdges || skillEdgesData[skillId] || []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  // Обновляем nodes когда приходят данные из API (после загрузки страницы или публикации)
+  useEffect(() => {
+    // Проверяем, есть ли локальные изменения
+    const localGuides = loadCustomGuides(skillId);
+    const hasLocalDraft = localGuides.length > 0;
+
+    // Если есть локальные изменения, не перезаписываем
+    if (hasLocalDraft) return;
+
+    // Если есть данные из API, загружаем их
+    if (apiGuides && apiGuides.length > 0) {
+      const apiNodes = loadApiGuides();
+      if (apiNodes.length > 0) {
+        console.log('🔄 Загружаем гайды из API:', apiNodes.length);
+        setNodes(apiNodes.map(node => ({ ...node, data: { ...node.data, mode } })));
+      }
+    }
+  }, [apiGuides, skillId, mode, loadApiGuides, loadCustomGuides, setNodes]);
+
+  // Обновляем edges когда приходят данные из API
+  useEffect(() => {
+    // Проверяем, есть ли локальные изменения
+    const localEdges = loadCustomEdges(skillId);
+    const hasLocalEdges = localEdges.length > 0;
+
+    // Если есть локальные изменения, не перезаписываем
+    if (hasLocalEdges) return;
+
+    // Если есть данные из API, загружаем их
+    if (apiGuideEdges && apiGuideEdges.length > 0) {
+      console.log('🔄 Загружаем связи гайдов из API:', apiGuideEdges.length);
+      setEdges(apiGuideEdges);
+    }
+  }, [apiGuideEdges, skillId, loadCustomEdges, setEdges]);
 
   // Кастомный обработчик изменения edges с сохранением стилей выделения
   const onEdgesChange = useCallback((changes: any[]) => {
@@ -388,18 +471,14 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
   const onConnect = useCallback((params: any) => {
     setEdges((eds) => {
       const updatedEdges = addEdge({ ...params, type: 'smoothstep' }, eds);
-      // Сохраняем связи для кастомных навыков
-      if (isCustomSkill) {
-        localStorage.setItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`, JSON.stringify(updatedEdges));
-      }
+      // Сохраняем связи в localStorage (для публикации)
+      localStorage.setItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`, JSON.stringify(updatedEdges));
       return updatedEdges;
     });
-  }, [setEdges, isCustomSkill, skillId])
+  }, [setEdges, skillId])
 
-  // Сохранение гайдов в localStorage для кастомных навыков
+  // Сохранение гайдов в localStorage (для публикации)
   const saveCustomGuides = useCallback((updatedNodes: Node[]) => {
-    if (!isCustomSkill) return;
-
     const guidesData: Record<string, any> = {};
     updatedNodes.forEach(node => {
       if (node.type === 'guide') {
@@ -415,14 +494,14 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
     });
 
     localStorage.setItem(`${CUSTOM_GUIDES_KEY_PREFIX}${skillId}`, JSON.stringify(guidesData));
-  }, [isCustomSkill, skillId]);
+  }, [skillId]);
 
   // Обработчик изменения нод - сохраняем при изменении
   useEffect(() => {
-    if (isCustomSkill && nodes.length > 0) {
+    if (nodes.length > 0) {
       saveCustomGuides(nodes);
     }
-  }, [nodes, isCustomSkill, saveCustomGuides]);
+  }, [nodes, saveCustomGuides]);
 
   // Обработчик клика - показываем инфо в правом блоке
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {

@@ -103,22 +103,24 @@ export const GuideNode = memo(({ data, selected }: NodeProps) => {
               src={thumbnail}
               alt={title}
               fill
-              className={cn(
-                "object-cover transition-all duration-500",
-                // В режиме редактирования всегда цветная
-                mode === "edit" && "grayscale-0",
-                // В режиме просмотра зависит от статуса
-                mode === "view" && status === "not_started" && "grayscale",
-                mode === "view" &&
-                  status === "in_progress" &&
-                  "grayscale-[50%]",
-                mode === "view" && status === "completed" && "grayscale-0"
-              )}
+              className="object-cover transition-all duration-500"
+              // Закомментировано: фильтр черно-белого при невыполненном гайде
+              // className={cn(
+              //   "object-cover transition-all duration-500",
+              //   // В режиме редактирования всегда цветная
+              //   mode === "edit" && "grayscale-0",
+              //   // В режиме просмотра зависит от статуса
+              //   mode === "view" && status === "not_started" && "grayscale",
+              //   mode === "view" &&
+              //     status === "in_progress" &&
+              //     "grayscale-[50%]",
+              //   mode === "view" && status === "completed" && "grayscale-0"
+              // )}
             />
-            {/* Затемнение для читаемости - убираем если выполнено или в режиме редактирования */}
-            {!(status === "completed" || mode === "edit") && (
+            {/* Закомментировано: затемнение для читаемости */}
+            {/* {!(status === "completed" || mode === "edit") && (
               <div className="absolute inset-0 bg-black/40" />
-            )}
+            )} */}
           </>
         ) : (
           <div

@@ -26,11 +26,14 @@ interface SkillsTreeFlowProps {
 
 // Функции для работы с локальными изменениями
 export function clearLocalDraft(treeId: string) {
+  if (typeof window === 'undefined') return;
   localStorage.removeItem(`${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`);
   localStorage.removeItem(`${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`);
 }
 
 export function getLocalDraft(treeId: string): { nodes: Node[] | null; edges: Edge[] | null } {
+  if (typeof window === 'undefined') return { nodes: null, edges: null };
+
   const localNodesKey = `${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`;
   const localEdgesKey = `${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`;
 
@@ -293,6 +296,9 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     const localNodesKey = `${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`;
     localStorage.setItem(localNodesKey, JSON.stringify(nodes));
     setHasLocalChanges(true);
+
+    // Отправляем событие для обновления parent компонента
+    window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }));
   }, [nodes, isCustomTree, mode, treeId]);
 
   // Сохранение edges локально при их изменении в режиме редактирования
@@ -361,7 +367,7 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         }}
         connectionMode={ConnectionMode.Loose}
         elevateEdgesOnSelect
-        nodesDraggable={true}
+        nodesDraggable={mode === 'edit'}
         nodesConnectable={mode === 'edit'}
         elementsSelectable={true}
         edgesReconnectable={mode === 'edit'}

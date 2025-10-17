@@ -132,7 +132,7 @@ export function SidebarGuidesWidget() {
     // 2. Режим редактирования активен
     if (addGuideToFlow && isEditMode) {
       addGuideToFlow({
-        id: guide.documentId,
+        id: guide.id, // Используем numeric ID вместо documentId
         title: guide.title,
         thumbnail: guide.image?.formats?.thumbnail?.url || guide.image?.url,
       });
