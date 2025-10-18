@@ -68,13 +68,14 @@ export function HeroSection() {
           <div
             className="transform transition-transform duration-700 hover:scale-[1.02]"
             style={{
-              transformStyle: "preserve-3d",
               transform: "rotateX(8deg) rotateY(0deg)",
+              transformStyle: "flat",
             }}
           >
             <SkillTreeMockup />
           </div>
-        </div>
+        </div>    
+
       </div>
     </section>
   );

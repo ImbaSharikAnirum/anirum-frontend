@@ -1,7 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Circle, Lock } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Smile,
+  User,
+  Zap,
+  Hand,
+  Box,
+  Users,
+  Layers,
+  UserCircle2,
+  Sparkles,
+  Target as TargetIcon,
+  Blocks,
+  BookOpen,
+  type LucideIcon
+} from "lucide-react";
+import Image from "next/image";
 
 interface SkillNode {
   id: string;
@@ -11,78 +28,149 @@ interface SkillNode {
   x: number;
   y: number;
   connections: string[];
+  icon: LucideIcon;
+  color: string; // Tailwind bg-color класс
 }
 
 const skillsData: SkillNode[] = [
-  // Level 1 - Основы
+  // Level 4 (Верх)
   {
-    id: "basics-1",
-    name: "Основы рисования",
-    level: 1,
-    status: "completed",
-    x: 50,
-    y: 20,
-    connections: ["anim-1", "design-1"],
-  },
-
-  // Level 2
-  {
-    id: "anim-1",
-    name: "2D Анимация",
-    level: 2,
-    status: "completed",
-    x: 30,
-    y: 45,
-    connections: ["anim-2"],
-  },
-  {
-    id: "design-1",
-    name: "UI/UX Design",
-    level: 2,
+    id: "pose",
+    name: "Позы",
+    level: 4,
     status: "available",
-    x: 70,
-    y: 45,
-    connections: ["design-2"],
+    x: 18,
+    y: 12,
+    connections: ["clothing"],
+    icon: Zap,
+    color: "bg-slate-400",
+  },
+  {
+    id: "hands",
+    name: "Руки и Ноги",
+    level: 4,
+    status: "available",
+    x: 32,
+    y: 12,
+    connections: ["head"],
+    icon: Hand,
+    color: "bg-slate-400",
+  },
+  {
+    id: "perspective-advanced",
+    name: "Перспектива:\nПродвинутый уровень",
+    level: 4,
+    status: "available",
+    x: 55,
+    y: 12,
+    connections: ["body"],
+    icon: Box,
+    color: "bg-slate-400",
+  },
+  {
+    id: "color-advanced",
+    name: "Колористика:\nПродвинутый уровень",
+    level: 4,
+    status: "available",
+    x: 80,
+    y: 12,
+    connections: ["color-base"],
+    icon: Sparkles,
+    color: "bg-slate-400",
   },
 
   // Level 3
   {
-    id: "anim-2",
-    name: "3D Моделирование",
+    id: "clothing",
+    name: "Одежда",
     level: 3,
     status: "available",
-    x: 20,
-    y: 70,
-    connections: ["master-1"],
+    x: 16,
+    y: 38,
+    connections: ["gesture"],
+    icon: User,
+    color: "bg-slate-400",
   },
   {
-    id: "design-2",
-    name: "Motion Design",
+    id: "head",
+    name: "Голова",
     level: 3,
-    status: "locked",
-    x: 50,
-    y: 70,
-    connections: ["master-1"],
+    status: "available",
+    x: 30,
+    y: 38,
+    connections: ["gesture"],
+    icon: Smile,
+    color: "bg-slate-400",
   },
   {
-    id: "game-1",
-    name: "Game Design",
+    id: "body",
+    name: "Тело",
     level: 3,
-    status: "locked",
+    status: "available",
+    x: 45,
+    y: 38,
+    connections: ["perspective-base"],
+    icon: Zap,
+    color: "bg-slate-400",
+  },
+  {
+    id: "color-base",
+    name: "Колористика база",
+    level: 3,
+    status: "available",
     x: 80,
-    y: 70,
-    connections: ["master-1"],
+    y: 38,
+    connections: ["shadows"],
+    icon: Sparkles,
+    color: "bg-slate-400",
   },
 
-  // Level 4 - Мастер
+  // Level 2 (Completed - оранжевая обводка)
   {
-    id: "master-1",
-    name: "Senior Animator",
-    level: 4,
-    status: "locked",
+    id: "gesture",
+    name: "Рисование жестами",
+    level: 2,
+    status: "completed",
+    x: 28,
+    y: 60,
+    connections: ["forms"],
+    icon: Hand,
+    color: "bg-[#E17B60]",
+  },
+  {
+    id: "perspective-base",
+    name: "Перспектива",
+    level: 2,
+    status: "completed",
     x: 50,
-    y: 95,
+    y: 60,
+    connections: ["forms"],
+    icon: Box,
+    color: "bg-[#E17B60]",
+  },
+  {
+    id: "shadows",
+    name: "Тени",
+    level: 2,
+    status: "completed",
+    x: 72,
+    y: 60,
+    connections: ["forms"],
+    icon: Layers,
+    color: "bg-[#E17B60]",
+  },
+
+  // Level 1 - Final (Completed)
+  {
+    id: "forms",
+    name: "Формы",
+    level: 1,
+    status: "completed",
+    x: 50,
+    y: 85,
     connections: [],
+    icon: Blocks,
+    color: "bg-[#F3A361]",
   },
 ];
 
@@ -103,30 +191,6 @@ export function SkillTreeMockup() {
     });
   }, []);
 
-  const getNodeColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500 border-green-400 shadow-green-500/30";
-      case "available":
-        return "bg-blue-500 border-blue-400 shadow-blue-500/30";
-      case "locked":
-        return "bg-slate-300 border-slate-200 shadow-slate-300/20";
-      default:
-        return "bg-slate-300";
-    }
-  };
-
-  const getNodeIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle2 className="w-5 h-5 text-white" />;
-      case "available":
-        return <Circle className="w-5 h-5 text-white" />;
-      case "locked":
-        return <Lock className="w-4 h-4 text-slate-500" />;
-    }
-  };
-
   const isNodeHighlighted = (nodeId: string) => {
     if (!hoveredNode) return false;
     const node = skillsData.find((n) => n.id === hoveredNode);
@@ -138,38 +202,78 @@ export function SkillTreeMockup() {
   };
 
   return (
-    <div className="relative w-full h-[500px] bg-gradient-to-br from-slate-50 via-white to-blue-50/30 rounded-2xl border border-slate-200/50 overflow-visible shadow-[0_20px_70px_-15px_rgba(0,0,0,0.3),0_10px_30px_-10px_rgba(0,0,0,0.2)]">
+    <div
+      className="relative w-full h-[500px] bg-gradient-to-br from-slate-50 via-white to-blue-50/30 rounded-2xl border border-slate-200/50 overflow-visible shadow-[0_20px_70px_-15px_rgba(0,0,0,0.3),0_10px_30px_-10px_rgba(0,0,0,0.2)]"
+      style={{ transformStyle: "flat" }}
+    >
       {/* Floating Cards */}
       <div className="absolute -top-6 -left-6 bg-white rounded-xl p-4 shadow-xl border border-slate-200 z-20 animate-float">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-            <CheckCircle2 className="w-6 h-6 text-white" />
+          <div className="flex gap-1 flex-shrink-0">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200">
+              <Image
+                src="/directions/2D.png"
+                alt="2D Direction"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200">
+              <Image
+                src="/directions/3D.png"
+                alt="3D Direction"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200">
+              <Image
+                src="/directions/animation.jpg"
+                alt="Animation Direction"
+                fill
+                className="object-cover"
+              />
+            </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500">Завершено курсов</div>
-            <div className="text-xl font-bold text-slate-900">12</div>
+            <div className="text-xs text-slate-500">Создавай своё древо</div>
+            <div className="text-sm font-semibold text-slate-900">или используй существующие</div>
           </div>
         </div>
       </div>
 
       <div className="absolute -top-6 -right-6 bg-white rounded-xl p-4 shadow-xl border border-slate-200 z-20 animate-float delay-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-            <Circle className="w-6 h-6 text-white" />
+          <div className="relative w-12 h-16 flex-shrink-0">
+            <Image
+              src="/home/features_guide5.jpeg"
+              alt="Guide"
+              fill
+              className="object-cover rounded-md border border-slate-200 shadow-sm"
+            />
           </div>
           <div>
-            <div className="text-xs text-slate-500">В процессе</div>
-            <div className="text-xl font-bold text-slate-900">4</div>
+            <div className="text-xs text-slate-500">Используй гайды</div>
+            <div className="text-sm font-semibold text-slate-900">для создания древа</div>
           </div>
         </div>
       </div>
 
-      <div className="absolute -bottom-6 left-1/4 bg-white rounded-xl px-4 py-3 shadow-xl border border-slate-200 z-20 animate-float delay-500">
+      <div className="absolute -bottom-6 left-[10%] bg-white rounded-xl px-4 py-3 shadow-xl border border-slate-200 z-20 animate-float delay-500">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-sm font-medium text-slate-700">
-            Следующий навык доступен через 2 дня
-          </span>
+          <div className="relative w-8 h-8 rounded-full flex-shrink-0 overflow-hidden border-2 border-green-500">
+            <Image
+              src="/home/features_avatar1.jpg"
+              alt="User Profile"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div>
+            <span className="text-sm font-medium text-slate-700">
+              Выполняй древо и храни результат у себя в профиле
+            </span>
+          </div>
         </div>
       </div>
 
@@ -200,6 +304,10 @@ export function SkillTreeMockup() {
             const isHighlighted =
               isNodeHighlighted(skill.id) || isNodeHighlighted(targetId);
 
+            // Если оба узла completed - линия оранжевая
+            const bothCompleted = skill.status === "completed" && target.status === "completed";
+            const lineColor = bothCompleted ? "#f97316" : (isHighlighted ? "url(#lineGradient)" : "#cbd5e1");
+
             return (
               <line
                 key={`${skill.id}-${targetId}`}
@@ -207,11 +315,10 @@ export function SkillTreeMockup() {
                 y1={`${skill.y}%`}
                 x2={`${target.x}%`}
                 y2={`${target.y}%`}
-                stroke={isHighlighted ? "url(#lineGradient)" : "#cbd5e1"}
-                strokeWidth={isHighlighted ? "3" : "2"}
-                strokeDasharray={skill.status === "locked" ? "5,5" : "0"}
+                stroke={lineColor}
+                strokeWidth={bothCompleted ? "3" : (isHighlighted ? "3" : "2")}
                 className="transition-all duration-300"
-                opacity={isHighlighted ? "1" : "0.4"}
+                opacity={bothCompleted ? "0.8" : (isHighlighted ? "1" : "0.4")}
               />
             );
           })
@@ -223,89 +330,62 @@ export function SkillTreeMockup() {
         {skillsData.map((skill) => {
           const isVisible = visibleNodes.has(skill.id);
           const isHighlighted = isNodeHighlighted(skill.id);
+          const isHovered = hoveredNode === skill.id;
+
+          // Определяем цвет фона узла
+          const bgColor = skill.status === "available" ? "bg-slate-400" : skill.color;
+
+          // Определяем цвет border
+          const borderColor = skill.status === "completed" ? "border-orange-500" : "border-white/50";
+
+          // Определяем ring (обводку)
+          let ringClass = "";
+          if (skill.status === "completed") {
+            // Для completed: оранжевый по умолчанию, синий при hover
+            ringClass = isHighlighted ? "ring-4 ring-blue-400/50" : "ring-4 ring-orange-400/30";
+          } else {
+            // Для available: синий только при hover
+            ringClass = isHighlighted ? "ring-4 ring-blue-400/50" : "";
+          }
+
+          const IconComponent = skill.icon;
 
           return (
             <div
               key={skill.id}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ${
-                isVisible ? "opacity-100 scale-100" : "opacity-0 scale-50"
-              } ${isHighlighted ? "scale-110 z-10" : ""}`}
+              className="absolute cursor-pointer transition-all duration-200"
               style={{
                 left: `${skill.x}%`,
                 top: `${skill.y}%`,
+                transform: `translate(-50%, -50%) scale(${
+                  !isVisible ? 0.5 : isHovered ? 1.1 : 1
+                })`,
+                opacity: isVisible ? 1 : 0,
+                zIndex: isHovered ? 10 : 2,
               }}
               onMouseEnter={() => setHoveredNode(skill.id)}
               onMouseLeave={() => setHoveredNode(null)}
             >
-              {/* Node */}
-              <div
-                className={`flex flex-col items-center gap-2 cursor-pointer group ${
-                  skill.status !== "locked" ? "hover:scale-110" : ""
-                } transition-transform duration-200`}
-              >
+              <div className="flex flex-col items-center gap-2">
+                {/* Node Circle */}
                 <div
-                  className={`w-14 h-14 rounded-full border-2 ${getNodeColor(
-                    skill.status
-                  )} flex items-center justify-center shadow-lg transition-all duration-200 ${
-                    isHighlighted ? "ring-4 ring-blue-400/50" : ""
-                  }`}
+                  className={`w-14 h-14 rounded-full border-2 ${bgColor} ${borderColor} ${ringClass} shadow-lg flex items-center justify-center transition-all duration-200`}
                 >
-                  {getNodeIcon(skill.status)}
+                  <IconComponent className="w-5 h-5 text-white" />
                 </div>
 
                 {/* Label */}
                 <div
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${
-                    skill.status === "locked"
-                      ? "bg-slate-100 text-slate-500 border border-slate-200"
-                      : "bg-white text-slate-700 border border-slate-200 shadow-sm"
-                  } ${isHighlighted ? "bg-blue-50 border-blue-200 text-blue-700" : ""}`}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 bg-white text-slate-700 border border-slate-200 shadow-sm"
                 >
                   {skill.name}
                 </div>
-
-                {/* Progress indicator for available/completed */}
-                {skill.status !== "locked" && (
-                  <div className="w-20 h-1 bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${
-                        skill.status === "completed" ? "bg-green-500 w-full" : "bg-blue-500 w-2/3"
-                      } transition-all duration-500`}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 flex gap-4 text-xs text-slate-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-200 shadow-sm z-10">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-green-500" />
-          <span>Завершено</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-blue-500" />
-          <span>Доступно</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-slate-300" />
-          <span>Заблокировано</span>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-lg border border-slate-200 shadow-sm z-10">
-        <div className="text-xs text-slate-500 mb-1">Прогресс обучения</div>
-        <div className="text-2xl font-bold text-slate-900">42%</div>
-        <div className="flex items-center gap-2 mt-2">
-          <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 w-[42%]" />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
