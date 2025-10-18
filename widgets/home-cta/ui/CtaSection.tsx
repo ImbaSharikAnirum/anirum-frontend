@@ -26,7 +26,7 @@ export function CtaSection() {
               Записаться к преподавателю
             </Link>
             <Link
-              href="/skill-tree"
+              href="/skills"
               className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-slate-900 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors duration-200"
             >
               Создать древо навыков

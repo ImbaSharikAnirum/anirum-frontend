@@ -131,7 +131,7 @@ export function FeaturesSection() {
               профессионалом. Мы верим, что знания должны быть доступны каждому
               и предлагаем платить только за вдохновение и развитие.{" "}
               <a
-                href="/skill-tree"
+                href="/skills"
                 className="font-semibold text-slate-900 inline-flex items-center gap-1 group"
               >
                 <span className="inline-block transition-transform group-hover:translate-x-1">Присоединяйся</span>
