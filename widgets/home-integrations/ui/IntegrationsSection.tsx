@@ -1,45 +1,22 @@
 "use client";
 
 import React from "react";
-import {
-  Zap,
-  Heart,
-  Star,
-  Coffee,
-  Music,
-  Camera,
-  Cpu,
-  Globe,
-  Rocket,
-  Palette,
-  Code,
-  Database,
-  Cloud,
-  Shield,
-  Bell,
-  Mail,
-  User,
-  Settings,
-  Moon,
-  Sun,
-  Wind,
-  Droplets,
-  Sparkles,
-  Trophy,
-  type LucideIcon,
-} from "lucide-react";
+import Image from "next/image";
 
-interface IconCardProps {
-  Icon: LucideIcon;
-  gradient: string;
+interface PinCardProps {
+  pinNumber: number;
 }
 
 export function IntegrationsSection() {
-  const IconCard = ({ Icon, gradient }: IconCardProps) => (
-    <div className="bg-card relative z-20 flex size-20 rounded-xl border border-gray-200 shadow-sm">
-      <div className="m-auto size-fit">
-        <Icon className={`size-8 ${gradient}`} />
-      </div>
+  const PinCard = ({ pinNumber }: PinCardProps) => (
+    <div className="relative z-20 size-20 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <Image
+        src={`/pinterest/pin${pinNumber}.jpg`}
+        alt={`Pinterest pin ${pinNumber}`}
+        width={80}
+        height={80}
+        className="object-cover w-full h-full"
+      />
     </div>
   );
 
@@ -58,7 +35,7 @@ export function IntegrationsSection() {
     <div className="relative w-full bg-white overflow-hidden py-12">
       <div className="flex flex-col items-center justify-center">
         <div
-          className="group relative mx-auto max-w-2xl items-center justify-between space-y-6 transition-transform duration-1000"
+          className="group relative mx-auto max-w-2xl items-center justify-between space-y-6 transition-transform duration-1000 pb-8"
           style={{
             transformStyle: "preserve-3d",
             transform: "perspective(1000px) rotateX(35deg) scaleY(0.9)",
@@ -85,23 +62,23 @@ export function IntegrationsSection() {
               className="flex w-max animate-scroll-1"
               style={{ gap: "56px", flexDirection: "row" }}
             >
-              <IconCard Icon={Zap} gradient="text-yellow-400" />
-              <IconCard Icon={Heart} gradient="text-rose-400" />
-              <IconCard Icon={Star} gradient="text-purple-400" />
-              <IconCard Icon={Coffee} gradient="text-amber-600" />
-              <IconCard Icon={Music} gradient="text-pink-400" />
-              <IconCard Icon={Camera} gradient="text-blue-400" />
-              <IconCard Icon={Cpu} gradient="text-emerald-400" />
-              <IconCard Icon={Globe} gradient="text-cyan-400" />
+              <PinCard pinNumber={1} />
+              <PinCard pinNumber={2} />
+              <PinCard pinNumber={3} />
+              <PinCard pinNumber={4} />
+              <PinCard pinNumber={5} />
+              <PinCard pinNumber={6} />
+              <PinCard pinNumber={7} />
+              <PinCard pinNumber={8} />
               {/* Дубликат для бесшовной анимации */}
-              <IconCard Icon={Zap} gradient="text-yellow-400" />
-              <IconCard Icon={Heart} gradient="text-rose-400" />
-              <IconCard Icon={Star} gradient="text-purple-400" />
-              <IconCard Icon={Coffee} gradient="text-amber-600" />
-              <IconCard Icon={Music} gradient="text-pink-400" />
-              <IconCard Icon={Camera} gradient="text-blue-400" />
-              <IconCard Icon={Cpu} gradient="text-emerald-400" />
-              <IconCard Icon={Globe} gradient="text-cyan-400" />
+              <PinCard pinNumber={1} />
+              <PinCard pinNumber={2} />
+              <PinCard pinNumber={3} />
+              <PinCard pinNumber={4} />
+              <PinCard pinNumber={5} />
+              <PinCard pinNumber={6} />
+              <PinCard pinNumber={7} />
+              <PinCard pinNumber={8} />
             </div>
           </div>
 
@@ -111,21 +88,21 @@ export function IntegrationsSection() {
               className="flex w-max animate-scroll-2"
               style={{ gap: "56px", flexDirection: "row-reverse" }}
             >
-              <IconCard Icon={Rocket} gradient="text-indigo-400" />
-              <IconCard Icon={Palette} gradient="text-fuchsia-400" />
-              <IconCard Icon={Code} gradient="text-green-400" />
-              <IconCard Icon={Database} gradient="text-blue-500" />
-              <IconCard Icon={Cloud} gradient="text-sky-400" />
-              <IconCard Icon={Shield} gradient="text-orange-400" />
-              <IconCard Icon={Bell} gradient="text-red-400" />
+              <PinCard pinNumber={9} />
+              <PinCard pinNumber={10} />
+              <PinCard pinNumber={11} />
+              <PinCard pinNumber={12} />
+              <PinCard pinNumber={13} />
+              <PinCard pinNumber={14} />
+              <PinCard pinNumber={15} />
               {/* Дубликат для бесшовной анимации */}
-              <IconCard Icon={Rocket} gradient="text-indigo-400" />
-              <IconCard Icon={Palette} gradient="text-fuchsia-400" />
-              <IconCard Icon={Code} gradient="text-green-400" />
-              <IconCard Icon={Database} gradient="text-blue-500" />
-              <IconCard Icon={Cloud} gradient="text-sky-400" />
-              <IconCard Icon={Shield} gradient="text-orange-400" />
-              <IconCard Icon={Bell} gradient="text-red-400" />
+              <PinCard pinNumber={9} />
+              <PinCard pinNumber={10} />
+              <PinCard pinNumber={11} />
+              <PinCard pinNumber={12} />
+              <PinCard pinNumber={13} />
+              <PinCard pinNumber={14} />
+              <PinCard pinNumber={15} />
             </div>
           </div>
 
@@ -135,21 +112,21 @@ export function IntegrationsSection() {
               className="flex w-max animate-scroll-3"
               style={{ gap: "56px", flexDirection: "row" }}
             >
-              <IconCard Icon={Mail} gradient="text-amber-400" />
-              <IconCard Icon={User} gradient="text-pink-500" />
-              <IconCard Icon={Settings} gradient="text-purple-500" />
-              <IconCard Icon={Moon} gradient="text-blue-400" />
-              <IconCard Icon={Sun} gradient="text-yellow-500" />
-              <IconCard Icon={Wind} gradient="text-cyan-400" />
-              <IconCard Icon={Droplets} gradient="text-indigo-400" />
+              <PinCard pinNumber={16} />
+              <PinCard pinNumber={17} />
+              <PinCard pinNumber={18} />
+              <PinCard pinNumber={19} />
+              <PinCard pinNumber={20} />
+              <PinCard pinNumber={21} />
+              <PinCard pinNumber={22} />
               {/* Дубликат для бесшовной анимации */}
-              <IconCard Icon={Mail} gradient="text-amber-400" />
-              <IconCard Icon={User} gradient="text-pink-500" />
-              <IconCard Icon={Settings} gradient="text-purple-500" />
-              <IconCard Icon={Moon} gradient="text-blue-400" />
-              <IconCard Icon={Sun} gradient="text-yellow-500" />
-              <IconCard Icon={Wind} gradient="text-cyan-400" />
-              <IconCard Icon={Droplets} gradient="text-indigo-400" />
+              <PinCard pinNumber={16} />
+              <PinCard pinNumber={17} />
+              <PinCard pinNumber={18} />
+              <PinCard pinNumber={19} />
+              <PinCard pinNumber={20} />
+              <PinCard pinNumber={21} />
+              <PinCard pinNumber={22} />
             </div>
           </div>
 
@@ -168,7 +145,7 @@ export function IntegrationsSection() {
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
             Подключи свой{" "}
             <span className="text-[#E60023] font-extrabold">Pinterest</span> и
-            создавай по любимым референсам
+            креативь по любимым референсам
           </h2>
           <p className="text-lg text-slate-600">
             Используй пины как гайды для обучения и собирай портфолио прямо в
@@ -219,14 +196,6 @@ export function IntegrationsSection() {
 
         .animate-scroll-3 {
           animation: scroll3 50s linear infinite;
-        }
-
-        .bg-card {
-          background: linear-gradient(
-            to bottom right,
-            rgb(255 255 255),
-            rgb(249 250 251)
-          );
         }
       `}</style>
     </div>
