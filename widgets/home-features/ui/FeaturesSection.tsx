@@ -129,8 +129,14 @@ export function FeaturesSection() {
               Anirum создан теми, кто верит, что обучение — это ремесло.
               Осознанность, постоянство и стремление к мастерству делают тебя
               профессионалом. Мы верим, что знания должны быть доступны каждому
-              и предлагаем платить только за вдохновение и развитие.
-              Присоединяйся.
+              и предлагаем платить только за вдохновение и развитие.{" "}
+              <a
+                href="/skill-tree"
+                className="font-semibold text-slate-900 inline-flex items-center gap-1 group"
+              >
+                <span className="inline-block transition-transform group-hover:translate-x-1">Присоединяйся</span>
+                <span className="inline-block transition-transform group-hover:translate-x-1">&gt;</span>
+              </a>
             </p>
           </div>
         </div>
