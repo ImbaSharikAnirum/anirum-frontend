@@ -202,15 +202,16 @@ export function SkillTreeMockup() {
   };
 
   return (
-    <div
-      className="relative w-full h-[500px] bg-gradient-to-br from-slate-50 via-white to-blue-50/30 rounded-2xl border border-slate-200/50 overflow-visible shadow-[0_20px_70px_-15px_rgba(0,0,0,0.3),0_10px_30px_-10px_rgba(0,0,0,0.2)]"
-      style={{ transformStyle: "flat" }}
-    >
+    <div className="px-1 sm:px-0">
+      <div
+        className="relative w-full h-[500px] bg-gradient-to-br from-slate-50 via-white to-blue-50/30 rounded-2xl border border-slate-200/50 overflow-hidden sm:overflow-visible shadow-[0_20px_70px_-15px_rgba(0,0,0,0.3),0_10px_30px_-10px_rgba(0,0,0,0.2)]"
+        style={{ transformStyle: "flat" }}
+      >
       {/* Floating Cards */}
-      <div className="absolute -top-6 -left-6 bg-white rounded-xl p-4 shadow-xl border border-slate-200 z-20 animate-float">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1 flex-shrink-0">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200">
+      <div className="absolute top-3 left-3 sm:-top-6 sm:-left-6 bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-lg sm:shadow-xl border border-slate-200 z-20 animate-float">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex gap-0.5 sm:gap-1 flex-shrink-0">
+            <div className="relative w-5 h-5 sm:w-8 sm:h-8 rounded sm:rounded-lg overflow-hidden border border-slate-200">
               <Image
                 src="/directions/2D.png"
                 alt="2D Direction"
@@ -218,7 +219,7 @@ export function SkillTreeMockup() {
                 className="object-cover"
               />
             </div>
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200">
+            <div className="relative w-5 h-5 sm:w-8 sm:h-8 rounded sm:rounded-lg overflow-hidden border border-slate-200">
               <Image
                 src="/directions/3D.png"
                 alt="3D Direction"
@@ -226,7 +227,7 @@ export function SkillTreeMockup() {
                 className="object-cover"
               />
             </div>
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200">
+            <div className="relative w-5 h-5 sm:w-8 sm:h-8 rounded sm:rounded-lg overflow-hidden border border-slate-200">
               <Image
                 src="/directions/animation.jpg"
                 alt="Animation Direction"
@@ -236,32 +237,32 @@ export function SkillTreeMockup() {
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500">Создавай своё древо</div>
-            <div className="text-sm font-semibold text-slate-900">или используй существующие</div>
+            <div className="text-[9px] sm:text-xs text-slate-500">Создавай своё древо</div>
+            <div className="text-[11px] sm:text-sm font-semibold text-slate-900">или используй существующие</div>
           </div>
         </div>
       </div>
 
-      <div className="absolute -top-6 -right-6 bg-white rounded-xl p-4 shadow-xl border border-slate-200 z-20 animate-float delay-200">
-        <div className="flex items-center gap-3">
-          <div className="relative w-12 h-16 flex-shrink-0">
+      <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:top-auto sm:translate-y-0 sm:-top-6 sm:-right-6 bg-white rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-lg sm:shadow-xl border border-slate-200 z-20 animate-float delay-200">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="relative w-8 h-10 sm:w-12 sm:h-16 flex-shrink-0">
             <Image
               src="/home/features_guide5.jpeg"
               alt="Guide"
               fill
-              className="object-cover rounded-md border border-slate-200 shadow-sm"
+              className="object-cover rounded sm:rounded-md border border-slate-200 shadow-sm"
             />
           </div>
           <div>
-            <div className="text-xs text-slate-500">Используй гайды</div>
-            <div className="text-sm font-semibold text-slate-900">для создания древа</div>
+            <div className="text-[9px] sm:text-xs text-slate-500">Используй гайды</div>
+            <div className="text-[11px] sm:text-sm font-semibold text-slate-900">для создания древа</div>
           </div>
         </div>
       </div>
 
-      <div className="absolute -bottom-6 left-[10%] bg-white rounded-xl px-4 py-3 shadow-xl border border-slate-200 z-20 animate-float delay-500">
-        <div className="flex items-center gap-2">
-          <div className="relative w-8 h-8 rounded-full flex-shrink-0 overflow-hidden border-2 border-green-500">
+      <div className="absolute bottom-3 left-3 sm:-bottom-6 sm:left-[10%] bg-white rounded-lg sm:rounded-xl px-2 py-1.5 sm:px-4 sm:py-3 shadow-lg sm:shadow-xl border border-slate-200 z-20 animate-float delay-500">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="relative w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0 overflow-hidden border sm:border-2 border-green-500">
             <Image
               src="/home/features_avatar1.jpg"
               alt="User Profile"
@@ -270,7 +271,7 @@ export function SkillTreeMockup() {
             />
           </div>
           <div>
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-[11px] sm:text-sm font-medium text-slate-700">
               Выполняй древо и храни результат у себя в профиле
             </span>
           </div>
@@ -286,7 +287,7 @@ export function SkillTreeMockup() {
       <div className="absolute top-10 left-10 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-10 right-10 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl animate-pulse delay-500" />
 
-      <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
+      <svg className="absolute inset-0 w-full h-full px-4 sm:px-0" style={{ zIndex: 1 }}>
         <defs>
           <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
@@ -316,8 +317,8 @@ export function SkillTreeMockup() {
                 x2={`${target.x}%`}
                 y2={`${target.y}%`}
                 stroke={lineColor}
-                strokeWidth={bothCompleted ? "3" : (isHighlighted ? "3" : "2")}
-                className="transition-all duration-300"
+                strokeWidth={bothCompleted ? "2" : (isHighlighted ? "2" : "1.5")}
+                className="transition-all duration-300 sm:[stroke-width:3] sm:[&.highlighted]:[stroke-width:3]"
                 opacity={bothCompleted ? "0.8" : (isHighlighted ? "1" : "0.4")}
               />
             );
@@ -326,7 +327,7 @@ export function SkillTreeMockup() {
       </svg>
 
       {/* Nodes */}
-      <div className="relative h-full" style={{ zIndex: 2 }}>
+      <div className="relative h-full px-4 sm:px-0" style={{ zIndex: 2 }}>
         {skillsData.map((skill) => {
           const isVisible = visibleNodes.has(skill.id);
           const isHighlighted = isNodeHighlighted(skill.id);
@@ -342,10 +343,10 @@ export function SkillTreeMockup() {
           let ringClass = "";
           if (skill.status === "completed") {
             // Для completed: оранжевый по умолчанию, синий при hover
-            ringClass = isHighlighted ? "ring-4 ring-blue-400/50" : "ring-4 ring-orange-400/30";
+            ringClass = isHighlighted ? "ring-2 sm:ring-4 ring-blue-400/50" : "ring-2 sm:ring-4 ring-orange-400/30";
           } else {
             // Для available: синий только при hover
-            ringClass = isHighlighted ? "ring-4 ring-blue-400/50" : "";
+            ringClass = isHighlighted ? "ring-2 sm:ring-4 ring-blue-400/50" : "";
           }
 
           const IconComponent = skill.icon;
@@ -366,17 +367,17 @@ export function SkillTreeMockup() {
               onMouseEnter={() => setHoveredNode(skill.id)}
               onMouseLeave={() => setHoveredNode(null)}
             >
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-1 sm:gap-2">
                 {/* Node Circle */}
                 <div
-                  className={`w-14 h-14 rounded-full border-2 ${bgColor} ${borderColor} ${ringClass} shadow-lg flex items-center justify-center transition-all duration-200`}
+                  className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full border sm:border-2 ${bgColor} ${borderColor} ${ringClass} shadow-md sm:shadow-lg flex items-center justify-center transition-all duration-200`}
                 >
-                  <IconComponent className="w-5 h-5 text-white" />
+                  <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
 
                 {/* Label */}
                 <div
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 bg-white text-slate-700 border border-slate-200 shadow-sm"
+                  className="px-1.5 py-0.5 sm:px-3 sm:py-1.5 rounded sm:rounded-lg text-[9px] sm:text-xs font-medium text-center max-w-[65px] sm:max-w-none transition-all duration-200 bg-white text-slate-700 border border-slate-200 shadow-sm leading-tight"
                 >
                   {skill.name}
                 </div>
@@ -386,6 +387,7 @@ export function SkillTreeMockup() {
         })}
       </div>
 
+      </div>
     </div>
   );
 }
