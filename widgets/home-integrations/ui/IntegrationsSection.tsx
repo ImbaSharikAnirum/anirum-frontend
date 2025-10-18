@@ -49,7 +49,7 @@ export function IntegrationsSection() {
 
           {/* Плавное затухание (горизонталь) */}
           <div
-            className="absolute inset-0 z-10 pointer-events-none"
+            className="absolute -inset-x-px inset-y-0 z-10 pointer-events-none"
             style={{
               background:
                 "linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.95) 5%, rgba(255,255,255,0.7) 12%, rgba(255,255,255,0.3) 18%, transparent 28%, transparent 72%, rgba(255,255,255,0.3) 82%, rgba(255,255,255,0.7) 88%, rgba(255,255,255,0.95) 95%, rgba(255,255,255,1) 100%)",
