@@ -9,7 +9,7 @@ interface PinCardProps {
 
 export function IntegrationsSection() {
   const PinCard = ({ pinNumber }: PinCardProps) => (
-    <div className="relative z-20 size-20 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="relative z-20 size-14 sm:size-20 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <Image
         src={`/pinterest/pin${pinNumber}.jpg`}
         alt={`Pinterest pin ${pinNumber}`}
@@ -22,7 +22,7 @@ export function IntegrationsSection() {
 
   const PinterestIcon = () => (
     <svg
-      className="w-12 h-12"
+      className="w-8 h-8 sm:w-12 sm:h-12"
       viewBox="0 0 24 24"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
@@ -32,13 +32,13 @@ export function IntegrationsSection() {
   );
 
   return (
-    <div className="relative w-full bg-white overflow-hidden py-12">
+    <div className="relative w-full bg-white overflow-hidden py-8 sm:py-12">
       <div className="flex flex-col items-center justify-center">
         <div
-          className="group relative mx-auto max-w-2xl items-center justify-between space-y-6 transition-transform duration-1000 pb-8"
+          className="group relative mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl items-center justify-between space-y-4 sm:space-y-6 transition-transform duration-1000 pb-6 sm:pb-8"
           style={{
             transformStyle: "preserve-3d",
-            transform: "perspective(1000px) rotateX(35deg) scaleY(0.9)",
+            transform: "perspective(1000px) rotateX(0deg) scaleY(1)",
           }}
         >
           {/* Сетка фона */}
@@ -59,8 +59,8 @@ export function IntegrationsSection() {
           {/* Ряд 1 */}
           <div className="overflow-hidden">
             <div
-              className="flex w-max animate-scroll-1"
-              style={{ gap: "56px", flexDirection: "row" }}
+              className="flex w-max animate-scroll-1 gap-6 sm:gap-14"
+              style={{ flexDirection: "row" }}
             >
               <PinCard pinNumber={1} />
               <PinCard pinNumber={2} />
@@ -85,8 +85,8 @@ export function IntegrationsSection() {
           {/* Ряд 2 */}
           <div className="overflow-hidden">
             <div
-              className="flex w-max animate-scroll-2"
-              style={{ gap: "56px", flexDirection: "row-reverse" }}
+              className="flex w-max animate-scroll-2 gap-6 sm:gap-14"
+              style={{ flexDirection: "row-reverse" }}
             >
               <PinCard pinNumber={9} />
               <PinCard pinNumber={10} />
@@ -109,8 +109,8 @@ export function IntegrationsSection() {
           {/* Ряд 3 */}
           <div className="overflow-hidden">
             <div
-              className="flex w-max animate-scroll-3"
-              style={{ gap: "56px", flexDirection: "row" }}
+              className="flex w-max animate-scroll-3 gap-6 sm:gap-14"
+              style={{ flexDirection: "row" }}
             >
               <PinCard pinNumber={16} />
               <PinCard pinNumber={17} />
@@ -132,7 +132,7 @@ export function IntegrationsSection() {
 
           {/* Центральная иконка */}
           <div className="absolute inset-0 flex items-center justify-center z-30">
-            <div className="flex relative size-24 rounded-2xl border border-gray-300 bg-white/90 shadow-2xl shadow-gray-400/30 ring-1 ring-gray-200 backdrop-blur-md">
+            <div className="flex relative size-16 sm:size-24 rounded-xl sm:rounded-2xl border border-gray-300 bg-white/90 shadow-xl sm:shadow-2xl shadow-gray-400/30 ring-1 ring-gray-200 backdrop-blur-md">
               <div className="m-auto text-red-600">
                 <PinterestIcon />
               </div>
@@ -141,13 +141,13 @@ export function IntegrationsSection() {
         </div>
 
         {/* Текстовый блок */}
-        <div className="text-center max-w-2xl mx-auto mt-8 px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+        <div className="text-center max-w-2xl mx-auto mt-6 sm:mt-8 px-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">
             Подключи свой{" "}
             <span className="text-[#E60023] font-extrabold">Pinterest</span> и
             креативь по любимым референсам
           </h2>
-          <p className="text-lg text-slate-600">
+          <p className="text-base sm:text-lg text-slate-600">
             Используй пины как гайды для обучения и собирай портфолио прямо в
             профиле
           </p>
@@ -155,8 +155,13 @@ export function IntegrationsSection() {
       </div>
 
       <style jsx>{`
-        .group:hover {
-          transform: perspective(1000px) rotateX(0deg) scaleY(1) !important;
+        @media (min-width: 768px) {
+          .group {
+            transform: perspective(1000px) rotateX(35deg) scaleY(0.9) !important;
+          }
+          .group:hover {
+            transform: perspective(1000px) rotateX(0deg) scaleY(1) !important;
+          }
         }
 
         @keyframes scroll1 {
