@@ -5,3 +5,4 @@
 
 export * from './model/types'
 export * from './api/creationApi'
+export * from './model/useCreationsByGuide'

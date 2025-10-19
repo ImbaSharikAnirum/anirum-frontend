@@ -31,59 +31,54 @@ type ContentItem = Guide | PinterestPin
 export function ContentViewer({ type, id, user }: ContentViewerProps) {
   const router = useRouter()
 
+  // Флаг монтирования для предотвращения hydration mismatch
+  const [mounted, setMounted] = useState(false)
+
   // Ключи для state и storage
   const stateKey = type === 'pin' ? 'pinData' : 'guideData'
   const storageKey = `${type}-${id}`
 
-  // Умная загрузка данных с приоритетами
-  const [content, setContent] = useState<ContentItem | null>(() => {
-    if (typeof window !== 'undefined') {
-      // Приоритет 1: navigation state (мгновенный рендер!)
-      const navigationState = window.history.state?.[stateKey]
-      if (navigationState?.id === id || navigationState?.documentId === id) {
-        return navigationState
-      }
-
-      // Приоритет 2: sessionStorage кеш
-      try {
-        const cached = sessionStorage.getItem(storageKey)
-        if (cached) {
-          return JSON.parse(cached)
-        }
-      } catch (error) {
-        console.error('Ошибка чтения кеша:', error)
-      }
-    }
-    return null
-  })
-
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const navigationState = window.history.state?.[stateKey]
-      if (navigationState?.id === id || navigationState?.documentId === id) return false
-
-      try {
-        const cached = sessionStorage.getItem(storageKey)
-        if (cached) return false
-      } catch (error) {
-        // ignore
-      }
-    }
-    return true
-  })
+  // Умная загрузка данных с приоритетами (только после монтирования)
+  const [content, setContent] = useState<ContentItem | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const [error, setError] = useState<string | null>(null)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
 
+  // Устанавливаем флаг монтирования и проверяем кеш
+  useEffect(() => {
+    setMounted(true)
+
+    // Проверяем кеш после монтирования
+    // Приоритет 1: navigation state
+    const navigationState = window.history.state?.[stateKey]
+    if (navigationState?.id === id || navigationState?.documentId === id) {
+      setContent(navigationState)
+      setLoading(false)
+      return
+    }
+
+    // Приоритет 2: sessionStorage
+    try {
+      const cached = sessionStorage.getItem(storageKey)
+      if (cached) {
+        setContent(JSON.parse(cached))
+        setLoading(false)
+        return
+      }
+    } catch (error) {
+      console.error('Ошибка чтения кеша:', error)
+    }
+  }, [])
+
   // API запрос только если данных нет
   useEffect(() => {
-    if (content) return
+    if (content || !mounted) return
 
     const loadContent = async () => {
       try {
         setError(null)
-        setLoading(true)
 
         let data: ContentItem | null = null
 
@@ -114,7 +109,7 @@ export function ContentViewer({ type, id, user }: ContentViewerProps) {
     }
 
     loadContent()
-  }, [type, id, content, storageKey])
+  }, [type, id, content, storageKey, mounted])
 
   const handleBack = () => {
     if (content) {

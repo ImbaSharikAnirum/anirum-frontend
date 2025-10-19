@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
 
     const queryParams = new URLSearchParams({
       page: String(page),
-      pageSize: String(pageSize)
+      pageSize: String(pageSize),
+      status: 'draft,published' // Показываем все документы независимо от статуса
     })
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guides/search?${queryParams}`, {

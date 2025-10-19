@@ -76,6 +76,57 @@ export class CreationAPI extends BaseAPI {
   async getMyCreations(): Promise<CreationsResponse> {
     return this.request<CreationsResponse>('/creations/my')
   }
+
+  /**
+   * Получение креативов по гайду
+   * Используем стандартные Strapi 5 фильтры
+   * @param guideId - ID гайда
+   * @param excludeUserId - ID пользователя, чьи креативы нужно исключить (опционально)
+   */
+  async getCreationsByGuide(guideId: string, excludeUserId?: string): Promise<CreationsResponse> {
+    const params = new URLSearchParams({
+      'filters[guide][documentId][$eq]': guideId,
+      'populate[0]': 'image',
+      'populate[1]': 'guide',
+      'populate[2]': 'users_permissions_user',
+      'sort[0]': 'createdAt:desc',
+    })
+
+    // Исключаем креативы определенного пользователя (если указан)
+    if (excludeUserId) {
+      params.set('filters[users_permissions_user][documentId][$ne]', excludeUserId)
+    }
+
+    const response = await fetch(`/api/creations?${params.toString()}`)
+
+    if (!response.ok) {
+      throw new Error('Ошибка при получении креативов')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Получение моих креативов по конкретному гайду
+   */
+  async getMyCreationsByGuide(guideId: string, userId: string): Promise<CreationsResponse> {
+    const params = new URLSearchParams({
+      'filters[guide][documentId][$eq]': guideId,
+      'filters[users_permissions_user][documentId][$eq]': userId,
+      'populate[0]': 'image',
+      'populate[1]': 'guide',
+      'populate[2]': 'users_permissions_user',
+      'sort[0]': 'createdAt:desc',
+    })
+
+    const response = await fetch(`/api/creations?${params.toString()}`)
+
+    if (!response.ok) {
+      throw new Error('Ошибка при получении моих креативов')
+    }
+
+    return response.json()
+  }
 }
 
 // Синглтон экземпляр

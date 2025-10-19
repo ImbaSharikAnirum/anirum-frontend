@@ -11,6 +11,10 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get('session')?.value
 
     const { searchParams } = new URL(request.url)
+
+    // Показываем все документы независимо от статуса (draft и published)
+    searchParams.set('status', 'draft,published')
+
     const queryString = searchParams.toString()
 
     const response = await fetch(
