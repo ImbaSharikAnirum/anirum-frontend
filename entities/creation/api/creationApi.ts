@@ -127,6 +127,61 @@ export class CreationAPI extends BaseAPI {
 
     return response.json()
   }
+
+  /**
+   * Получение всех креативов пользователя
+   * @param userId - ID пользователя
+   * @param params - параметры пагинации
+   */
+  async getUserCreations(userId: string, params?: { page?: number; pageSize?: number }): Promise<CreationsResponse> {
+    const { page = 1, pageSize = 20 } = params || {}
+
+    const searchParams = new URLSearchParams({
+      'filters[users_permissions_user][documentId][$eq]': userId,
+      'pagination[page]': page.toString(),
+      'pagination[pageSize]': pageSize.toString(),
+      'populate[0]': 'image',
+      'populate[1]': 'guide',
+      'populate[2]': 'users_permissions_user',
+      'sort[0]': 'createdAt:desc',
+    })
+
+    const response = await fetch(`/api/creations?${searchParams.toString()}`)
+
+    if (!response.ok) {
+      throw new Error('Ошибка при получении креативов пользователя')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Получение креатива по ID
+   * @param creationId - ID креатива
+   */
+  async getCreationById(creationId: string): Promise<{ data: Creation }> {
+    const response = await fetch(`/api/creations/${creationId}`)
+
+    if (!response.ok) {
+      throw new Error('Ошибка при получении креатива')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Удаление креатива
+   * @param creationId - ID креатива
+   */
+  async deleteCreation(creationId: string): Promise<void> {
+    const response = await fetch(`/api/creations/${creationId}/delete`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      throw new Error('Ошибка при удалении креатива')
+    }
+  }
 }
 
 // Синглтон экземпляр

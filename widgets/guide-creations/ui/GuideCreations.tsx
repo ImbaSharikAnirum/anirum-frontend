@@ -5,6 +5,7 @@
  * @layer widgets
  */
 
+import { useRouter } from 'next/navigation'
 import { Image } from 'lucide-react'
 import { useCreationsByGuide } from '@/entities/creation'
 import { MasonryGallery } from '@/shared/ui'
@@ -16,10 +17,16 @@ interface GuideCreationsProps {
 }
 
 export function GuideCreations({ guideId, user }: GuideCreationsProps) {
+  const router = useRouter()
   const { creations, loading, loadingMore, hasMore, loadMore, error } = useCreationsByGuide({
     guideId,
     excludeUserId: user?.documentId
   })
+
+  const handleCreationClick = (item: any) => {
+    // Переходим на страницу креатива
+    router.push(`/creations/${item.documentId}`)
+  }
 
   // Адаптируем Creation под формат Guide для MasonryGallery
   const adaptedCreations = creations.map(creation => ({
@@ -43,6 +50,7 @@ export function GuideCreations({ guideId, user }: GuideCreationsProps) {
         loadingMore={loadingMore}
         hasMore={hasMore}
         onLoadMore={loadMore}
+        onItemClick={handleCreationClick}
         type="guides"
         emptyTitle={user ? 'Пока нет креативов от других пользователей' : 'Пока нет креативов'}
         emptyDescription={

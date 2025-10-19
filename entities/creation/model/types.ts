@@ -28,6 +28,11 @@ export interface Creation {
     documentId: string
     title: string
     link?: string
+    image?: {
+      id: number
+      url: string
+      alternativeText?: string
+    }
   }
   createdAt: string
   updatedAt: string

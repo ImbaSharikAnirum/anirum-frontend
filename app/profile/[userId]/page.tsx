@@ -1,6 +1,7 @@
 'use client'
 
 import { useUser } from "@/entities/user"
+import { userAuthAPI } from "@/entities/user/api/auth"
 import { ProfileHeader } from "@/widgets/profile-header"
 import { ProfileTabs } from "@/widgets/profile-tabs"
 import { useState, useEffect } from "react"
@@ -25,25 +26,41 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     })
   }, [params])
 
-  // Определяем, чей профиль просматриваем
+  // Определяем, чей профиль просматриваем и загружаем данные
   useEffect(() => {
-    if (currentUser && userId) {
-      const isOwn =
-        currentUser.documentId === userId ||
-        currentUser.id.toString() === userId
-      setIsOwnProfile(isOwn)
+    const loadProfile = async () => {
+      if (!userId) return
 
-      if (isOwn) {
-        // Если это собственный профиль, используем данные из контекста
-        setProfileUser(currentUser)
-        setLoading(false)
-      } else {
-        // TODO: В будущем здесь будет API запрос для получения профиля другого пользователя
-        // Пока показываем заглушку
+      // Если пользователь авторизован, проверяем - свой ли это профиль
+      if (currentUser) {
+        const isOwn =
+          currentUser.documentId === userId ||
+          currentUser.id.toString() === userId
+        setIsOwnProfile(isOwn)
+
+        if (isOwn) {
+          // Если это собственный профиль, используем данные из контекста
+          setProfileUser(currentUser)
+          setLoading(false)
+          return
+        }
+      }
+
+      // Загружаем данные другого пользователя
+      try {
+        setLoading(true)
+        const user = await userAuthAPI.getUserById(userId)
+        setProfileUser(user)
+        setIsOwnProfile(false)
+      } catch (error) {
+        console.error('Ошибка загрузки профиля пользователя:', error)
         setProfileUser(null)
+      } finally {
         setLoading(false)
       }
     }
+
+    loadProfile()
   }, [currentUser, userId])
 
   if (loading) {
@@ -59,7 +76,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     )
   }
 
-  if (!isOwnProfile && !profileUser) {
+  if (!profileUser) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
@@ -67,7 +84,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             Профиль не найден
           </h1>
           <p className="text-gray-500">
-            Пользователь с ID {userId} не существует или недоступен
+            Пользователь не существует или недоступен
           </p>
         </div>
       </div>

@@ -87,6 +87,20 @@ export class UserAuthAPI extends BaseAPI {
 
     return response.json()
   }
+
+  /**
+   * Получение публичной информации о пользователе по ID
+   */
+  async getUserById(userId: string): Promise<User> {
+    const response = await fetch(`/api/users/${userId}`)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to get user')
+    }
+
+    return response.json()
+  }
 }
 
 // Экспортируем экземпляр API

@@ -108,14 +108,15 @@ export function MyGuideCreations({ guideId, user }: MyGuideCreationsProps) {
           {creations.map((creation) => (
             <div
               key={creation.documentId}
-              className="flex-shrink-0 w-64"
+              className="flex-shrink-0 w-64 cursor-pointer group"
+              onClick={() => window.location.href = `/creations/${creation.documentId}`}
             >
               {/* Изображение */}
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 hover:shadow-lg transition-shadow mb-2">
                 <img
                   src={creation.image.url}
                   alt={`Мой креатив ${creation.documentId}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
               </div>
