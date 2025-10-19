@@ -19,7 +19,8 @@ import {
 import { ChevronLeft, Home, Eye, Edit, Loader2 } from 'lucide-react'
 import { useSkills } from '@/shared/lib/contexts/SkillsContext'
 import { useUser } from '@/entities/user'
-import { SkillTree, publishSkillTree, PublishProgress } from '@/entities/skill-tree'
+import { SkillTree, publishSkillTree, PublishProgress, skillTreeAPI } from '@/entities/skill-tree'
+import { getLastOpenedTree, setLastOpenedTree, clearLastOpenedTree } from '@/shared/lib/storage/lastOpenedTree'
 import type { Node, Edge } from '@xyflow/react'
 
 type ViewState =
@@ -52,6 +53,50 @@ export default function SkillsPage() {
     setIsMounted(true)
   }, [])
 
+  // Автооткрытие первого дерева или последнего открытого
+  useEffect(() => {
+    if (!isMounted) return
+
+    // Если дерево уже выбрано в URL, ничего не делаем
+    if (treeId) return
+
+    const autoOpenTree = async () => {
+      // 1. Проверяем localStorage на последнее открытое дерево
+      const lastTreeId = getLastOpenedTree()
+
+      if (lastTreeId) {
+        console.log('🔄 Открываем последнее дерево:', lastTreeId)
+        router.push(`/skills?tree=${lastTreeId}`, { scroll: false })
+        return
+      }
+
+      // 2. Если нет последнего, загружаем первое дерево из API
+      try {
+        const { skillTrees } = await skillTreeAPI.getSkillTrees({
+          pageSize: 1,
+          page: 1
+        })
+
+        if (skillTrees.length > 0) {
+          const firstTree = skillTrees[0]
+          console.log('🔄 Открываем первое дерево:', firstTree.documentId)
+          router.push(`/skills?tree=${firstTree.documentId}`, { scroll: false })
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки первого дерева:', error)
+      }
+    }
+
+    autoOpenTree()
+  }, [isMounted, treeId, router])
+
+  // Сохранение последнего открытого дерева
+  useEffect(() => {
+    if (treeId) {
+      setLastOpenedTree(treeId)
+    }
+  }, [treeId])
+
   // Загрузка дерева из API
   useEffect(() => {
     if (!isMounted || !treeId) return;
@@ -59,8 +104,6 @@ export default function SkillsPage() {
     const loadTree = async () => {
       setLoadingTree(true);
       try {
-        // Временный импорт для загрузки
-        const { skillTreeAPI } = await import('@/entities/skill-tree');
         const tree = await skillTreeAPI.getSkillTree(treeId);
         setApiTree(tree);
       } catch (error) {
@@ -350,9 +393,14 @@ export default function SkillsPage() {
       // Удаление дерева
       if (apiTree) {
         try {
-          const { skillTreeAPI } = await import('@/entities/skill-tree');
           await skillTreeAPI.deleteSkillTree(treeId);
           setIsDeleteDialogOpen(false);
+
+          // Очищаем lastOpenedTree если удаляем текущее дерево
+          const lastTreeId = getLastOpenedTree();
+          if (lastTreeId === treeId) {
+            clearLastOpenedTree();
+          }
 
           // Отправляем событие для удаления из UI сайдбара
           window.dispatchEvent(new CustomEvent('skill-tree-deleted', {
@@ -370,7 +418,6 @@ export default function SkillsPage() {
       // Удаление навыка через API
       if (apiTree) {
         try {
-          const { skillTreeAPI } = await import('@/entities/skill-tree');
           await skillTreeAPI.deleteSkill(view.skillId);
           setIsDeleteDialogOpen(false);
 
