@@ -11,18 +11,39 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { ArrowLeft, ExternalLink, Calendar, Image as ImageIcon } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { ArrowLeft, ExternalLink, Calendar, Image as ImageIcon, MoreVertical, Trash2 } from 'lucide-react'
 import { creationAPI, type Creation } from '@/entities/creation'
+import { toast } from 'sonner'
+import type { User } from '@/entities/user'
 
 interface CreationViewerProps {
   creationId: string
+  user: User | null
 }
 
-export function CreationViewer({ creationId }: CreationViewerProps) {
+export function CreationViewer({ creationId, user }: CreationViewerProps) {
   const router = useRouter()
   const [creation, setCreation] = useState<Creation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const loadCreation = async () => {
@@ -43,6 +64,25 @@ export function CreationViewer({ creationId }: CreationViewerProps) {
       loadCreation()
     }
   }, [creationId])
+
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true)
+      await creationAPI.deleteCreation(creationId)
+      toast.success('Креатив удален')
+      setIsDeleteDialogOpen(false)
+      router.back()
+    } catch (error) {
+      console.error('Ошибка при удалении креатива:', error)
+      toast.error('Ошибка при удалении креатива')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (loading) {
     return <CreationSkeleton />
@@ -70,6 +110,7 @@ export function CreationViewer({ creationId }: CreationViewerProps) {
     month: 'long',
     year: 'numeric'
   })
+  const isOwner = user?.documentId === creation.users_permissions_user.documentId
 
   return (
     <div className="bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
@@ -100,21 +141,43 @@ export function CreationViewer({ creationId }: CreationViewerProps) {
           <div className="bg-white h-full p-6 space-y-6 lg:sticky lg:top-0 overflow-y-auto">
             {/* Author */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-12 h-12">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                    {creation.users_permissions_user.username.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm text-gray-500">Автор</p>
-                  <Link
-                    href={`/profile/${creation.users_permissions_user.documentId}`}
-                    className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-                  >
-                    @{creation.users_permissions_user.username}
-                  </Link>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-12 h-12">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                      {creation.users_permissions_user.username.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm text-gray-500">Автор</p>
+                    <Link
+                      href={`/profile/${creation.users_permissions_user.documentId}`}
+                      className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                    >
+                      @{creation.users_permissions_user.username}
+                    </Link>
+                  </div>
                 </div>
+
+                {/* Dropdown Menu - только для автора */}
+                {isOwner && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={handleDeleteClick}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Удалить креатив
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
 
               {/* Date */}
@@ -158,6 +221,30 @@ export function CreationViewer({ creationId }: CreationViewerProps) {
           </div>
         </div>
       </div>
+
+      {/* Alert Dialog для подтверждения удаления */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удаление креатива</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы действительно хотите удалить этот креатив?
+              <br />
+              Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Удаление...' : 'Удалить креатив'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
