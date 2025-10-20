@@ -49,6 +49,12 @@ export interface UploadCreationRequest {
 export interface CreationsResponse {
   data: Creation[]
   meta: {
-    total: number
+    pagination?: {
+      page: number
+      pageSize: number
+      pageCount: number
+      total: number
+    }
+    total?: number // Для обратной совместимости
   }
 }
