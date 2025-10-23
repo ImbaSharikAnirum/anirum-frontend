@@ -24,7 +24,7 @@ interface SkillsTreeFlowProps {
   isCustomTree?: boolean
   onPublish?: () => Promise<void>
   onDelete?: () => void
-  onSkillEdit?: (skillId: string, data: { title: string; image?: string }) => void
+  onSkillEdit?: (skillId: string, data: { title: string; image?: string; imageId?: number }) => void
 }
 
 // Функции для работы с локальными изменениями
@@ -144,7 +144,7 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [hasLocalChanges, setHasLocalChanges] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: Node } | null>(null)
-  const [editingSkill, setEditingSkill] = useState<{ id: string; title: string; thumbnail?: string } | null>(null)
+  const [editingSkill, setEditingSkill] = useState<{ id: string; title: string; thumbnail?: string; imageId?: number } | null>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
 
   // Кастомный обработчик изменения edges с сохранением стилей выделения
@@ -261,7 +261,7 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
   // Закрытие контекстного меню при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+      if (contextMenuRef.current && event.target instanceof HTMLElement && !contextMenuRef.current.contains(event.target)) {
         setContextMenu(null)
       }
     }
