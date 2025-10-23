@@ -98,7 +98,7 @@ export interface UpdateSkillData {
 }
 
 // Данные node'а навыка в ReactFlow (для localStorage и UI)
-export interface SkillNodeData {
+export interface SkillNodeData extends Record<string, unknown> {
   label: string
   thumbnail?: string // URL для отображения
   imageId?: number // ID изображения в Strapi для публикации
@@ -107,7 +107,7 @@ export interface SkillNodeData {
 }
 
 // Данные node'а гайда в ReactFlow (для localStorage и UI)
-export interface GuideNodeData {
+export interface GuideNodeData extends Record<string, unknown> {
   guideId: string // documentId гайда из Strapi или временный ID
   title: string
   text?: string

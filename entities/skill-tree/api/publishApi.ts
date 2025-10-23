@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import type { SkillTree } from '../model/types';
+import type { SkillTree, SkillNodeData, GuideNodeData } from '../model/types';
 import { skillTreeAPI } from './skillTreeApi';
 
 export interface PublishProgress {
@@ -50,12 +50,12 @@ interface SkillPublishData {
 export async function publishSkillTree(
   treeId: string,
   apiTree: SkillTree,
-  localNodes: Node[],
+  localNodes: Node<SkillNodeData>[],
   localEdges: Edge[],
   onProgress?: (progress: PublishProgress) => void,
   // Опциональные параметры для публикации гайдов конкретного навыка
   skillId?: string,
-  skillGuideNodes?: Node[],
+  skillGuideNodes?: Node<GuideNodeData>[],
   skillGuideEdges?: Edge[]
 ): Promise<PublishResult> {
   try {
@@ -76,7 +76,7 @@ export async function publishSkillTree(
 
     // Если нет локальных навыков, используем навыки из API
     // (это происходит когда публикуем только гайды, без изменений дерева)
-    const effectiveSkillNodes = skillNodes.length > 0
+    const effectiveSkillNodes: Node<SkillNodeData>[] = skillNodes.length > 0
       ? skillNodes
       : (apiTree.skills || []).map(skill => ({
           id: skill.documentId,
@@ -84,6 +84,7 @@ export async function publishSkillTree(
           data: {
             label: skill.title,
             thumbnail: skill.image && typeof skill.image === 'object' ? skill.image.url : undefined,
+            imageId: skill.image && typeof skill.image === 'object' ? skill.image.id : undefined,
             guideCount: skill.guides?.length || 0,
           },
           position: skill.position || { x: 0, y: 0 },
@@ -95,15 +96,12 @@ export async function publishSkillTree(
     const skills: SkillPublishData[] = effectiveSkillNodes.map(node => {
       const existingSkill = apiTree.skills?.find(s => s.documentId === node.id);
 
-      // Передаём imageId, если изображение было загружено
-      const imageId = node.data.imageId as number | undefined;
-
       const skillData: SkillPublishData = {
         documentId: existingSkill ? node.id : undefined,
         tempId: existingSkill ? undefined : node.id,
-        title: node.data.label as string,
+        title: node.data.label,
         position: node.position,
-        imageId: imageId, // Передаём только ID загруженного изображения
+        imageId: node.data.imageId, // Передаём только ID загруженного изображения
       };
 
       return skillData;
@@ -160,9 +158,6 @@ export async function publishSkillTree(
         // Сохраняем маппинг node.id -> guideDocId
         nodeIdToGuideDocId.set(node.id, guideDocId);
 
-        // Передаём imageId, если изображение было загружено
-        const imageId = node.data.imageId as number | undefined;
-
         // Проверяем, это новый гайд или существующий
         // Новые гайды имеют временный ID в формате "guide-{skillId}-{timestamp}" (строка)
         // Существующие гайды из сайдбара имеют guideDocId как numeric ID (число)
@@ -172,10 +167,10 @@ export async function publishSkillTree(
           id: !isNewGuide && typeof guideDocId === 'number' ? guideDocId : undefined, // Numeric ID для существующих
           documentId: existingGuide ? existingGuide.documentId : undefined, // Document ID для существующих гайдов
           tempId: isNewGuide ? node.id : undefined, // Временный ID для новых гайдов
-          title: node.data.title as string,
-          text: node.data.text as string | undefined,
-          link: node.data.link as string | undefined,
-          imageId: imageId, // Передаём только ID загруженного изображения
+          title: node.data.title,
+          text: node.data.text,
+          link: node.data.link,
+          imageId: node.data.imageId, // Передаём только ID загруженного изображения
           skillId: skillId,
         };
 
