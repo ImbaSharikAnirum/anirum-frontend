@@ -305,6 +305,37 @@ export default function SkillsPage() {
     setSelectedItem(item)
   }, [])
 
+  // Обработчик редактирования навыка
+  const handleSkillEdit = useCallback((skillId: string, data: { title: string; image?: string }) => {
+    if (!treeId) return
+
+    // Получаем текущие локальные изменения
+    const localDraft = getLocalDraft(treeId)
+    const currentNodes = localDraft.nodes || treeNodes
+
+    // Обновляем ноду
+    const updatedNodes = currentNodes.map(node =>
+      node.id === skillId
+        ? {
+            ...node,
+            data: {
+              ...node.data,
+              label: data.title,
+              thumbnail: data.image || node.data.thumbnail,
+            },
+          }
+        : node
+    )
+
+    // Сохраняем в localStorage
+    const LOCAL_DRAFT_NODES_KEY_PREFIX = 'anirum_draft_nodes_'
+    localStorage.setItem(`${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`, JSON.stringify(updatedNodes))
+
+    // Триггер обновления
+    setLocalStorageVersion(v => v + 1)
+    window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }))
+  }, [treeId, treeNodes])
+
   // Обработчик публикации - отправка локальных изменений на сервер
   const handlePublish = useCallback(async () => {
     if (!treeId || !apiTree || isPublishing) return;
@@ -592,6 +623,7 @@ export default function SkillsPage() {
             isCustomTree={!!apiTree}
             onPublish={handlePublish}
             onDelete={handleDeleteClick}
+            onSkillEdit={handleSkillEdit}
           />
         ) : (
           <SkillGuidesFlow

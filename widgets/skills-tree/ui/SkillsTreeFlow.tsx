@@ -3,10 +3,12 @@
 import { ReactFlow, Background, Controls, MiniMap, Node, Edge, NodeTypes, useNodesState, useEdgesState, Panel, ConnectionMode, addEdge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { SkillNode } from '@/shared/ui'
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Upload, Trash2 } from 'lucide-react'
+import { Plus, Upload, Trash2, Edit } from 'lucide-react'
 import { CreateBranchDialog } from '@/features/branch-create'
+import { EditSkillDialog } from '@/features/skill-edit'
+import { skillTreeAPI } from '@/entities/skill-tree'
 
 const nodeTypes: NodeTypes = {
   skill: SkillNode as any,
@@ -22,6 +24,7 @@ interface SkillsTreeFlowProps {
   isCustomTree?: boolean
   onPublish?: () => Promise<void>
   onDelete?: () => void
+  onSkillEdit?: (skillId: string, data: { title: string; image?: string }) => void
 }
 
 // Функции для работы с локальными изменениями
@@ -135,11 +138,14 @@ const CUSTOM_SKILL_EDGES_KEY_PREFIX = 'anirum_custom_skill_edges_';
 const LOCAL_DRAFT_NODES_KEY_PREFIX = 'anirum_draft_nodes_';
 const LOCAL_DRAFT_EDGES_KEY_PREFIX = 'anirum_draft_edges_';
 
-export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onPublish, onDelete }: SkillsTreeFlowProps) {
+export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onPublish, onDelete, onSkillEdit }: SkillsTreeFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultInitialNodes)
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges || defaultInitialEdges)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [hasLocalChanges, setHasLocalChanges] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: Node } | null>(null)
+  const [editingSkill, setEditingSkill] = useState<{ id: string; title: string; thumbnail?: string } | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
 
   // Кастомный обработчик изменения edges с сохранением стилей выделения
   const onEdgesChange = useCallback((changes: any[]) => {
@@ -252,8 +258,25 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     });
   }, [setEdges, isCustomTree, treeId])
 
+  // Закрытие контекстного меню при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [contextMenu])
+
   // Обработчик клика - показываем инфо в правом блоке
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    // Закрываем контекстное меню при обычном клике
+    setContextMenu(null)
+
     if (node.type === 'skill') {
       onItemSelect({
         type: 'skill',
@@ -270,6 +293,61 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       onSkillOpen(node.id)
     }
   }, [onSkillOpen])
+
+  // Обработчик контекстного меню на ноде
+  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+    // Показываем меню только в режиме редактирования и для навыков
+    if (mode === 'edit' && node.type === 'skill') {
+      event.preventDefault()
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        node,
+      })
+    }
+  }, [mode])
+
+  // Открытие диалога редактирования
+  const handleEditSkill = useCallback(() => {
+    if (contextMenu) {
+      setEditingSkill({
+        id: contextMenu.node.id,
+        title: contextMenu.node.data.label as string,
+        thumbnail: contextMenu.node.data.thumbnail as string | undefined,
+        imageId: contextMenu.node.data.imageId as number | undefined,
+      })
+      setContextMenu(null)
+    }
+  }, [contextMenu])
+
+  // Сохранение изменений навыка
+  const handleSaveSkill = useCallback((data: { title: string; image?: string; imageId?: number }) => {
+    if (!editingSkill) return
+
+    // Обновляем ноду локально
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === editingSkill.id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                label: data.title,
+                thumbnail: data.image || node.data.thumbnail,
+                imageId: data.imageId !== undefined ? data.imageId : node.data.imageId,
+              },
+            }
+          : node
+      )
+    )
+
+    // Вызываем callback для обновления в parent компоненте
+    if (onSkillEdit) {
+      onSkillEdit(editingSkill.id, data)
+    }
+
+    setEditingSkill(null)
+  }, [editingSkill, setNodes, onSkillEdit])
 
   // Сохранение навыков в localStorage для кастомных деревьев
   const saveCustomSkills = useCallback((updatedNodes: Node[]) => {
@@ -310,24 +388,32 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     setHasLocalChanges(true);
   }, [edges, isCustomTree, mode, treeId]);
 
-  // Конвертация File в base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   // Создание нового навыка
   const handleCreateSkill = useCallback(async (data: { label: string; thumbnail?: File }) => {
     const newId = `skill-${Date.now()}`
 
-    // Конвертируем изображение в base64 если есть
-    let thumbnailBase64: string | undefined;
+    // Загружаем изображение сразу на сервер если есть
+    let thumbnailUrl: string | undefined
+    let imageId: number | undefined
+
     if (data.thumbnail) {
-      thumbnailBase64 = await fileToBase64(data.thumbnail);
+      try {
+        // Загружаем изображение через существующий метод API
+        const uploadedIds = await skillTreeAPI.uploadImage(data.thumbnail)
+        imageId = uploadedIds[0]
+
+        // Получаем URL для отображения
+        const response = await fetch(`/api/upload/files/${imageId}`)
+        if (response.ok) {
+          const imageData = await response.json()
+          thumbnailUrl = imageData.url
+        }
+
+        console.log('✅ Изображение загружено при создании навыка:', { id: imageId, url: thumbnailUrl })
+      } catch (error) {
+        console.error('Ошибка загрузки изображения:', error)
+        alert('Не удалось загрузить изображение. Навык будет создан без изображения.')
+      }
     }
 
     const newNode: Node = {
@@ -335,7 +421,8 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       type: 'skill',
       data: {
         label: data.label,
-        thumbnail: thumbnailBase64,
+        thumbnail: thumbnailUrl,  // URL для отображения
+        imageId: imageId,         // ID для публикации
         guideCount: 0,
         mode,
       },
@@ -359,6 +446,7 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         onConnect={mode === 'edit' ? onConnect : undefined}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
+        onNodeContextMenu={onNodeContextMenu}
         nodeTypes={nodeTypes}
         fitView
         zoomOnDoubleClick={false}
@@ -422,6 +510,34 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onSubmit={handleCreateSkill}
+      />
+
+      {/* Контекстное меню */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-background border rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
+        >
+          <button
+            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+            onClick={handleEditSkill}
+          >
+            <Edit className="h-4 w-4" />
+            Редактировать навык
+          </button>
+        </div>
+      )}
+
+      {/* Диалог редактирования навыка */}
+      <EditSkillDialog
+        open={!!editingSkill}
+        onOpenChange={(open) => !open && setEditingSkill(null)}
+        skill={editingSkill}
+        onSave={handleSaveSkill}
       />
     </>
   )

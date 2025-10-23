@@ -1,0 +1,228 @@
+'use client'
+
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { skillTreeAPI } from '@/entities/skill-tree'
+
+interface EditSkillDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  skill: {
+    id: string
+    title: string
+    thumbnail?: string
+    imageId?: number
+  } | null
+  onSave: (data: { title: string; image?: string; imageId?: number }) => void
+}
+
+export function EditSkillDialog({ open, onOpenChange, skill, onSave }: EditSkillDialogProps) {
+  const [title, setTitle] = useState(skill?.title || '')
+  const [image, setImage] = useState<string | undefined>(skill?.thumbnail)
+  const [imageId, setImageId] = useState<number | undefined>(skill?.imageId)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Обновляем состояние при смене навыка
+  useEffect(() => {
+    if (skill) {
+      setTitle(skill.title)
+      setImage(skill.thumbnail)
+      setImageId(skill.imageId)
+    }
+  }, [skill])
+
+  // Обработка выбора файла - загружаем сразу на сервер
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение')
+      return
+    }
+
+    // Проверка размера (макс 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Размер файла не должен превышать 5MB')
+      return
+    }
+
+    setIsUploading(true)
+    setIsLoading(true)
+    try {
+      // Загружаем изображение сразу на S3 через существующий метод API
+      const uploadedIds = await skillTreeAPI.uploadImage(file)
+      const newImageId = uploadedIds[0]
+
+      // Получаем URL для preview
+      const response = await fetch(`/api/upload/files/${newImageId}`)
+      if (!response.ok) {
+        throw new Error('Не удалось получить данные изображения')
+      }
+
+      const imageData = await response.json()
+      const imageUrl = imageData.url
+
+      // Сохраняем URL (для отображения) и ID (для публикации)
+      setImage(imageUrl)
+      setImageId(newImageId)
+
+      console.log('✅ Изображение загружено:', { id: newImageId, url: imageUrl })
+    } catch (error) {
+      console.error('Ошибка при загрузке изображения:', error)
+      alert('Не удалось загрузить изображение на сервер. Попробуйте еще раз.')
+    } finally {
+      setIsUploading(false)
+      setIsLoading(false)
+    }
+  }
+
+  // Удаление изображения
+  const handleRemoveImage = () => {
+    setImage(undefined)
+    setImageId(undefined)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Сохранение изменений
+  const handleSave = () => {
+    if (!title.trim()) {
+      alert('Введите название навыка')
+      return
+    }
+
+    onSave({
+      title: title.trim(),
+      image: image,      // URL для отображения
+      imageId: imageId,  // ID для публикации
+    })
+
+    // Закрываем диалог
+    onOpenChange(false)
+  }
+
+  // Закрытие диалога
+  const handleClose = () => {
+    onOpenChange(false)
+  }
+
+  if (!skill) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Редактировать навык</DialogTitle>
+          <DialogDescription>
+            Измените название и изображение навыка
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Название навыка */}
+          <div className="space-y-2">
+            <Label htmlFor="skill-title">Название навыка *</Label>
+            <Input
+              id="skill-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Введите название навыка"
+              maxLength={100}
+            />
+          </div>
+
+          {/* Изображение */}
+          <div className="space-y-2">
+            <Label>Изображение навыка</Label>
+
+            {/* Preview изображения */}
+            {image ? (
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden border bg-muted">
+                <img
+                  src={image}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  className="absolute top-2 right-2"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="w-full aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 flex items-center justify-center">
+                <div className="text-center">
+                  <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Нет изображения
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Кнопка загрузки */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Загрузка на сервер...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {image ? 'Изменить изображение' : 'Загрузить изображение'}
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {isUploading
+                ? 'Изображение загружается на сервер...'
+                : 'Форматы: JPG, PNG, GIF. Максимальный размер: 5MB'}
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            Отмена
+          </Button>
+          <Button onClick={handleSave}>
+            Сохранить изменения
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

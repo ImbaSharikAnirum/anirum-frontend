@@ -5,6 +5,9 @@ interface RouteContext {
   params: Promise<{ documentId: string }>
 }
 
+// Увеличиваем таймаут для больших запросов
+export const maxDuration = 30
+
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { documentId } = await context.params

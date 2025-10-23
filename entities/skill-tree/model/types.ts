@@ -96,3 +96,22 @@ export interface UpdateSkillData {
   guideEdges?: GuideEdge[]
   image?: File
 }
+
+// Данные node'а навыка в ReactFlow (для localStorage и UI)
+export interface SkillNodeData {
+  label: string
+  thumbnail?: string // URL для отображения
+  imageId?: number // ID изображения в Strapi для публикации
+  guideCount?: number
+  mode?: 'edit' | 'view'
+}
+
+// Данные node'а гайда в ReactFlow (для localStorage и UI)
+export interface GuideNodeData {
+  guideId: string // documentId гайда из Strapi или временный ID
+  title: string
+  text?: string
+  link?: string
+  thumbnail?: string // URL для отображения
+  imageId?: number // ID изображения в Strapi для публикации
+}

@@ -27,7 +27,7 @@ interface GuidePublishData {
   title: string;
   text?: string;
   link?: string;
-  image?: string; // base64 или URL
+  imageId?: number; // ID загруженного изображения в Strapi
   skillId: string; // К какому навыку относится гайд
 }
 
@@ -39,7 +39,7 @@ interface SkillPublishData {
   tempId?: string;
   title: string;
   position: { x: number; y: number };
-  image?: string;
+  imageId?: number; // ID загруженного изображения в Strapi
   guideEdges?: Array<{ id: string; source: string; target: string; type?: string }>;
 }
 
@@ -95,17 +95,15 @@ export async function publishSkillTree(
     const skills: SkillPublishData[] = effectiveSkillNodes.map(node => {
       const existingSkill = apiTree.skills?.find(s => s.documentId === node.id);
 
-      // Передаём изображение только если это base64 (новое или изменённое изображение)
-      // Если это URL (http/https), значит изображение не менялось - не передаём его
-      const thumbnail = node.data.thumbnail as string | undefined;
-      const isBase64 = thumbnail && thumbnail.startsWith('data:image');
+      // Передаём imageId, если изображение было загружено
+      const imageId = node.data.imageId as number | undefined;
 
       const skillData: SkillPublishData = {
         documentId: existingSkill ? node.id : undefined,
         tempId: existingSkill ? undefined : node.id,
         title: node.data.label as string,
         position: node.position,
-        image: isBase64 ? thumbnail : undefined, // Передаём только base64
+        imageId: imageId, // Передаём только ID загруженного изображения
       };
 
       return skillData;
@@ -162,9 +160,8 @@ export async function publishSkillTree(
         // Сохраняем маппинг node.id -> guideDocId
         nodeIdToGuideDocId.set(node.id, guideDocId);
 
-        // Передаём изображение только если это base64
-        const thumbnail = node.data.thumbnail as string | undefined;
-        const isBase64 = thumbnail && thumbnail.startsWith('data:image');
+        // Передаём imageId, если изображение было загружено
+        const imageId = node.data.imageId as number | undefined;
 
         // Проверяем, это новый гайд или существующий
         // Новые гайды имеют временный ID в формате "guide-{skillId}-{timestamp}" (строка)
@@ -178,7 +175,7 @@ export async function publishSkillTree(
           title: node.data.title as string,
           text: node.data.text as string | undefined,
           link: node.data.link as string | undefined,
-          image: isBase64 ? thumbnail : undefined,
+          imageId: imageId, // Передаём только ID загруженного изображения
           skillId: skillId,
         };
 
@@ -241,6 +238,16 @@ export async function publishSkillTree(
       guides,
     };
 
+    // Вычисляем размер payload
+    const payloadString = JSON.stringify(payload);
+    const payloadSizeBytes = new Blob([payloadString]).size;
+    const payloadSizeKB = (payloadSizeBytes / 1024).toFixed(2);
+    const payloadSizeMB = (payloadSizeBytes / 1024 / 1024).toFixed(2);
+
+    console.log('📦 РАЗМЕР ЗАПРОСА:');
+    console.log(`📦 Байт: ${payloadSizeBytes}`);
+    console.log(`📦 KB: ${payloadSizeKB} KB`);
+    console.log(`📦 MB: ${payloadSizeMB} MB`);
     console.log('🚀 Полный payload:', JSON.stringify(payload, null, 2));
 
     const response = await fetch(`/api/skill-trees/${numericId}/publish`, {
