@@ -300,8 +300,9 @@ export class SkillTreeAPI extends BaseAPI {
 
   /**
    * Загрузка изображения через Next.js API route
+   * Публичный метод - используется в компонентах для загрузки изображений
    */
-  private async uploadImage(file: File): Promise<number[]> {
+  async uploadImage(file: File): Promise<number[]> {
     const form = new FormData();
     form.append("files", file, file.name);
 
