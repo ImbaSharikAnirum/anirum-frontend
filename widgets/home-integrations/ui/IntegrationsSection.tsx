@@ -1,13 +1,59 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import type { User } from "@/entities/user/model/types";
 
 interface PinCardProps {
   pinNumber: number;
 }
 
-export function IntegrationsSection() {
+interface PinterestStatus {
+  isConnected: boolean;
+  username?: string;
+}
+
+interface IntegrationsSectionProps {
+  user?: User | null;
+  pinterestStatus?: PinterestStatus | null;
+}
+
+export function IntegrationsSection({ user, pinterestStatus }: IntegrationsSectionProps) {
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const connectPinterest = () => {
+    if (!user) {
+      toast.error("Войдите в систему для подключения Pinterest");
+      return;
+    }
+
+    const clientId = process.env.NEXT_PUBLIC_PINTEREST_CLIENT_ID;
+    const redirectUri = process.env.NEXT_PUBLIC_PINTEREST_REDIRECT_URI;
+
+    if (!clientId || !redirectUri) {
+      const error = "Не настроены параметры Pinterest OAuth";
+      console.error(error);
+      toast.error(error);
+      return;
+    }
+
+    try {
+      setIsConnecting(true);
+
+      const authUrl = `https://www.pinterest.com/oauth/?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=code&scope=pins:read,boards:read`;
+
+      // Переадресация на Pinterest для авторизации
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error("Ошибка подключения Pinterest:", error);
+      toast.error("Не удалось подключиться к Pinterest");
+      setIsConnecting(false);
+    }
+  };
   const PinCard = ({ pinNumber }: PinCardProps) => (
     <div className="relative z-20 size-14 sm:size-20 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <Image
@@ -147,10 +193,23 @@ export function IntegrationsSection() {
             <span className="text-[#E60023] font-extrabold">Pinterest</span> и
             креативь по любимым референсам
           </h2>
-          <p className="text-base sm:text-lg text-slate-600">
+          <p className="text-base sm:text-lg text-slate-600 mb-6 sm:mb-8">
             Используй пины как гайды для обучения и собирай портфолио прямо в
             профиле
           </p>
+
+          {/* Кнопка подключения Pinterest */}
+          <Button
+            onClick={connectPinterest}
+            disabled={isConnecting || pinterestStatus?.isConnected}
+            className="bg-[#E60023] hover:bg-[#AD081B] text-white font-semibold px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isConnecting
+              ? "Подключаем..."
+              : pinterestStatus?.isConnected
+              ? "Pinterest подключен ✓"
+              : "Подключить Pinterest"}
+          </Button>
         </div>
       </div>
 
