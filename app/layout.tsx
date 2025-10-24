@@ -13,6 +13,7 @@ import { ConditionalLayout } from "@/widgets/layout/conditional-layout"
 import { Toaster } from "@/components/ui/sonner"
 import { getServerUser } from "@/shared/lib/auth"
 import { SkillsProvider } from "@/shared/lib/contexts/SkillsContext"
+import { MixpanelInit } from "@/shared/components"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -73,6 +74,7 @@ export default async function RootLayout({
           `}
         </Script>
         
+        <MixpanelInit />
         <UserProvider initialUser={initialUser}>
           <SkillsProvider>
             <ConditionalLayout defaultOpen={defaultOpen}>
