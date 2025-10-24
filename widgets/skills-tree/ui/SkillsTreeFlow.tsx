@@ -5,10 +5,21 @@ import '@xyflow/react/dist/style.css'
 import { SkillNode } from '@/shared/ui'
 import { useCallback, useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Upload, Trash2, Edit } from 'lucide-react'
+import { Plus, Trash2, Edit } from 'lucide-react'
 import { CreateBranchDialog } from '@/features/branch-create'
 import { EditSkillDialog } from '@/features/skill-edit'
 import { skillTreeAPI } from '@/entities/skill-tree'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const nodeTypes: NodeTypes = {
   skill: SkillNode as any,
@@ -22,9 +33,7 @@ interface SkillsTreeFlowProps {
   initialEdges?: Edge[]
   mode?: 'view' | 'edit'
   isCustomTree?: boolean
-  onPublish?: () => Promise<void>
   onDelete?: () => void
-  onSkillEdit?: (skillId: string, data: { title: string; image?: string; imageId?: number }) => void
 }
 
 // Функции для работы с локальными изменениями
@@ -138,13 +147,15 @@ const CUSTOM_SKILL_EDGES_KEY_PREFIX = 'anirum_custom_skill_edges_';
 const LOCAL_DRAFT_NODES_KEY_PREFIX = 'anirum_draft_nodes_';
 const LOCAL_DRAFT_EDGES_KEY_PREFIX = 'anirum_draft_edges_';
 
-export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onPublish, onDelete, onSkillEdit }: SkillsTreeFlowProps) {
+export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onDelete }: SkillsTreeFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultInitialNodes)
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges || defaultInitialEdges)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [hasLocalChanges, setHasLocalChanges] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: Node } | null>(null)
   const [editingSkill, setEditingSkill] = useState<{ id: string; title: string; thumbnail?: string; imageId?: number } | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [skillToDelete, setSkillToDelete] = useState<{ id: string; title: string } | null>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
 
   // Кастомный обработчик изменения edges с сохранением стилей выделения
@@ -152,8 +163,8 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     onEdgesChangeInternal(changes)
 
     // После применения изменений обновляем стили с учетом selected
-    setEdges((eds) =>
-      eds.map((edge) => {
+    setEdges((eds) => {
+      const updatedEdges = eds.map((edge) => {
         const sourceNode = nodes.find((n) => n.id === edge.source)
         const targetNode = nodes.find((n) => n.id === edge.target)
 
@@ -175,8 +186,20 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
           },
         }
       })
-    )
-  }, [onEdgesChangeInternal, setEdges, nodes])
+
+      // Сохраняем изменения в localStorage (для удаления связей и других изменений)
+      if (isCustomTree) {
+        localStorage.setItem(`${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`, JSON.stringify(updatedEdges))
+
+        // Триггерим событие для обновления hasUnsavedChanges в page.tsx
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }))
+        }
+      }
+
+      return updatedEdges
+    })
+  }, [onEdgesChangeInternal, setEdges, nodes, isCustomTree, treeId])
 
   // Загрузка локальных изменений при монтировании
   useEffect(() => {
@@ -252,13 +275,18 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       const updatedEdges = addEdge({ ...params, type: 'smoothstep' }, eds);
       // Сохраняем связи для кастомных деревьев
       if (isCustomTree) {
-        localStorage.setItem(`${CUSTOM_SKILL_EDGES_KEY_PREFIX}${treeId}`, JSON.stringify(updatedEdges));
+        localStorage.setItem(`${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`, JSON.stringify(updatedEdges));
+
+        // Триггерим событие для обновления hasUnsavedChanges в page.tsx
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }))
+        }
       }
       return updatedEdges;
     });
   }, [setEdges, isCustomTree, treeId])
 
-  // Закрытие контекстного меню при клике вне его
+  // Закрытие контекстного меню при клике вне его и по ESC
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contextMenuRef.current && event.target instanceof HTMLElement && !contextMenuRef.current.contains(event.target)) {
@@ -266,9 +294,19 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       }
     }
 
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMenu(null)
+      }
+    }
+
     if (contextMenu) {
       document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleEscKey)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('keydown', handleEscKey)
+      }
     }
   }, [contextMenu])
 
@@ -307,6 +345,20 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     }
   }, [mode])
 
+  // Обработчик клика на пустое место canvas - закрываем меню
+  const onPaneClick = useCallback(() => {
+    if (contextMenu) {
+      setContextMenu(null)
+    }
+  }, [contextMenu])
+
+  // Предотвращаем стандартное контекстное меню браузера на canvas
+  const onPaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
+    event.preventDefault()
+    // Закрываем наше меню при клике правой кнопкой на пустом месте
+    setContextMenu(null)
+  }, [])
+
   // Открытие диалога редактирования
   const handleEditSkill = useCallback(() => {
     if (contextMenu) {
@@ -320,11 +372,55 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     }
   }, [contextMenu])
 
+  // Открытие диалога удаления
+  const handleDeleteSkillClick = useCallback(() => {
+    if (contextMenu) {
+      setSkillToDelete({
+        id: contextMenu.node.id,
+        title: contextMenu.node.data.label as string,
+      })
+      setIsDeleteDialogOpen(true)
+      setContextMenu(null)
+    }
+  }, [contextMenu])
+
+  // Подтверждение удаления навыка
+  const handleDeleteSkillConfirm = useCallback(async () => {
+    if (!skillToDelete) return
+
+    const isExistingSkill = !skillToDelete.id.startsWith('skill-')
+
+    try {
+      if (isExistingSkill) {
+        // Удаляем существующий навык через API
+        await skillTreeAPI.deleteSkill(skillToDelete.id)
+        toast.success('Навык успешно удален')
+      } else {
+        // Для нового навыка просто удаляем из локального стейта
+        toast.success('Навык удален')
+      }
+
+      // Удаляем навык из nodes
+      setNodes((nds) => nds.filter(node => node.id !== skillToDelete.id))
+
+      // Удаляем связанные edges
+      setEdges((eds) => eds.filter(edge =>
+        edge.source !== skillToDelete.id && edge.target !== skillToDelete.id
+      ))
+
+      setIsDeleteDialogOpen(false)
+      setSkillToDelete(null)
+    } catch (error) {
+      console.error('Ошибка удаления навыка:', error)
+      toast.error('Не удалось удалить навык')
+    }
+  }, [skillToDelete, setNodes, setEdges])
+
   // Сохранение изменений навыка
-  const handleSaveSkill = useCallback((data: { title: string; image?: string; imageId?: number }) => {
+  const handleSaveSkill = useCallback(async (data: { title: string; image?: string; imageId?: number }) => {
     if (!editingSkill) return
 
-    // Обновляем ноду локально
+    // 1. Обновляем ноду локально для мгновенного отклика UI
     setNodes((nds) =>
       nds.map((node) =>
         node.id === editingSkill.id
@@ -341,13 +437,29 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       )
     )
 
-    // Вызываем callback для обновления в parent компоненте
-    if (onSkillEdit) {
-      onSkillEdit(editingSkill.id, data)
+    // 2. НОВОЕ: Немедленно обновляем навык на сервере (только для существующих навыков)
+    // Новые навыки имеют временный ID в формате "skill-{timestamp}"
+    const isExistingSkill = !editingSkill.id.startsWith('skill-')
+
+    if (isExistingSkill) {
+      try {
+        await skillTreeAPI.updateSkill(editingSkill.id, {
+          title: data.title,
+          ...(data.imageId !== undefined && { imageId: data.imageId }),
+        })
+        console.log('✅ Навык успешно обновлен на сервере:', editingSkill.id)
+        toast.success('Навык успешно обновлен')
+      } catch (error) {
+        console.error('❌ Ошибка обновления навыка:', error)
+        toast.error('Не удалось обновить навык на сервере')
+      }
+    } else {
+      // Для новых навыков изменения сохранятся через localStorage и auto-save/publish
+      console.log('📝 Новый навык обновлен локально, будет сохранен при публикации')
     }
 
     setEditingSkill(null)
-  }, [editingSkill, setNodes, onSkillEdit])
+  }, [editingSkill, setNodes])
 
   // Сохранение навыков в localStorage для кастомных деревьев
   const saveCustomSkills = useCallback((updatedNodes: Node[]) => {
@@ -410,9 +522,11 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         }
 
         console.log('✅ Изображение загружено при создании навыка:', { id: imageId, url: thumbnailUrl })
+        toast.success('Изображение успешно загружено')
       } catch (error) {
         console.error('Ошибка загрузки изображения:', error)
-        alert('Не удалось загрузить изображение. Навык будет создан без изображения.')
+        const errorMessage = error instanceof Error ? error.message : 'Не удалось загрузить изображение'
+        toast.error(`${errorMessage}. Навык будет создан без изображения.`)
       }
     }
 
@@ -447,6 +561,8 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeContextMenu={onNodeContextMenu}
+        onPaneClick={onPaneClick}
+        onPaneContextMenu={onPaneContextMenu}
         nodeTypes={nodeTypes}
         fitView
         zoomOnDoubleClick={false}
@@ -477,19 +593,6 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
               Создать навык
             </Button>
 
-            {/* Кнопка публикации - только для кастомных деревьев */}
-            {isCustomTree && onPublish && (
-              <Button
-                onClick={onPublish}
-                size="sm"
-                className="gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:bg-background/80"
-                variant="outline"
-              >
-                <Upload className="h-4 w-4" />
-                Опубликовать
-              </Button>
-            )}
-
             {/* Кнопка удаления - только для кастомных деревьев */}
             {isCustomTree && onDelete && (
               <Button
@@ -516,18 +619,26 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       {contextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed z-50 bg-background border rounded-lg shadow-lg py-1 min-w-[160px]"
+          className="fixed z-[100] bg-background border rounded-lg shadow-xl py-1 min-w-[180px] animate-in fade-in-0 zoom-in-95 duration-100"
           style={{
             left: `${contextMenu.x}px`,
             top: `${contextMenu.y}px`,
           }}
         >
           <button
-            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+            className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2.5"
             onClick={handleEditSkill}
           >
             <Edit className="h-4 w-4" />
             Редактировать навык
+          </button>
+          <div className="h-px bg-border my-1" />
+          <button
+            className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2.5"
+            onClick={handleDeleteSkillClick}
+          >
+            <Trash2 className="h-4 w-4" />
+            Удалить навык
           </button>
         </div>
       )}
@@ -539,6 +650,28 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
         skill={editingSkill}
         onSave={handleSaveSkill}
       />
+
+      {/* Диалог подтверждения удаления навыка */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить навык?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены что хотите удалить навык &quot;{skillToDelete?.title}&quot;?
+              Все гайды этого навыка также будут удалены. Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSkillConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

@@ -252,6 +252,9 @@ export class SkillTreeAPI extends BaseAPI {
     if (formData.image) {
       const uploadedImages = await this.uploadImage(formData.image);
       imageId = uploadedImages[0];
+    } else if (formData.imageId !== undefined) {
+      // Используем уже загруженный imageId если передан
+      imageId = formData.imageId;
     }
 
     // Шаг 2: Подготовить данные для обновления
@@ -260,7 +263,7 @@ export class SkillTreeAPI extends BaseAPI {
         ...(formData.title && { title: formData.title }),
         ...(formData.position && { position: formData.position }),
         ...(formData.guideEdges && { guideEdges: formData.guideEdges }),
-        ...(imageId && { image: imageId }),
+        ...(imageId !== undefined && { image: imageId }),
       },
     };
 
@@ -317,6 +320,21 @@ export class SkillTreeAPI extends BaseAPI {
 
     const uploadedFiles = await response.json();
     return uploadedFiles.map((file: any) => file.id);
+  }
+
+  /**
+   * Удаление изображения из Strapi
+   * Публичный метод - используется для очистки старых изображений
+   */
+  async deleteImage(imageId: number): Promise<void> {
+    const response = await fetch(`/api/upload/files/${imageId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      console.error(`Не удалось удалить изображение с ID ${imageId}`);
+      // Не выбрасываем ошибку, т.к. это не критично
+    }
   }
 }
 

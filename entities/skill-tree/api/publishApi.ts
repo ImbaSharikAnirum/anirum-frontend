@@ -105,6 +105,13 @@ export async function publishSkillTree(
         imageId: nodeData.imageId, // Передаём только ID загруженного изображения
       };
 
+      console.log('📤 Frontend отправляет навык:', {
+        title: skillData.title,
+        imageId: skillData.imageId,
+        nodeDataImageId: nodeData.imageId,
+        fullNodeData: nodeData
+      });
+
       return skillData;
     });
 

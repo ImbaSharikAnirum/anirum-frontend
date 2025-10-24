@@ -16,12 +16,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ChevronLeft, Home, Eye, Edit, Loader2 } from 'lucide-react'
+import { ChevronLeft, Home, Eye, Edit, Loader2, RefreshCw } from 'lucide-react'
 import { useSkills } from '@/shared/lib/contexts/SkillsContext'
 import { useUser } from '@/entities/user'
-import { SkillTree, publishSkillTree, PublishProgress, skillTreeAPI } from '@/entities/skill-tree'
+import { SkillTree, publishSkillTree, skillTreeAPI } from '@/entities/skill-tree'
 import { getLastOpenedTree, setLastOpenedTree, clearLastOpenedTree } from '@/shared/lib/storage/lastOpenedTree'
 import type { Node, Edge } from '@xyflow/react'
+import { useAutoSave } from '@/shared/hooks'
+import { toast } from 'sonner'
 
 type ViewState =
   | { type: 'tree' }
@@ -98,12 +100,18 @@ export default function SkillsPage() {
   }, [treeId])
 
   // Загрузка дерева из API
+  // ВАЖНО: Всегда делаем свежий запрос (паттерн Miro/Figma)
+  // cache: 'no-store' в BaseAPI гарантирует отсутствие кэширования
   useEffect(() => {
     if (!isMounted || !treeId) return;
 
     const loadTree = async () => {
       setLoadingTree(true);
       try {
+        // Принудительно обновляем localStorageVersion чтобы очистить stale localStorage данные
+        // Это гарантирует что неавторизованные пользователи увидят свежие API данные
+        setLocalStorageVersion(Date.now());
+
         const tree = await skillTreeAPI.getSkillTree(treeId);
         setApiTree(tree);
       } catch (error) {
@@ -150,6 +158,16 @@ export default function SkillsPage() {
     };
   }, [treeId]);
 
+  // Определяем, может ли пользователь редактировать текущее дерево
+  const canEdit = useMemo(() => {
+    if (!user) return false
+    // Менеджер может редактировать все
+    if (user.role?.name === 'Manager') return true
+    // Автор может редактировать свое дерево из API
+    if (apiTree && apiTree.owner?.documentId === user.documentId) return true
+    return false
+  }, [user, apiTree])
+
   // Генерируем ноды для текущего дерева (API + локальные черновики)
   const treeNodes = useMemo(() => {
     // 1. Загружаем ноды из API
@@ -162,6 +180,7 @@ export default function SkillsPage() {
         data: {
           label: skill.title,
           thumbnail: skill.image && typeof skill.image === 'object' ? skill.image.url : undefined,
+          imageId: skill.image && typeof skill.image === 'object' ? skill.image.id : undefined,
           guideCount: skill.guides?.length || 0,
           completed: false,
         },
@@ -169,8 +188,9 @@ export default function SkillsPage() {
       }));
     }
 
-    // 2. Если есть локальные изменения, используем их
-    if (treeId) {
+    // 2. Если есть локальные изменения И пользователь может редактировать, используем их
+    // ВАЖНО: неавторизованные пользователи НЕ должны видеть черновики!
+    if (treeId && canEdit) {
       const localDraft = getLocalDraft(treeId);
       if (localDraft.nodes && localDraft.nodes.length > 0) {
         nodes = localDraft.nodes;
@@ -178,7 +198,7 @@ export default function SkillsPage() {
     }
 
     return nodes;
-  }, [apiTree, treeId, localStorageVersion]);
+  }, [apiTree, treeId, localStorageVersion, canEdit, user]);
 
   // Определяем данные навыков текущего дерева (API + локальные из treeNodes)
   const currentSkillsData = useMemo(() => {
@@ -212,21 +232,11 @@ export default function SkillsPage() {
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null)
   const [mode, setMode] = useState<Mode>('view')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [publishProgress, setPublishProgress] = useState<PublishProgress | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved')
 
   const skillGuidesFlowRef = useRef<SkillGuidesFlowRef>(null)
   const { setAddGuideToFlow, setIsSkillMode, setIsOwnTree, setIsEditMode } = useSkills()
-
-  // Определяем, может ли пользователь редактировать текущее дерево
-  const canEdit = useMemo(() => {
-    if (!user) return false
-    // Менеджер может редактировать все
-    if (user.role?.name === 'Manager') return true
-    // Автор может редактировать свое дерево из API
-    if (apiTree && apiTree.owner?.documentId === user.documentId) return true
-    return false
-  }, [user, apiTree])
 
   // При смене дерева - всегда устанавливаем режим просмотра и флаг isOwnTree
   useEffect(() => {
@@ -305,37 +315,6 @@ export default function SkillsPage() {
     setSelectedItem(item)
   }, [])
 
-  // Обработчик редактирования навыка
-  const handleSkillEdit = useCallback((skillId: string, data: { title: string; image?: string }) => {
-    if (!treeId) return
-
-    // Получаем текущие локальные изменения
-    const localDraft = getLocalDraft(treeId)
-    const currentNodes = localDraft.nodes || treeNodes
-
-    // Обновляем ноду
-    const updatedNodes = currentNodes.map(node =>
-      node.id === skillId
-        ? {
-            ...node,
-            data: {
-              ...node.data,
-              label: data.title,
-              thumbnail: data.image || node.data.thumbnail,
-            },
-          }
-        : node
-    )
-
-    // Сохраняем в localStorage
-    const LOCAL_DRAFT_NODES_KEY_PREFIX = 'anirum_draft_nodes_'
-    localStorage.setItem(`${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`, JSON.stringify(updatedNodes))
-
-    // Триггер обновления
-    setLocalStorageVersion(v => v + 1)
-    window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }))
-  }, [treeId, treeNodes])
-
   // Обработчик публикации - отправка локальных изменений на сервер
   const handlePublish = useCallback(async () => {
     if (!treeId || !apiTree || isPublishing) return;
@@ -357,7 +336,7 @@ export default function SkillsPage() {
     const hasGuideChanges = localGuides.nodes || localGuides.edges;
 
     if (!hasTreeChanges && !hasGuideChanges) {
-      alert('Нет локальных изменений для публикации');
+      toast.info('Нет локальных изменений для публикации');
       return;
     }
 
@@ -378,7 +357,7 @@ export default function SkillsPage() {
         apiTree,
         localDraft.nodes || [],
         localDraft.edges || [],
-        setPublishProgress, // Callback для отображения прогресса
+        undefined, // Без прогресса
         // Опциональные параметры для гайдов
         currentSkillId,
         localGuides.nodes || undefined,
@@ -397,19 +376,151 @@ export default function SkillsPage() {
           clearLocalGuides(currentSkillId);
         }
 
-        setPublishProgress(null);
-        alert('✅ Изменения успешно опубликованы!');
+        toast.success('Изменения успешно опубликованы');
       } else {
-        alert(`❌ Ошибка публикации: ${result.error}`);
+        toast.error(`Ошибка публикации: ${result.error}`);
       }
     } catch (error) {
       console.error('Ошибка публикации:', error);
-      alert('❌ Произошла ошибка при публикации изменений');
+      toast.error('Произошла ошибка при публикации изменений');
     } finally {
       setIsPublishing(false);
-      setPublishProgress(null);
     }
   }, [treeId, apiTree, isPublishing, view])
+
+  // Auto-save (тихое сохранение без уведомлений)
+  const handleAutoSave = useCallback(async () => {
+    if (!treeId || !apiTree || isPublishing) return;
+
+    // Получаем локальные изменения
+    const localDraft = getLocalDraft(treeId);
+    let localGuides = { nodes: null as any, edges: null as any };
+    let currentSkillId: string | undefined;
+
+    if (view.type === 'skill') {
+      currentSkillId = view.skillId;
+      localGuides = getLocalGuides(view.skillId);
+    }
+
+    // Проверяем наличие изменений
+    const hasTreeChanges = localDraft.nodes || localDraft.edges;
+    const hasGuideChanges = localGuides.nodes || localGuides.edges;
+
+    if (!hasTreeChanges && !hasGuideChanges) {
+      setSaveStatus('saved');
+      return;
+    }
+
+    setSaveStatus('saving');
+
+    try {
+      const result = await publishSkillTree(
+        treeId,
+        apiTree,
+        localDraft.nodes || [],
+        localDraft.edges || [],
+        undefined, // Без прогресса для auto-save
+        currentSkillId,
+        localGuides.nodes || undefined,
+        localGuides.edges || undefined
+      );
+
+      if (result.success && result.tree) {
+        setApiTree(result.tree);
+
+        // Очищаем локальные черновики
+        if (hasTreeChanges) {
+          clearLocalDraft(treeId);
+        }
+        if (hasGuideChanges && currentSkillId) {
+          clearLocalGuides(currentSkillId);
+        }
+
+        setSaveStatus('saved');
+        console.log('✅ Auto-save успешно выполнен');
+      } else {
+        setSaveStatus('error');
+        console.error('❌ Auto-save ошибка:', result.error);
+      }
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('❌ Auto-save ошибка:', error);
+    }
+  }, [treeId, apiTree, isPublishing, view])
+
+  // Повторная попытка синхронизации (с уведомлениями)
+  const handleRetrySync = useCallback(async () => {
+    if (saveStatus === 'saving') return; // Предотвращаем множественные клики
+
+    const currentStatus = saveStatus;
+    try {
+      await handleAutoSave();
+
+      // Проверяем результат после выполнения
+      if (saveStatus !== 'error') {
+        toast.success('Изменения успешно синхронизированы');
+      }
+    } catch (error) {
+      toast.error('Не удалось синхронизировать изменения');
+      console.error('Sync retry error:', error);
+    }
+  }, [saveStatus, handleAutoSave])
+
+  // Проверка наличия несохраненных изменений
+  const hasUnsavedChanges = useMemo(() => {
+    if (!treeId) return false;
+
+    const localDraft = getLocalDraft(treeId);
+    let localGuides: { nodes: Node[] | null; edges: Edge[] | null } = { nodes: null, edges: null };
+
+    if (view.type === 'skill') {
+      localGuides = getLocalGuides(view.skillId);
+    }
+
+    const hasTreeChanges = localDraft.nodes || localDraft.edges;
+    const hasGuideChanges = localGuides.nodes || localGuides.edges;
+
+    return Boolean(hasTreeChanges || hasGuideChanges);
+  }, [treeId, view, localStorageVersion]) // localStorageVersion триггерит перепроверку
+
+  // Обновляем статус при изменениях
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      setSaveStatus('unsaved');
+    }
+  }, [hasUnsavedChanges])
+
+  // Интеграция auto-save
+  useAutoSave({
+    onSave: handleAutoSave,
+    delay: 5000, // 5 секунд
+    hasChanges: hasUnsavedChanges,
+    enabled: mode === 'edit', // Только в режиме редактирования
+  })
+
+  // Сохранение при закрытии браузера/выходе со страницы
+  useEffect(() => {
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && mode === 'edit') {
+        // Показываем предупреждение пользователю
+        e.preventDefault()
+        e.returnValue = ''
+
+        // Пытаемся сохранить изменения
+        try {
+          await handleAutoSave()
+        } catch (error) {
+          console.error('Ошибка сохранения перед закрытием:', error)
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnsavedChanges, mode, handleAutoSave])
 
   // Открыть диалог удаления
   const handleDeleteClick = useCallback(() => {
@@ -573,6 +684,51 @@ export default function SkillsPage() {
                 </TabsList>
               </Tabs>
             )}
+
+            {/* Индикатор статуса сохранения */}
+            {mode === 'edit' && (
+              <div className="flex items-center gap-2">
+                <div className="px-3 py-1.5 rounded-md text-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border flex items-center gap-2">
+                  {saveStatus === 'saved' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-muted-foreground">Сохранено</span>
+                    </>
+                  )}
+                  {saveStatus === 'saving' && (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                      <span className="text-muted-foreground">Сохранение...</span>
+                    </>
+                  )}
+                  {saveStatus === 'unsaved' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <span className="text-muted-foreground">Не сохранено</span>
+                    </>
+                  )}
+                  {saveStatus === 'error' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-muted-foreground">Ошибка</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Кнопка синхронизации при ошибке */}
+                {saveStatus === 'error' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetrySync}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Синхронизировать
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -607,6 +763,51 @@ export default function SkillsPage() {
                 </TabsList>
               </Tabs>
             )}
+
+            {/* Индикатор статуса сохранения */}
+            {mode === 'edit' && (
+              <div className="flex items-center gap-2">
+                <div className="px-3 py-1.5 rounded-md text-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border flex items-center gap-2">
+                  {saveStatus === 'saved' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-muted-foreground">Сохранено</span>
+                    </>
+                  )}
+                  {saveStatus === 'saving' && (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                      <span className="text-muted-foreground">Сохранение...</span>
+                    </>
+                  )}
+                  {saveStatus === 'unsaved' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <span className="text-muted-foreground">Не сохранено</span>
+                    </>
+                  )}
+                  {saveStatus === 'error' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-muted-foreground">Ошибка</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Кнопка синхронизации при ошибке */}
+                {saveStatus === 'error' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetrySync}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Синхронизировать
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -621,9 +822,7 @@ export default function SkillsPage() {
             initialEdges={treeEdges}
             mode={mode}
             isCustomTree={!!apiTree}
-            onPublish={handlePublish}
             onDelete={handleDeleteClick}
-            onSkillEdit={handleSkillEdit}
           />
         ) : (
           <SkillGuidesFlow
@@ -636,8 +835,6 @@ export default function SkillsPage() {
             }}
             onItemSelect={handleItemSelect}
             mode={mode}
-            shouldShowPublish={!!apiTree}
-            onPublish={handlePublish}
             onDelete={handleDeleteClick}
             apiGuides={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guides}
             apiGuideEdges={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guideEdges}
@@ -720,40 +917,6 @@ export default function SkillsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Индикатор прогресса публикации */}
-      {isPublishing && publishProgress && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-background border rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <h3 className="font-semibold text-lg">Публикация изменений</h3>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{publishProgress.status}</span>
-                <span className="font-medium">
-                  {publishProgress.current} / {publishProgress.total}
-                </span>
-              </div>
-
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${(publishProgress.current / publishProgress.total) * 100}%`,
-                  }}
-                />
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                Пожалуйста, не закрывайте страницу
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

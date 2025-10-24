@@ -1,6 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('session')?.value
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id: fileId } = await params
+
+    // Получаем информацию о файле из Strapi
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/files/${fileId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
+    }
+
+    const fileData = await response.json()
+    return NextResponse.json(fileData)
+
+  } catch (error) {
+    console.error('Get file error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

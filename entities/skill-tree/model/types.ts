@@ -95,6 +95,7 @@ export interface UpdateSkillData {
   position?: { x: number; y: number }
   guideEdges?: GuideEdge[]
   image?: File
+  imageId?: number // ID уже загруженного изображения (альтернатива image)
 }
 
 // Данные node'а навыка в ReactFlow (для localStorage и UI)

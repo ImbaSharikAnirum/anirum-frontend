@@ -28,12 +28,15 @@ export class BaseAPI {
   }
 
   protected async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
-    
+
     const config: RequestInit = {
+      // По умолчанию отключаем кэширование для GET запросов (паттерн Miro/Figma для live-данных)
+      // Это гарантирует что пользователи всегда видят свежие данные
+      cache: 'no-store',
       ...options,
       headers: {
         'Content-Type': 'application/json',

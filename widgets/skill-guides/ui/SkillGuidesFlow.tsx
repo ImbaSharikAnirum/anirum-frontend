@@ -5,7 +5,7 @@ import '@xyflow/react/dist/style.css'
 import { GuideNode } from '@/shared/ui'
 import { useCallback, useState, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Upload, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { CreateGuideDialog } from '@/features/guide-create'
 
 const nodeTypes: NodeTypes = {
@@ -38,8 +38,6 @@ interface SkillGuidesFlowProps {
   }
   onItemSelect: (item: { type: 'guide'; title: string; thumbnail?: string } | null) => void
   mode?: 'view' | 'edit'
-  shouldShowPublish?: boolean
-  onPublish?: () => void
   onDelete?: () => void
   apiGuides?: ApiGuide[]
   apiGuideEdges?: Edge[]
@@ -259,6 +257,7 @@ export function getLocalGuides(skillId: string): { nodes: Node[] | null; edges: 
           status: data.status,
           difficulty: data.difficulty,
           thumbnail: data.thumbnail,
+          imageId: data.imageId, // Восстанавливаем imageId
           text: data.text,
           link: data.link,
         },
@@ -283,7 +282,7 @@ export function clearLocalGuides(skillId: string) {
   localStorage.removeItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`);
 }
 
-export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowProps>(({ skillId, skillData, onItemSelect, mode = 'view', shouldShowPublish = false, onPublish, onDelete, apiGuides, apiGuideEdges }, ref) => {
+export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowProps>(({ skillId, skillData, onItemSelect, mode = 'view', onDelete, apiGuides, apiGuideEdges }, ref) => {
   // Загрузка гайдов из API
   const loadApiGuides = useCallback((): Node[] => {
     if (!apiGuides || apiGuides.length === 0) return [];
@@ -318,6 +317,7 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
           status: data.status,
           difficulty: data.difficulty,
           thumbnail: data.thumbnail,
+          imageId: data.imageId, // Восстанавливаем imageId
         },
         position: data.position,
       }));
@@ -402,8 +402,8 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
     onEdgesChangeInternal(changes)
 
     // После применения изменений обновляем стили с учетом selected
-    setEdges((eds) =>
-      eds.map((edge) => {
+    setEdges((eds) => {
+      const updatedEdges = eds.map((edge) => {
         const sourceNode = nodes.find((n) => n.id === edge.source)
         const targetNode = nodes.find((n) => n.id === edge.target)
 
@@ -426,8 +426,18 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
           },
         }
       })
-    )
-  }, [onEdgesChangeInternal, setEdges, nodes])
+
+      // Сохраняем изменения в localStorage (для удаления связей и других изменений)
+      localStorage.setItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`, JSON.stringify(updatedEdges))
+
+      // Триггерим событие для обновления hasUnsavedChanges в page.tsx
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { skillId } }))
+      }
+
+      return updatedEdges
+    })
+  }, [onEdgesChangeInternal, setEdges, nodes, skillId])
 
   // Обновляем mode во всех нодах при изменении режима
   useEffect(() => {
@@ -473,6 +483,12 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
       const updatedEdges = addEdge({ ...params, type: 'smoothstep' }, eds);
       // Сохраняем связи в localStorage (для публикации)
       localStorage.setItem(`${CUSTOM_GUIDE_EDGES_KEY_PREFIX}${skillId}`, JSON.stringify(updatedEdges));
+
+      // Триггерим событие для обновления hasUnsavedChanges в page.tsx
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { skillId } }))
+      }
+
       return updatedEdges;
     });
   }, [setEdges, skillId])
@@ -488,12 +504,18 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
           status: node.data.status,
           difficulty: node.data.difficulty,
           thumbnail: node.data.thumbnail,
+          imageId: node.data.imageId, // Сохраняем imageId для публикации
           position: node.position,
         };
       }
     });
 
     localStorage.setItem(`${CUSTOM_GUIDES_KEY_PREFIX}${skillId}`, JSON.stringify(guidesData));
+
+    // Триггерим событие для обновления hasUnsavedChanges в page.tsx
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { skillId } }));
+    }
   }, [skillId]);
 
   // Обработчик изменения нод - сохраняем при изменении
@@ -626,21 +648,8 @@ export const SkillGuidesFlow = forwardRef<SkillGuidesFlowRef, SkillGuidesFlowPro
             Создать гайд
           </Button>
 
-          {/* Кнопка публикации - только для кастомных навыков */}
-          {shouldShowPublish && onPublish && (
-            <Button
-              onClick={onPublish}
-              size="sm"
-              className="gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:bg-background/80"
-              variant="outline"
-            >
-              <Upload className="h-4 w-4" />
-              Опубликовать
-            </Button>
-          )}
-
           {/* Кнопка удаления - только для кастомных навыков */}
-          {shouldShowPublish && onDelete && (
+          {onDelete && (
             <Button
               onClick={onDelete}
               size="sm"

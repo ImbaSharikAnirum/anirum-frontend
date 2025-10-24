@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { skillTreeAPI } from '@/entities/skill-tree'
+import { toast } from 'sonner'
 
 interface EditSkillDialogProps {
   open: boolean
@@ -51,18 +52,22 @@ export function EditSkillDialog({ open, onOpenChange, skill, onSave }: EditSkill
 
     // Проверка типа файла
     if (!file.type.startsWith('image/')) {
-      alert('Пожалуйста, выберите изображение')
+      toast.error('Пожалуйста, выберите изображение')
       return
     }
 
     // Проверка размера (макс 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Размер файла не должен превышать 5MB')
+      toast.error('Размер файла не должен превышать 5MB')
       return
     }
 
     setIsUploading(true)
     setIsLoading(true)
+
+    // Сохраняем старый imageId для удаления после успешной загрузки нового
+    const oldImageId = imageId
+
     try {
       // Загружаем изображение сразу на S3 через существующий метод API
       const uploadedIds = await skillTreeAPI.uploadImage(file)
@@ -82,9 +87,22 @@ export function EditSkillDialog({ open, onOpenChange, skill, onSave }: EditSkill
       setImageId(newImageId)
 
       console.log('✅ Изображение загружено:', { id: newImageId, url: imageUrl })
+      toast.success('Изображение успешно загружено')
+
+      // Удаляем старое изображение (если было)
+      if (oldImageId) {
+        try {
+          await skillTreeAPI.deleteImage(oldImageId)
+          console.log('🗑️ Старое изображение удалено:', oldImageId)
+        } catch (deleteError) {
+          // Не показываем ошибку пользователю, т.к. это не критично
+          console.warn('Не удалось удалить старое изображение:', deleteError)
+        }
+      }
     } catch (error) {
       console.error('Ошибка при загрузке изображения:', error)
-      alert('Не удалось загрузить изображение на сервер. Попробуйте еще раз.')
+      const errorMessage = error instanceof Error ? error.message : 'Не удалось загрузить изображение'
+      toast.error(errorMessage)
     } finally {
       setIsUploading(false)
       setIsLoading(false)
@@ -92,18 +110,33 @@ export function EditSkillDialog({ open, onOpenChange, skill, onSave }: EditSkill
   }
 
   // Удаление изображения
-  const handleRemoveImage = () => {
+  const handleRemoveImage = async () => {
+    const currentImageId = imageId
+
+    // Сначала очищаем UI
     setImage(undefined)
     setImageId(undefined)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+
+    // Удаляем изображение из S3 (если есть)
+    if (currentImageId) {
+      try {
+        await skillTreeAPI.deleteImage(currentImageId)
+        console.log('🗑️ Изображение удалено:', currentImageId)
+        toast.success('Изображение удалено')
+      } catch (error) {
+        console.warn('Не удалось удалить изображение:', error)
+        // Не показываем ошибку, т.к. UI уже обновлен
+      }
     }
   }
 
   // Сохранение изменений
   const handleSave = () => {
     if (!title.trim()) {
-      alert('Введите название навыка')
+      toast.error('Введите название навыка')
       return
     }
 
@@ -113,6 +146,7 @@ export function EditSkillDialog({ open, onOpenChange, skill, onSave }: EditSkill
       imageId: imageId,  // ID для публикации
     })
 
+    toast.success('Навык успешно обновлен')
     // Закрываем диалог
     onOpenChange(false)
   }
