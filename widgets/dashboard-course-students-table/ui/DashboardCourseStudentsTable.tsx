@@ -363,8 +363,11 @@ export function DashboardCourseStudentsTable({
         const monthEnd = new Date(targetYear, targetMonth, 0);
 
         // Определяем реальные границы курса в этом месяце
-        const courseStart = new Date(course.startDate);
-        const courseEnd = new Date(course.endDate);
+        // Парсим даты курса БЕЗ учета timezone
+        const [courseStartYear, courseStartMonth, courseStartDay] = course.startDate.split('-').map(Number);
+        const [courseEndYear, courseEndMonth, courseEndDay] = course.endDate.split('-').map(Number);
+        const courseStart = new Date(courseStartYear, courseStartMonth - 1, courseStartDay);
+        const courseEnd = new Date(courseEndYear, courseEndMonth - 1, courseEndDay);
 
         // Берем пересечение: максимум из начал и минимум из концов
         const effectiveStart = new Date(
@@ -379,9 +382,17 @@ export function DashboardCourseStudentsTable({
           return [];
         }
 
+        // Форматируем даты БЕЗ timezone - используем local date components
+        const formatLocalDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
         return generateCourseDates(
-          effectiveStart.toISOString().split("T")[0],
-          effectiveEnd.toISOString().split("T")[0],
+          formatLocalDate(effectiveStart),
+          formatLocalDate(effectiveEnd),
           course.weekdays
         );
       })()

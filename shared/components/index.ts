@@ -3,4 +3,4 @@
  * @layer shared/components
  */
 
-export { MixpanelInit } from './MixpanelInit'
+export { AnalyticsInit } from './AnalyticsInit'
