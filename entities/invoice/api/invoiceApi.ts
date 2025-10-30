@@ -137,11 +137,6 @@ export interface CopyInvoicesToNextMonthResponse {
   }
 }
 
-interface StrapiResponse<T> {
-  data: T
-  meta: {}
-}
-
 export class InvoiceAPI extends BaseAPI {
   /**
    * Создать новый счет
@@ -266,14 +261,16 @@ export class InvoiceAPI extends BaseAPI {
     if (filters && (filters.month || filters.year)) {
       const year = filters.year || new Date().getFullYear();
       const month = filters.month || new Date().getMonth() + 1;
-      
-      // Формируем диапазон дат для месяца
-      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-      const lastDay = new Date(year, month, 0).getDate();
-      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
 
-      searchParams.append('filters[startDate][$gte]', startDate);
-      searchParams.append('filters[startDate][$lte]', endDate);
+      // Формируем диапазон дат для месяца
+      const monthStart = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const monthEnd = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+
+      // Инвойсы создаются помесячно (startDate и endDate в пределах одного месяца)
+      // Фильтруем: startDate начинается в выбранном месяце
+      searchParams.append('filters[startDate][$gte]', monthStart);
+      searchParams.append('filters[startDate][$lte]', monthEnd);
     }
 
     // Добавляем populate для owner, чтобы получить информацию о мессенджерах
@@ -309,17 +306,20 @@ export class InvoiceAPI extends BaseAPI {
       const month = filters.month || new Date().getMonth() + 1;
 
       // Формируем диапазон дат для месяца
-      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const monthStart = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = new Date(year, month, 0).getDate();
-      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+      const monthEnd = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
 
-      // Фильтруем по дате создания инвойса (createdAt)
-      searchParams.append('filters[createdAt][$gte]', `${startDate}T00:00:00.000Z`);
-      searchParams.append('filters[createdAt][$lte]', `${endDate}T23:59:59.999Z`);
+      // Инвойсы создаются помесячно (startDate и endDate в пределах одного месяца)
+      // Фильтруем: startDate начинается в выбранном месяце
+      searchParams.append('filters[startDate][$gte]', monthStart);
+      searchParams.append('filters[startDate][$lte]', monthEnd);
     }
 
     const queryString = searchParams.toString();
     const url = `/api/invoices?${queryString}`;
+
+    console.log('🔍 getInvoicesForPeriod - запрос:', url)
 
     const response = await fetch(url);
 

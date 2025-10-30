@@ -76,6 +76,18 @@ export default function ManagerFinancePage() {
         year: periodFilter.year
       })
 
+      // Отладка: выводим информацию о полученных инвойсах
+      console.log('📊 Финансовая аналитика - период:', { month: periodFilter.month, year: periodFilter.year })
+      console.log('📋 Получено инвойсов:', invoices.length)
+      console.log('💰 Инвойсы:', invoices.map(inv => ({
+        name: `${inv.name} ${inv.family}`,
+        sum: inv.sum,
+        paid: inv.statusPayment,
+        startDate: inv.startDate,
+        endDate: inv.endDate,
+        courseDirection: inv.course?.direction
+      })))
+
       // Подсчитываем базовые метрики
       let totalRevenue = 0
       let paidRevenue = 0
