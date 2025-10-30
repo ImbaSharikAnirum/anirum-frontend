@@ -38,26 +38,30 @@ export function generateCourseDates(
   endDate: string,
   weekdays: string[]
 ): AttendanceDay[] {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
+  // Парсим даты БЕЗ timezone (локальное время)
+  const [startYear, startMonth, startDay] = startDate.split('-').map(Number)
+  const [endYear, endMonth, endDay] = endDate.split('-').map(Number)
+  const start = new Date(startYear, startMonth - 1, startDay)
+  const end = new Date(endYear, endMonth - 1, endDay)
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
+
   const courseDates: AttendanceDay[] = []
-  
+
   // Получаем номера дней недели из массива
   const weekdayNumbers = weekdays.map(day => WEEKDAY_MAPPING[day as keyof typeof WEEKDAY_MAPPING])
-  
+
   // Итерируемся по каждому дню в диапазоне
   const current = new Date(start)
   while (current <= end) {
     const dayOfWeek = current.getDay()
-    
+
     // Если этот день недели входит в расписание курса
     if (weekdayNumbers.includes(dayOfWeek)) {
       const dateForComparison = new Date(current)
       dateForComparison.setHours(0, 0, 0, 0)
-      
+
       courseDates.push({
         date: new Date(current),
         dayName: WEEKDAY_NAMES_RU[weekdays.find(day => WEEKDAY_MAPPING[day as keyof typeof WEEKDAY_MAPPING] === dayOfWeek) as keyof typeof WEEKDAY_NAMES_RU] || '',
@@ -66,11 +70,11 @@ export function generateCourseDates(
         isFuture: dateForComparison > today
       })
     }
-    
+
     // Переходим к следующему дню
     current.setDate(current.getDate() + 1)
   }
-  
+
   return courseDates
 }
 

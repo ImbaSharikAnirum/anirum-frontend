@@ -121,19 +121,6 @@ export function DashboardCourseStudentsTable({
       });
 
       setInvoices(sortedInvoices);
-
-      // Отладочная информация для проверки populate
-      console.log("📊 Invoices loaded:", {
-        count: sortedInvoices.length,
-        sample: sortedInvoices[0],
-        ownersInfo: sortedInvoices.map((inv) => ({
-          name: `${inv.name} ${inv.family}`,
-          hasOwner: !!inv.owner,
-          whatsappVerified: inv.owner?.whatsapp_phone_verified,
-          telegramVerified: inv.owner?.telegram_phone_verified,
-          telegramChatId: inv.owner?.telegram_chat_id,
-        })),
-      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Ошибка при загрузке студентов"
@@ -220,14 +207,6 @@ export function DashboardCourseStudentsTable({
     setIsBulkDialogOpen(false);
 
     try {
-      console.log(`📤 Отправляем запрос на массовую отправку:`, {
-        courseId: course.documentId,
-        month,
-        year,
-        monthType: typeof month,
-        yearType: typeof year
-      });
-
       const response = await invoiceAPI.bulkSendPaymentMessages({
         courseId: course.documentId,
         month,
@@ -283,11 +262,13 @@ export function DashboardCourseStudentsTable({
     setIsCopyDialogOpen(false);
 
     try {
-      const response = await invoiceAPI.copyInvoicesToNextMonth({
+      const requestData = {
         courseId: course.documentId,
         currentMonth,
         currentYear,
-      });
+      };
+
+      const response = await invoiceAPI.copyInvoicesToNextMonth(requestData);
 
       if (response.success) {
         toast.success(
@@ -491,18 +472,6 @@ export function DashboardCourseStudentsTable({
   // Используем реальное количество занятий из календаря
   const actualLessonsCount = courseDates.length;
   const rentTotal = rentPerLesson * actualLessonsCount;
-
-  // Отладка
-  console.log("Course financial data:", {
-    isOnline: course?.isOnline,
-    rentalPrice: course?.rentalPrice,
-    rentPerLesson,
-    actualLessonsCount,
-    rentTotal,
-    paidSum,
-    totalSum,
-    paidCount,
-  });
 
   // Учитываем аренду для офлайн курсов
   const teacherIncomeFromPaid = calculateTeacherIncome(paidSum, rentTotal);
