@@ -23,6 +23,7 @@ import { useStudents, type Student, type CreateStudentData } from '@/entities/st
 import { useUser } from '@/entities/user/model/store'
 import { toast } from 'sonner'
 import type { ContactData } from './ContactStep'
+import { formatDateWithoutTimezone, parseDateWithoutTimezone } from '@/shared/lib/date-utils'
 
 interface StudentStepProps {
   onNext: () => void
@@ -59,15 +60,15 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
   const { user } = useUser()
 
   const calculateAge = (birthDate: string) => {
-    const birth = new Date(birthDate)
+    const birth = parseDateWithoutTimezone(birthDate)
     const today = new Date()
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--
     }
-    
+
     return age
   }
 
@@ -109,7 +110,7 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
     } else if (studentType === 'existing' && selectedStudent) {
       return calculateAge(selectedStudent.age)
     } else if (studentType === 'new' && studentBirthDate) {
-      return calculateAge(studentBirthDate.toISOString())
+      return calculateAge(formatDateWithoutTimezone(studentBirthDate))
     }
     return null
   }
@@ -174,7 +175,7 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
       const newStudent = await createStudent({
         name: studentFirstName,
         family: studentLastName,
-        age: studentBirthDate.toISOString()
+        age: formatDateWithoutTimezone(studentBirthDate)
       })
       
       if (newStudent) {
@@ -218,7 +219,7 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
     setEditingStudent(student)
     setEditName(student.name)
     setEditFamily(student.family)
-    setEditBirthDate(new Date(student.age))
+    setEditBirthDate(parseDateWithoutTimezone(student.age))
   }
 
   const handleCancelEdit = () => {
@@ -236,7 +237,7 @@ export function StudentStep({ onNext, onDataChange, initialData, courseStartAge,
       const updatedStudent = await updateStudent(editingStudent.documentId, {
         name: editName,
         family: editFamily,
-        age: editBirthDate.toISOString()
+        age: formatDateWithoutTimezone(editBirthDate)
       })
 
       if (updatedStudent) {

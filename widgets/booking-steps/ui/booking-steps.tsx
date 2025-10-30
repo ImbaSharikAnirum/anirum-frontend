@@ -8,6 +8,7 @@ import { studentAPI } from '@/entities/student'
 import { calculateCustomMonthPricing, calculateProRatedPricing, getMonthLessonDates, getAllLessonDatesInMonth } from '@/shared/lib/course-pricing'
 import { getDirectionDisplayName } from '@/shared/lib/course-utils'
 import { canDirectPayment } from '@/shared/lib/booking-utils'
+import { formatDateWithoutTimezone } from '@/shared/lib/date-utils'
 import { AuthStep, ContactStep, StudentStep, ConfirmationStep, SuccessStep, type ContactData, type StudentData, type BookingData } from './steps'
 import type { Invoice } from '@/entities/invoice'
 import type { AppliedReferral } from '@/entities/referral'
@@ -101,7 +102,7 @@ export function BookingSteps({ course, selectedMonth, selectedYear, monthlyInvoi
         const newStudent = await studentAPI.createStudent({
           name: studentData.studentFirstName,
           family: studentData.studentLastName,
-          age: studentData.studentBirthDate?.toISOString().split('T')[0] || ''
+          age: studentData.studentBirthDate ? formatDateWithoutTimezone(studentData.studentBirthDate) : ''
         }, user.id)
         
         studentName = newStudent.name

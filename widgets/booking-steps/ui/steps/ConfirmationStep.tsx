@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { canDirectPayment } from "@/shared/lib/booking-utils";
 import { calculateProRatedPricing } from "@/shared/lib/course-pricing";
+import { parseDateWithoutTimezone } from "@/shared/lib/date-utils";
 import { ReferralCodeInput } from "@/shared/ui/referral-code-input";
 import { BonusInput } from "@/shared/ui/bonus-input";
 import type { ContactData } from "./ContactStep";
@@ -125,7 +126,7 @@ export function ConfirmationStep({
 
     const today = new Date();
     const birth =
-      typeof birthDate === "string" ? new Date(birthDate) : birthDate;
+      typeof birthDate === "string" ? parseDateWithoutTimezone(birthDate) : birthDate;
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
 
@@ -199,7 +200,7 @@ export function ConfirmationStep({
                   <>
                     <p>
                       <span className="font-medium">Дата рождения:</span>{" "}
-                      {format(new Date(user.birth_date), "dd MMMM yyyy", {
+                      {format(parseDateWithoutTimezone(user.birth_date), "dd MMMM yyyy", {
                         locale: ru,
                       })}
                     </p>
@@ -223,7 +224,7 @@ export function ConfirmationStep({
                     <p>
                       <span className="font-medium">Дата рождения:</span>{" "}
                       {format(
-                        new Date(studentData.selectedStudent.age),
+                        parseDateWithoutTimezone(studentData.selectedStudent.age),
                         "dd MMMM yyyy",
                         { locale: ru }
                       )}

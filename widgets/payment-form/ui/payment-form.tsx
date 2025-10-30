@@ -8,6 +8,7 @@ import { useUser } from "@/entities/user";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { invoiceAPI, type TinkoffPaymentData } from "@/entities/invoice";
+import { parseDateWithoutTimezone } from "@/shared/lib/date-utils";
 import type { Invoice } from "@/entities/invoice";
 import type { Course } from "@/entities/course/model/types";
 
@@ -26,7 +27,7 @@ export function PaymentForm({ invoice, course, className }: PaymentFormProps) {
     if (!birthDate) return "";
 
     const today = new Date();
-    const birth = typeof birthDate === "string" ? new Date(birthDate) : birthDate;
+    const birth = typeof birthDate === "string" ? parseDateWithoutTimezone(birthDate) : birthDate;
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
 
