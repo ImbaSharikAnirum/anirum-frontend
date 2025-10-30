@@ -234,7 +234,6 @@ export function DashboardCourseStudentsTable({
         toast.error("Ошибка при массовой отправке сообщений");
       }
     } catch (error) {
-      console.error("Ошибка массовой отправки:", error);
       toast.error(
         error instanceof Error ? error.message : "Ошибка при отправке сообщений"
       );
@@ -290,7 +289,6 @@ export function DashboardCourseStudentsTable({
         toast.error("Ошибка при копировании счетов");
       }
     } catch (error) {
-      console.error("Ошибка копирования счетов:", error);
       toast.error(error instanceof Error ? error.message : "Ошибка при копировании счетов");
     } finally {
       setIsCopyingToNextMonth(false);
@@ -1000,14 +998,19 @@ ${bulkResults.details
                     )}
                     {courseDates.map((courseDate, index) => {
                       // Проверяем, входит ли эта дата в персональный период студента
-                      const studentStartDate = new Date(invoice.startDate);
-                      const studentEndDate = new Date(invoice.endDate);
+                      // Парсим даты БЕЗ timezone (локальное время) для корректного сравнения
+                      const [startYear, startMonth, startDay] = invoice.startDate.split('-').map(Number);
+                      const [endYear, endMonth, endDay] = invoice.endDate.split('-').map(Number);
+                      const studentStartDate = new Date(startYear, startMonth - 1, startDay);
+                      const studentEndDate = new Date(endYear, endMonth - 1, endDay);
                       const isInStudentPeriod =
                         courseDate.date >= studentStartDate &&
                         courseDate.date <= studentEndDate;
-                      const dateKey = courseDate.date
-                        .toISOString()
-                        .split("T")[0];
+                      // Форматируем dateKey БЕЗ timezone для совпадения с данными в БД
+                      const year = courseDate.date.getFullYear();
+                      const month = String(courseDate.date.getMonth() + 1).padStart(2, '0');
+                      const day = String(courseDate.date.getDate()).padStart(2, '0');
+                      const dateKey = `${year}-${month}-${day}`;
 
                       return (
                         <TableCell key={index} className="text-center">
