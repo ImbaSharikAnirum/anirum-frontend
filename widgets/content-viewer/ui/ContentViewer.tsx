@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { ArrowLeft, Share2, Upload } from 'lucide-react'
+import { ArrowLeft, Share2, Upload, PictureInPicture2 } from 'lucide-react'
 import { pinterestAPI, type PinterestPin } from '@/entities/pinterest'
 import { guideAPI, type Guide } from '@/entities/guide'
 import { creationAPI } from '@/entities/creation'
@@ -45,6 +45,14 @@ export function ContentViewer({ type, id, user }: ContentViewerProps) {
   const [error, setError] = useState<string | null>(null)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isPipSupported, setIsPipSupported] = useState(false)
+
+  // Проверка поддержки Picture-in-Picture
+  useEffect(() => {
+    setIsPipSupported(
+      'documentPictureInPicture' in window || typeof window !== 'undefined'
+    )
+  }, [])
 
   // Устанавливаем флаг монтирования и проверяем кеш
   useEffect(() => {
@@ -172,6 +180,115 @@ export function ContentViewer({ type, id, user }: ContentViewerProps) {
     }
   }
 
+  const handlePictureInPicture = async () => {
+    if (!content) return
+
+    const unified = adaptToUnified(content, type)
+
+    try {
+      // Проверяем поддержку Document Picture-in-Picture API
+      if ('documentPictureInPicture' in window) {
+        const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
+          width: 600,
+          height: 400,
+        })
+
+        // Копируем стили в PiP окно
+        const styles = Array.from(document.styleSheets)
+          .map(sheet => {
+            try {
+              return Array.from(sheet.cssRules)
+                .map(rule => rule.cssText)
+                .join('\n')
+            } catch {
+              return ''
+            }
+          })
+          .join('\n')
+
+        const styleElement = pipWindow.document.createElement('style')
+        styleElement.textContent = styles
+        pipWindow.document.head.appendChild(styleElement)
+
+        // Создаём контейнер для изображения
+        const container = pipWindow.document.createElement('div')
+        container.style.cssText = `
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #000;
+          padding: 16px;
+        `
+
+        const img = pipWindow.document.createElement('img')
+        img.src = unified.imageUrl
+        img.alt = unified.title
+        img.style.cssText = `
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+        `
+
+        container.appendChild(img)
+        pipWindow.document.body.appendChild(container)
+
+        toast.success('Изображение открыто в режиме Picture-in-Picture')
+      } else {
+        // Fallback: открываем в новом окне
+        const width = 600
+        const height = 400
+        const left = window.screen.width - width - 50
+        const top = 50
+
+        const pipWindow = window.open(
+          '',
+          'PiP',
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no`
+        )
+
+        if (pipWindow) {
+          pipWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>${unified.title}</title>
+                <style>
+                  body {
+                    margin: 0;
+                    padding: 16px;
+                    background: #000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                  }
+                  img {
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                  }
+                </style>
+              </head>
+              <body>
+                <img src="${unified.imageUrl}" alt="${unified.title}" />
+              </body>
+            </html>
+          `)
+          pipWindow.document.close()
+          toast.success('Изображение открыто в отдельном окне')
+        } else {
+          toast.error('Не удалось открыть окно. Проверьте настройки браузера.')
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка открытия Picture-in-Picture:', error)
+      const message = error instanceof Error ? error.message : 'Не удалось открыть Picture-in-Picture'
+      toast.error(message)
+    }
+  }
+
   if (loading) {
     return <ContentSkeleton />
   }
@@ -219,12 +336,22 @@ export function ContentViewer({ type, id, user }: ContentViewerProps) {
 
       {/* Desktop Layout */}
       <div className="hidden md:flex gap-8">
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 relative group">
           <img
             src={unified.imageUrl}
             alt={unified.title}
             className="max-w-lg max-h-[80vh] object-contain rounded-lg shadow-lg"
           />
+          {/* PiP кнопка в углу изображения */}
+          {isPipSupported && (
+            <button
+              onClick={handlePictureInPicture}
+              className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm"
+              title="Открыть в Picture-in-Picture"
+            >
+              <PictureInPicture2 className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 max-w-md space-y-6">
@@ -269,12 +396,22 @@ export function ContentViewer({ type, id, user }: ContentViewerProps) {
 
       {/* Mobile Layout */}
       <div className="md:hidden space-y-6">
-        <div className="relative flex justify-center">
+        <div className="relative flex justify-center group">
           <img
             src={unified.imageUrl}
             alt={unified.title}
             className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
           />
+          {/* PiP кнопка в углу изображения (mobile) */}
+          {isPipSupported && (
+            <button
+              onClick={handlePictureInPicture}
+              className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black/80 active:bg-black/90 text-white rounded-lg backdrop-blur-sm"
+              title="Открыть в Picture-in-Picture"
+            >
+              <PictureInPicture2 className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Кнопка загрузки изображения в мобильной версии */}
