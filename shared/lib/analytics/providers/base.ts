@@ -27,9 +27,9 @@ export interface IAnalyticsProvider {
    * @param event - Название события из enum
    * @param properties - Свойства события (валидируются TypeScript)
    */
-  track<E extends AnalyticsEvent>(
-    event: E,
-    properties?: EventProperties[E]
+  track(
+    event: AnalyticsEvent,
+    properties?: EventProperties
   ): void
 
   /**

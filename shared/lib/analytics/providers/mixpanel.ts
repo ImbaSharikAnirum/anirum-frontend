@@ -51,14 +51,16 @@ export class MixpanelProvider implements IAnalyticsProvider {
   /**
    * Отправка события
    */
-  track<E extends AnalyticsEvent>(
-    event: E,
-    properties?: EventProperties[E]
+  track(
+    event: AnalyticsEvent,
+    properties?: EventProperties
   ): void {
     if (!this.isInitialized) return
 
     try {
-      mixpanel.track(event, properties as any)
+      // Конвертируем enum в строку для Mixpanel
+      const eventName = String(event)
+      mixpanel.track(eventName, properties as any)
     } catch (error) {
       console.error(`[${this.name}] Track error:`, error)
     }

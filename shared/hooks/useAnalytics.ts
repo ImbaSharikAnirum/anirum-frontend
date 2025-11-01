@@ -21,16 +21,16 @@ export function useAnalytics() {
    * Отправка события с автоматическим обогащением
    */
   const track = useCallback(
-    <E extends AnalyticsEvent>(
-      event: E,
-      properties?: EventProperties[E]
+    (
+      event: AnalyticsEvent,
+      properties?: EventProperties
     ) => {
       // Обогащаем свойства данными пользователя
       const enrichedProperties = {
         ...properties,
         user_id: user?.documentId,
         user_role: user?.role?.type,
-      } as any
+      }
 
       analytics.track(event, enrichedProperties)
     },

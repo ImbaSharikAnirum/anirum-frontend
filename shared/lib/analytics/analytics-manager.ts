@@ -52,9 +52,9 @@ class AnalyticsManager {
    * Отправка события во все провайдеры
    * Type-safe благодаря EventProperties mapping
    */
-  track<E extends AnalyticsEvent>(
-    event: E,
-    properties?: EventProperties[E]
+  track(
+    event: AnalyticsEvent,
+    properties?: EventProperties
   ): void {
     if (!this.isInitialized) {
       console.warn('[Analytics] Попытка track до инициализации')

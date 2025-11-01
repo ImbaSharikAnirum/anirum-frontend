@@ -57,15 +57,15 @@ export class GoogleAnalyticsProvider implements IAnalyticsProvider {
    * Отправка события
    * Конвертируем событие в snake_case для GA
    */
-  track<E extends AnalyticsEvent>(
-    event: E,
-    properties?: EventProperties[E]
+  track(
+    event: AnalyticsEvent,
+    properties?: EventProperties
   ): void {
     if (!this.isInitialized || !window.gtag) return
 
     try {
-      // Конвертируем "Visited Landing Page" → "visited_landing_page"
-      const eventName = event.toLowerCase().replace(/\s+/g, '_')
+      // Конвертируем enum в строку для GA
+      const eventName = String(event).toLowerCase().replace(/\s+/g, '_')
 
       window.gtag('event', eventName, properties as any)
     } catch (error) {
