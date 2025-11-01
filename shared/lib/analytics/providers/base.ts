@@ -8,7 +8,7 @@ import { UserTraits } from '../types'
 
 /**
  * Базовый интерфейс провайдера аналитики
- * Все провайдеры (Mixpanel, GA, Amplitude) должны реализовать эти методы
+ * Все провайдеры (Mixpanel, GA) должны реализовать эти методы
  */
 export interface IAnalyticsProvider {
   /**
@@ -38,38 +38,4 @@ export interface IAnalyticsProvider {
    * @param traits - Дополнительные свойства пользователя
    */
   identify(userId: string, traits?: UserTraits): void
-
-  /**
-   * Установка свойств пользователя (обновление профиля)
-   * @param properties - Объект со свойствами
-   */
-  setUserProperties(properties: Record<string, any>): void
-
-  /**
-   * Трекинг revenue (для монетизации)
-   * @param amount - Сумма в валюте
-   * @param properties - Дополнительные свойства транзакции
-   */
-  trackRevenue(amount: number, properties?: Record<string, any>): void
-
-  /**
-   * Инкремент счётчика пользователя
-   * Например: total_lessons_completed += 1
-   * @param property - Название свойства
-   * @param value - Значение для увеличения (по умолчанию 1)
-   */
-  incrementProperty(property: string, value?: number): void
-
-  /**
-   * Сброс данных пользователя (logout)
-   * Очищает ID и свойства пользователя
-   */
-  reset(): void
-
-  /**
-   * Трекинг pageview (опционально, в основном для GA)
-   * @param path - Путь страницы
-   * @param properties - Дополнительные свойства
-   */
-  trackPageView?(path: string, properties?: Record<string, any>): void
 }

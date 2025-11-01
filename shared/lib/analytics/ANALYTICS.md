@@ -32,33 +32,9 @@ shared/lib/analytics/
 
 ## 🎯 События
 
-### **Список всех событий:**
+### **Список событий:**
 
-#### **🎯 Acquisition (Привлечение)**
-| Событие | Когда отправлять | Properties |
-|---------|------------------|------------|
-| `VISITED_LANDING_PAGE` | При загрузке главной страницы | `referrer`, `utm_source`, `utm_medium`, `utm_campaign` |
-| `CLICKED_SIGN_UP` | При клике на кнопку регистрации | `button_location` (header/hero/cta) |
-
-#### **✨ Activation (Активация)**
-| Событие | Когда отправлять | Properties |
-|---------|------------------|------------|
-| `REGISTERED` | После успешной регистрации | `method` (email/pinterest/google), `role` (student/teacher) |
-| `COMPLETED_PROFILE` | После заполнения профиля | `has_avatar`, `has_bio`, `profile_completion_percentage` |
-| `STARTED_LESSON` | При начале урока | `course_id`, `lesson_id`, `lesson_title`, `is_first_lesson` |
-| `COMPLETED_LESSON` | При завершении урока (90%+) | `course_id`, `lesson_id`, `duration_seconds`, `completion_percentage` |
-
-#### **💬 Engagement (Вовлечённость)**
-| Событие | Когда отправлять | Properties |
-|---------|------------------|------------|
-| `COMMENTED_ON_LESSON` | После отправки комментария | `lesson_id`, `comment_length`, `is_reply` |
-| `UPLOADED_ARTWORK` | После загрузки работы | `file_type`, `file_size_kb`, `has_description` |
-
-#### **💰 Conversion (Конверсия)**
-| Событие | Когда отправлять | Properties |
-|---------|------------------|------------|
-| `CREATED_BOOKING` | После создания бронирования | `course_id`, `price`, `currency`, `discount_applied` |
-| `PAYMENT_SUCCESS` | После успешной оплаты | `booking_id`, `amount`, `payment_method`, `transaction_id` |
+На данный момент события не определены. Добавляй их по мере необходимости через файл `events.ts`.
 
 ---
 
@@ -70,28 +46,22 @@ shared/lib/analytics/
 import { useAnalytics } from '@/shared/hooks/useAnalytics'
 import { AnalyticsEvent } from '@/shared/lib/analytics'
 
-export function RegisterForm() {
+export function SomeComponent() {
   const { track, identify } = useAnalytics()
 
-  const handleRegister = async (data) => {
-    const user = await authAPI.register(data)
-
+  const handleAction = async () => {
     // Идентифицируем пользователя
     identify(user.documentId, {
       email: user.email,
       username: user.username,
-      role: user.role.type,
-      signup_date: user.createdAt
-    })
-
-    // Трекаем событие (автоматически добавит user_id и user_role)
-    track(AnalyticsEvent.REGISTERED, {
-      method: 'email',
       role: user.role.type
     })
+
+    // Трекаем событие (когда добавишь события)
+    // track(AnalyticsEvent.YOUR_EVENT, { ... })
   }
 
-  return <form onSubmit={handleRegister}>...</form>
+  return <div>...</div>
 }
 ```
 
@@ -100,63 +70,8 @@ export function RegisterForm() {
 ```typescript
 import { analytics, AnalyticsEvent } from '@/shared/lib/analytics'
 
-// В any context (не только React)
-analytics.track(AnalyticsEvent.VISITED_LANDING_PAGE, {
-  referrer: document.referrer,
-  utm_source: 'google',
-  utm_campaign: 'summer_2025'
-})
-```
-
-### **3. Revenue tracking**
-
-```typescript
-const { revenue } = useAnalytics()
-
-// После успешной оплаты
-revenue(5000, {
-  booking_id: booking.documentId,
-  course_id: course.documentId,
-  currency: 'RUB',
-  payment_method: 'tinkoff'
-})
-```
-
-### **4. User properties**
-
-```typescript
-const { setProperties } = useAnalytics()
-
-// Обновление свойств пользователя
-setProperties({
-  total_courses_purchased: 3,
-  subscription_tier: 'premium',
-  last_login: new Date().toISOString()
-})
-```
-
-### **5. Increment counters**
-
-```typescript
-const { increment } = useAnalytics()
-
-// После завершения урока
-increment('total_lessons_completed', 1)
-
-// После комментария
-increment('total_comments', 1)
-```
-
-### **6. Logout**
-
-```typescript
-const { logout } = useAnalytics()
-
-// При выходе пользователя
-const handleLogout = () => {
-  logout() // Сбросит все данные в аналитике
-  authAPI.logout()
-}
+// В любом контексте (не только React)
+// analytics.track(AnalyticsEvent.YOUR_EVENT, { ... })
 ```
 
 ---
@@ -169,10 +84,8 @@ const handleLogout = () => {
 
 ```typescript
 export enum AnalyticsEvent {
-  // ... существующие события
-
   // Новое событие
-  SHARED_COURSE = 'Shared Course',
+  MY_EVENT = 'My Event',
 }
 ```
 
@@ -180,13 +93,10 @@ export enum AnalyticsEvent {
 
 ```typescript
 export interface EventProperties {
-  // ... существующие properties
-
-  [AnalyticsEvent.SHARED_COURSE]: {
-    course_id: string
-    course_title: string
-    share_method: 'facebook' | 'twitter' | 'linkedin' | 'copy_link'
-    share_location: 'course_page' | 'profile' | 'catalog'
+  [AnalyticsEvent.MY_EVENT]: {
+    property1: string
+    property2: number
+    property3?: boolean
   } & EventPropertiesBase
 }
 ```
@@ -194,21 +104,14 @@ export interface EventProperties {
 ### **Шаг 3: Использовать**
 
 ```typescript
-track(AnalyticsEvent.SHARED_COURSE, {
-  course_id: '123',
-  course_title: 'Animation Basics',
-  share_method: 'twitter',
-  share_location: 'course_page'
+track(AnalyticsEvent.MY_EVENT, {
+  property1: 'value',
+  property2: 123,
+  property3: true
 })
 ```
 
 TypeScript автоматически подскажет доступные properties! ✅
-
----
-
-## 🔌 Добавление новых провайдеров
-
-> 📝 **Примечание:** Инструкция по добавлению новых аналитических провайдеров будет добавлена позже.
 
 ---
 
@@ -273,10 +176,8 @@ TypeScript автоматически подскажет доступные prop
 // Включить debug режим
 localStorage.setItem('debug', 'analytics:*')
 
-// Отправить тестовое событие
-analytics.track(AnalyticsEvent.VISITED_LANDING_PAGE, {
-  referrer: document.referrer
-})
+// Отправить тестовое событие (когда добавишь события)
+// analytics.track(AnalyticsEvent.YOUR_EVENT, { ... })
 ```
 
 ### **Проверка активных провайдеров**
@@ -294,12 +195,12 @@ console.log(analytics.getActiveProviders())
 
 ❌ **Плохо:**
 ```typescript
-track('user_registered', { method: 'email' })
+track('my_event', { prop: 'value' })
 ```
 
 ✅ **Хорошо:**
 ```typescript
-track(AnalyticsEvent.REGISTERED, { method: 'email' })
+track(AnalyticsEvent.MY_EVENT, { prop: 'value' })
 ```
 
 ### **2. Identify пользователей при логине**
@@ -316,18 +217,7 @@ useEffect(() => {
 }, [user])
 ```
 
-### **3. Track revenue для всех платежей**
-
-```typescript
-// После Payment Success
-revenue(booking.amount, {
-  booking_id: booking.documentId,
-  course_id: course.documentId,
-  transaction_id: payment.transaction_id
-})
-```
-
-### **4. Не спамить событиями**
+### **3. Не спамить событиями**
 
 ❌ **Плохо:**
 ```typescript
@@ -338,20 +228,17 @@ onClick={() => track(AnalyticsEvent.BUTTON_CLICKED)}
 ✅ **Хорошо:**
 ```typescript
 // Только значимые действия
-onSubmit={() => track(AnalyticsEvent.REGISTERED)}
+onSubmit={() => track(AnalyticsEvent.FORM_SUBMITTED, { ... })}
 ```
 
-### **5. Обогащать события контекстом**
+### **4. Обогащать события контекстом**
 
 ✅ **Хорошо:**
 ```typescript
-track(AnalyticsEvent.STARTED_LESSON, {
-  course_id: course.documentId,
-  course_title: course.title,
-  lesson_id: lesson.id,
-  lesson_title: lesson.title,
-  is_first_lesson: lessonNumber === 1,
-  lesson_number: lessonNumber
+track(AnalyticsEvent.MY_EVENT, {
+  context_property1: 'value',
+  context_property2: 123,
+  referrer: document.referrer
 })
 ```
 
@@ -388,4 +275,4 @@ track(AnalyticsEvent.STARTED_LESSON, {
 
 ---
 
-**Последнее обновление:** 2025-01-24
+**Последнее обновление:** 2025-01-31
