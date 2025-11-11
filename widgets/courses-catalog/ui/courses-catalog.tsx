@@ -6,6 +6,7 @@ import { courseAPI } from "@/entities/course";
 import { Course } from "@/entities/course/model/types";
 import { CourseFilters, buildApiFilters, filterCourses } from "@/entities/course/lib/filters";
 import { useUserTimezone } from "@/shared/hooks/useUserTimezone";
+import { preloadImagesWithTimeout } from "@/shared/lib/image-preloader";
 
 interface CoursesCatalogProps {
   filters?: CourseFilters;
@@ -17,6 +18,7 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
   const [courses, setCourses] = useState<Course[]>([]);
   const [coursesCount, setCoursesCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
     async function loadCourses() {
       try {
         setIsLoading(true);
+        setImagesLoaded(false);
+        setCourses([]);
         setError(null);
         
         const apiFilters = buildApiFilters(filters, timezone);
@@ -48,21 +52,38 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
         if (!isCancelled) {
           // Применяем клиентскую фильтрацию для сложных фильтров (например, возраст)
           const filteredCourses = filterCourses(result.courses, filters);
-          setCourses(filteredCourses);
+
           // Устанавливаем общий count (до клиентской фильтрации)
           const totalCount = result.meta?.pagination?.total || result.courses.length;
           setCoursesCount(totalCount);
           // Уведомляем родительский компонент
           onCoursesCountChange?.(totalCount);
+
+          // Собираем первые изображения из первых 6 курсов для предзагрузки
+          const imagesToPreload = filteredCourses.slice(0, 6).map(course => {
+            if (course.images && course.images.length > 0) {
+              const firstImage = course.images[0];
+              return typeof firstImage === 'string' ? firstImage : firstImage.url;
+            }
+            return null;
+          }).filter(Boolean) as string[];
+
+          // Предзагружаем изображения с таймаутом 5 секунд
+          preloadImagesWithTimeout(imagesToPreload, 5000).then(() => {
+            if (!isCancelled) {
+              setImagesLoaded(true);
+              setCourses(filteredCourses);
+            }
+          });
         }
       } catch (err) {
         if (!isCancelled) {
           setError(err as Error);
-        }
-      } finally {
-        if (!isCancelled) {
           setIsLoading(false);
         }
+      } finally {
+        // Не устанавливаем isLoading в false здесь,
+        // это произойдет после загрузки изображений
       }
     }
 
@@ -72,6 +93,13 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
       isCancelled = true;
     };
   }, [filters, timezone]);
+
+  // Отдельный эффект для отслеживания загрузки изображений
+  useEffect(() => {
+    if (imagesLoaded && courses.length > 0) {
+      setIsLoading(false);
+    }
+  }, [imagesLoaded, courses]);
 
   const handleCourseClick = (course: any) => {
     // Переход на страницу курса
