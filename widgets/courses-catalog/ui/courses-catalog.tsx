@@ -59,8 +59,8 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
           // Уведомляем родительский компонент
           onCoursesCountChange?.(totalCount);
 
-          // Собираем первые изображения из первых 6 курсов для предзагрузки
-          const imagesToPreload = filteredCourses.slice(0, 6).map(course => {
+          // Собираем первые изображения из ВСЕХ курсов для предзагрузки
+          const imagesToPreload = filteredCourses.map(course => {
             if (course.images && course.images.length > 0) {
               const firstImage = course.images[0];
               return typeof firstImage === 'string' ? firstImage : firstImage.url;
@@ -68,8 +68,8 @@ export function CoursesCatalog({ filters = {}, onCoursesCountChange }: CoursesCa
             return null;
           }).filter(Boolean) as string[];
 
-          // Предзагружаем изображения с таймаутом 5 секунд
-          preloadImagesWithTimeout(imagesToPreload, 5000).then(() => {
+          // Предзагружаем все изображения с таймаутом 10 секунд (увеличен из-за количества)
+          preloadImagesWithTimeout(imagesToPreload, 10000).then(() => {
             if (!isCancelled) {
               setImagesLoaded(true);
               setCourses(filteredCourses);

@@ -183,13 +183,13 @@ export function CourseCard({ course, className, onClick, index = 0 }: CourseCard
             } as React.CSSProperties}
             className="w-full h-full swiper-custom"
           >
-            {course.images.map((image, index) => (
-              <SwiperSlide key={index}>
+            {course.images.map((image, imgIndex) => (
+              <SwiperSlide key={imgIndex}>
                 <Image
                   src={typeof image === 'string' ? image : image.url}
-                  alt={typeof image === 'string' ? `${getDirectionDisplayName(course.direction)} - изображение ${index + 1}` : image.alternativeText || `${getDirectionDisplayName(course.direction)} - изображение ${index + 1}`}
+                  alt={typeof image === 'string' ? `${getDirectionDisplayName(course.direction)} - изображение ${imgIndex + 1}` : image.alternativeText || `${getDirectionDisplayName(course.direction)} - изображение ${imgIndex + 1}`}
                   fill
-                  priority={index < 2}
+                  priority={imgIndex === 0}
                   unoptimized
                   className="object-cover"
                 />
