@@ -3,8 +3,8 @@
 import { createContext, useContext, ReactNode, useState, useCallback } from 'react'
 
 interface SkillsContextType {
-  addGuideToFlow: ((guideData: { id: string; title: string; thumbnail?: string }) => void) | null
-  setAddGuideToFlow: (fn: ((guideData: { id: string; title: string; thumbnail?: string }) => void) | null) => void
+  addGuideToFlow: ((guideData: { id: string; numericId?: number; title: string; thumbnail?: string }) => void) | null
+  setAddGuideToFlow: (fn: ((guideData: { id: string; numericId?: number; title: string; thumbnail?: string }) => void) | null) => void
   isSkillMode: boolean
   setIsSkillMode: (value: boolean) => void
   isOwnTree: boolean
@@ -16,7 +16,7 @@ interface SkillsContextType {
 const SkillsContext = createContext<SkillsContextType | undefined>(undefined)
 
 export function SkillsProvider({ children }: { children: ReactNode }) {
-  const [addGuideToFlow, setAddGuideToFlow] = useState<((guideData: { id: string; title: string; thumbnail?: string }) => void) | null>(null)
+  const [addGuideToFlow, setAddGuideToFlow] = useState<((guideData: { id: string; numericId?: number; title: string; thumbnail?: string }) => void) | null>(null)
   const [isSkillMode, setIsSkillMode] = useState(false)
   const [isOwnTree, setIsOwnTree] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
