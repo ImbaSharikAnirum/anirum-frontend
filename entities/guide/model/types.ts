@@ -4,7 +4,7 @@
  */
 
 export interface Guide {
-  id: string
+  id: number // Numeric ID из Strapi
   documentId: string
   title: string
   text?: string
