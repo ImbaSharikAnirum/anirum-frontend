@@ -1,2 +1,2 @@
-export { SkillGuidesFlow, getLocalGuides, clearLocalGuides } from './ui/SkillGuidesFlow'
+export { SkillGuidesFlow, getLocalGuides, clearLocalGuides, areGuideNodesSynced } from './ui/SkillGuidesFlow'
 export type { SkillGuidesFlowRef, ApiGuide } from './ui/SkillGuidesFlow'

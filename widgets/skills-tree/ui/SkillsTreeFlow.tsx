@@ -58,6 +58,39 @@ export function getLocalDraft(treeId: string): { nodes: Node[] | null; edges: Ed
   };
 }
 
+/**
+ * Проверяет синхронизированы ли позиции навыков в localStorage с API данными
+ * Паттерн из Miro/Figma - localStorage очищается только когда данные совпадают с сервером
+ */
+export function areTreeNodesSynced(
+  apiTree: any,
+  localDraft: { nodes: Node[] | null; edges: Edge[] | null }
+): boolean {
+  if (!localDraft.nodes || localDraft.nodes.length === 0) return true;
+  if (!apiTree?.skills || apiTree.skills.length === 0) return false;
+
+  // Сравниваем позиции каждого навыка
+  for (const localNode of localDraft.nodes) {
+    const apiSkill = apiTree.skills.find((s: any) => s.documentId === localNode.id);
+
+    if (!apiSkill) {
+      // Новый навык, которого еще нет на сервере
+      return false;
+    }
+
+    // Сравниваем позиции с небольшой погрешностью (±1px из-за округления)
+    const positionMatch =
+      Math.abs((apiSkill.position?.x ?? 0) - localNode.position.x) <= 1 &&
+      Math.abs((apiSkill.position?.y ?? 0) - localNode.position.y) <= 1;
+
+    if (!positionMatch) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // Данные навыков по умолчанию (позже вынести в API)
 const defaultInitialNodes: Node[] = [
   {
@@ -143,20 +176,48 @@ const defaultInitialEdges: Edge[] = [
 ]
 
 const CUSTOM_SKILLS_KEY_PREFIX = 'anirum_custom_skills_';
-const CUSTOM_SKILL_EDGES_KEY_PREFIX = 'anirum_custom_skill_edges_';
 const LOCAL_DRAFT_NODES_KEY_PREFIX = 'anirum_draft_nodes_';
 const LOCAL_DRAFT_EDGES_KEY_PREFIX = 'anirum_draft_edges_';
 
 export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes, initialEdges, mode = 'view', isCustomTree = false, onDelete }: SkillsTreeFlowProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultInitialNodes)
+  const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes || defaultInitialNodes)
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges || defaultInitialEdges)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [hasLocalChanges, setHasLocalChanges] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: Node } | null>(null)
   const [editingSkill, setEditingSkill] = useState<{ id: string; title: string; thumbnail?: string; imageId?: number } | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [skillToDelete, setSkillToDelete] = useState<{ id: string; title: string } | null>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
+
+  // Ref для актуального состояния nodes (для немедленного сохранения)
+  const nodesRef = useRef<Node[]>(nodes);
+
+  // Синхронизируем ref с актуальным состоянием nodes
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  // Кастомный обработчик изменения nodes с немедленным сохранением (как в Miro)
+  const onNodesChange = useCallback((changes: any[]) => {
+    onNodesChangeInternal(changes)
+
+    // Сохраняем только реальные изменения (перемещение, удаление, изменение размеров)
+    const hasRealChanges = changes.some((change: any) =>
+      change.type === 'position' || change.type === 'dimensions' || change.type === 'remove'
+    )
+
+    if (hasRealChanges && mode === 'edit' && isCustomTree) {
+      // Используем queueMicrotask для отложенного сохранения (после применения изменений)
+      queueMicrotask(() => {
+        localStorage.setItem(`${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`, JSON.stringify(nodesRef.current))
+
+        // Триггерим событие для автосохранения в page.tsx (как в Miro)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }))
+        }
+      })
+    }
+  }, [onNodesChangeInternal, mode, isCustomTree, treeId])
 
   // Кастомный обработчик изменения edges с сохранением стилей выделения
   const onEdgesChange = useCallback((changes: any[]) => {
@@ -215,7 +276,6 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
       try {
         const parsedNodes = JSON.parse(savedNodes);
         setNodes(parsedNodes);
-        setHasLocalChanges(true);
       } catch (error) {
         console.error('Ошибка загрузки локальных nodes:', error);
       }
@@ -479,26 +539,9 @@ export function SkillsTreeFlow({ treeId, onSkillOpen, onItemSelect, initialNodes
     localStorage.setItem(`${CUSTOM_SKILLS_KEY_PREFIX}${treeId}`, JSON.stringify(skillsData));
   }, [treeId]);
 
-  // Сохранение nodes локально при их изменении в режиме редактирования
-  useEffect(() => {
-    if (!isCustomTree || mode !== 'edit' || nodes.length === 0) return;
-
-    const localNodesKey = `${LOCAL_DRAFT_NODES_KEY_PREFIX}${treeId}`;
-    localStorage.setItem(localNodesKey, JSON.stringify(nodes));
-    setHasLocalChanges(true);
-
-    // Отправляем событие для обновления parent компонента
-    window.dispatchEvent(new CustomEvent('local-draft-updated', { detail: { treeId } }));
-  }, [nodes, isCustomTree, mode, treeId]);
-
-  // Сохранение edges локально при их изменении в режиме редактирования
-  useEffect(() => {
-    if (!isCustomTree || mode !== 'edit') return;
-
-    const localEdgesKey = `${LOCAL_DRAFT_EDGES_KEY_PREFIX}${treeId}`;
-    localStorage.setItem(localEdgesKey, JSON.stringify(edges));
-    setHasLocalChanges(true);
-  }, [edges, isCustomTree, mode, treeId]);
+  // ❌ УДАЛЕНО: Дублирующее сохранение - уже есть в onNodesChange и onEdgesChange
+  // Эти useEffect вызывали двойное сохранение и ложные триггеры автосохранения
+  // при переключении режимов (mode в зависимостях)
 
   // Создание нового навыка
   const handleCreateSkill = useCallback(async (data: { label: string; thumbnail?: File }) => {

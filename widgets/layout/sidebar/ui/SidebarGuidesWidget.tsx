@@ -131,8 +131,15 @@ export function SidebarGuidesWidget() {
     // 1. Функция добавления доступна (мы на странице skills в режиме гайдов)
     // 2. Режим редактирования активен
     if (addGuideToFlow && isEditMode) {
+      console.log('🎯 SidebarGuidesWidget: Добавление гайда:', {
+        documentId: guide.documentId,
+        numericId: guide.id,
+        title: guide.title
+      });
+
       addGuideToFlow({
-        id: guide.id, // Используем numeric ID вместо documentId
+        id: guide.documentId, // ✅ Используем documentId (строка) для ID ноды
+        numericId: guide.id,  // ✅ Передаём numeric ID для API операций
         title: guide.title,
         thumbnail: guide.image?.formats?.thumbnail?.url || guide.image?.url,
       });

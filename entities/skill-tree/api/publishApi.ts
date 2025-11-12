@@ -32,7 +32,7 @@ interface GuidePublishData {
 }
 
 /**
- * Данные навыка для публикации с guideEdges
+ * Данные навыка для публикации с guideEdges и guidePositions
  */
 interface SkillPublishData {
   documentId?: string;
@@ -41,6 +41,7 @@ interface SkillPublishData {
   position: { x: number; y: number };
   imageId?: number; // ID загруженного изображения в Strapi
   guideEdges?: Array<{ id: string; source: string; target: string; type?: string }>;
+  guidePositions?: Record<string, { x: number; y: number }>; // Позиции гайдов по их documentId
 }
 
 /**
@@ -125,12 +126,23 @@ export async function publishSkillTree(
     console.log('🔍 deletedSkills:', deletedSkills);
 
     // Формируем связи между навыками
-    const skillEdges = localEdges.map((edge: Edge) => ({
+    // ✅ ВАЖНО: Если нет локальных edges (публикация только гайдов), используем edges из API
+    // Иначе edges между навыками затрутся при публикации гайдов!
+    const effectiveEdges = localEdges.length > 0
+      ? localEdges
+      : (apiTree.skillEdges || []);
+
+    const skillEdges = effectiveEdges.map((edge: Edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: edge.type,
     }));
+
+    console.log('🔍 localEdges:', localEdges.length);
+    console.log('🔍 apiTree.skillEdges:', apiTree.skillEdges?.length);
+    console.log('🔍 effectiveEdges:', effectiveEdges.length);
+    console.log('🔍 skillEdges:', skillEdges.length);
 
     // Формируем массив гайдов (если передан skillId)
     let guides: GuidePublishData[] = [];
@@ -156,24 +168,26 @@ export async function publishSkillTree(
         const nodeData = node.data as GuideNodeData;
         // node.data.guideId содержит реальный documentId из Strapi (или временный ID для новых гайдов)
         const guideDocId = nodeData.guideId;
+        const numericId = (nodeData as any).numericId; // Numeric ID из API (если есть)
+
         console.log(`📊 Обработка ноды ${node.id}:`);
         console.log(`   - node.data:`, node.data);
         console.log(`   - guideDocId: ${guideDocId}`);
+        console.log(`   - numericId: ${numericId}`);
         console.log(`   - title: ${nodeData.title}`);
 
         const existingGuide = existingSkill?.guides?.find(g => g.documentId === guideDocId);
         console.log(`   - existingGuide: ${existingGuide ? 'найден' : 'НЕ найден'}`);
 
-        // Сохраняем маппинг node.id -> guideDocId
+        // Сохраняем маппинг node.id -> guideDocId (documentId для edges)
         nodeIdToGuideDocId.set(node.id, guideDocId);
 
         // Проверяем, это новый гайд или существующий
         // Новые гайды имеют временный ID в формате "guide-{skillId}-{timestamp}" (строка)
-        // Существующие гайды из сайдбара имеют guideDocId как numeric ID (число)
         const isNewGuide = typeof guideDocId === 'string' && guideDocId.startsWith('guide-');
 
         const guideData = {
-          id: !isNewGuide && typeof guideDocId === 'number' ? guideDocId : undefined, // Numeric ID для существующих
+          id: existingGuide ? existingGuide.id : (numericId || undefined), // Numeric ID для существующих
           documentId: existingGuide ? existingGuide.documentId : undefined, // Document ID для существующих гайдов
           tempId: isNewGuide ? node.id : undefined, // Временный ID для новых гайдов
           title: nodeData.title,
@@ -190,30 +204,60 @@ export async function publishSkillTree(
 
       console.log('📊 Всего гайдов для отправки:', guides.length);
 
-      // Добавляем guideEdges к соответствующему навыку (если есть связи)
+      // Добавляем guideEdges и guidePositions к соответствующему навыку
       // Заменяем node.id на реальные documentId из guideId
-      if (skillGuideEdges && skillGuideEdges.length > 0) {
+      if ((skillGuideEdges && skillGuideEdges.length > 0) || (skillGuideNodes && skillGuideNodes.length > 0)) {
         const skillIndex = skills.findIndex(s => s.documentId === skillId || s.tempId === skillId);
         if (skillIndex !== -1) {
-          console.log('📊 Обработка guideEdges для навыка:', skillId);
-          console.log('📊 Маппинг nodeId -> guideDocId:', Object.fromEntries(nodeIdToGuideDocId));
-          console.log('📊 Исходные edges:', skillGuideEdges.map(e => ({ id: e.id, source: e.source, target: e.target })));
+          // Обрабатываем guideEdges (связи между гайдами)
+          if (skillGuideEdges && skillGuideEdges.length > 0) {
+            console.log('📊 Обработка guideEdges для навыка:', skillId);
+            console.log('📊 Маппинг nodeId -> guideDocId:', Object.fromEntries(nodeIdToGuideDocId));
+            console.log('📊 Исходные edges:', skillGuideEdges.map(e => ({ id: e.id, source: e.source, target: e.target })));
 
-          skills[skillIndex].guideEdges = skillGuideEdges.map((edge: Edge) => {
-            const mappedSource = nodeIdToGuideDocId.get(edge.source) || edge.source;
-            const mappedTarget = nodeIdToGuideDocId.get(edge.target) || edge.target;
+            skills[skillIndex].guideEdges = skillGuideEdges.map((edge: Edge) => {
+              const mappedSource = nodeIdToGuideDocId.get(edge.source) || edge.source;
+              const mappedTarget = nodeIdToGuideDocId.get(edge.target) || edge.target;
 
-            console.log(`📊 Edge ${edge.id}: ${edge.source} -> ${mappedSource}, ${edge.target} -> ${mappedTarget}`);
+              console.log(`📊 Edge ${edge.id}: ${edge.source} -> ${mappedSource}, ${edge.target} -> ${mappedTarget}`);
 
-            return {
-              id: edge.id,
-              source: mappedSource,
-              target: mappedTarget,
-              type: edge.type,
-            };
-          });
+              return {
+                id: edge.id,
+                source: mappedSource,
+                target: mappedTarget,
+                type: edge.type,
+              };
+            });
 
-          console.log('📊 Финальные guideEdges:', skills[skillIndex].guideEdges);
+            console.log('📊 Финальные guideEdges:', skills[skillIndex].guideEdges);
+          }
+
+          // Обрабатываем guidePositions (позиции гайдов)
+          if (skillGuideNodes && skillGuideNodes.length > 0) {
+            console.log('📊 Обработка guidePositions для навыка:', skillId);
+
+            const guidePositions: Record<string, { x: number; y: number }> = {};
+
+            skillGuideNodes.forEach(node => {
+              if (node.type === 'guide') {
+                const nodeData = node.data as GuideNodeData;
+                const guideDocId = nodeData.guideId;
+
+                // Заменяем временные ID на реальные documentId
+                const realGuideDocId = nodeIdToGuideDocId.get(node.id) || guideDocId;
+
+                guidePositions[realGuideDocId] = {
+                  x: node.position.x,
+                  y: node.position.y,
+                };
+
+                console.log(`📊 Position для ${node.id} (${realGuideDocId}):`, node.position);
+              }
+            });
+
+            skills[skillIndex].guidePositions = guidePositions;
+            console.log('📊 Финальные guidePositions:', guidePositions);
+          }
         }
       }
     }

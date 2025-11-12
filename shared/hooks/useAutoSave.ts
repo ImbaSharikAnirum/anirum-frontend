@@ -67,8 +67,10 @@ export function useAutoSave({
       if (isSavingRef.current) return
 
       try {
+        console.log('💾 useAutoSave: Начинаем публикацию на сервер...');
         isSavingRef.current = true
         await onSave()
+        console.log('✅ useAutoSave: Публикация завершена');
       } catch (error) {
         console.error('Auto-save error:', error)
       } finally {
@@ -79,7 +81,10 @@ export function useAutoSave({
 
   // Автоматически запускаем сохранение при изменениях
   useEffect(() => {
+    console.log('🔍 useAutoSave эффект:', { hasChanges, enabled });
+
     if (hasChanges && enabled) {
+      console.log('⏱️ Запускаем debounce таймер на 2 секунды...');
       triggerSave()
     }
 

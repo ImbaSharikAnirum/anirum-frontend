@@ -83,7 +83,7 @@ export class SkillTreeAPI extends BaseAPI {
       searchParams.append('populate', field);
     });
 
-    // Получаем все гайды независимо от статуса публикации (draft + published)
+    // Получаем все данные независимо от статуса публикации (draft + published)
     searchParams.append('publicationState', 'preview');
 
     const queryString = searchParams.toString();

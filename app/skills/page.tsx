@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { SkillsTreeFlow, getLocalDraft, clearLocalDraft } from '@/widgets/skills-tree'
-import { SkillGuidesFlow, SkillGuidesFlowRef, getLocalGuides, clearLocalGuides } from '@/widgets/skill-guides'
+import { SkillsTreeFlow, getLocalDraft, clearLocalDraft, areTreeNodesSynced } from '@/widgets/skills-tree'
+import { SkillGuidesFlow, SkillGuidesFlowRef, getLocalGuides, clearLocalGuides, areGuideNodesSynced } from '@/widgets/skill-guides'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -21,8 +21,7 @@ import { useSkills } from '@/shared/lib/contexts/SkillsContext'
 import { useUser } from '@/entities/user'
 import { SkillTree, publishSkillTree, skillTreeAPI } from '@/entities/skill-tree'
 import { getLastOpenedTree, setLastOpenedTree, clearLastOpenedTree } from '@/shared/lib/storage/lastOpenedTree'
-import type { Node, Edge } from '@xyflow/react'
-import { useAutoSave } from '@/shared/hooks'
+import type { Node } from '@xyflow/react'
 import { toast } from 'sonner'
 
 type ViewState =
@@ -114,6 +113,39 @@ export default function SkillsPage() {
 
         const tree = await skillTreeAPI.getSkillTree(treeId);
         setApiTree(tree);
+
+        // ✅ ВАРИАНТ 2: Очищаем localStorage если данные синхронизированы с API
+        // Это паттерн из Miro/Figma - localStorage очищается не сразу после save,
+        // а только когда API данные совпадают с localStorage данными
+        const localDraft = getLocalDraft(treeId);
+
+        if (localDraft.nodes || localDraft.edges) {
+          // Проверяем синхронизированы ли позиции навыков
+          const isTreeSynced = areTreeNodesSynced(tree, localDraft);
+
+          if (isTreeSynced) {
+            console.log('✅ localStorage синхронизирован с API - очищаем черновик дерева');
+            clearLocalDraft(treeId);
+          } else {
+            console.log('⚠️ localStorage НЕ синхронизирован с API - оставляем черновик');
+          }
+        }
+
+        // Проверяем гайды для каждого навыка
+        tree.skills?.forEach(skill => {
+          const localGuides = getLocalGuides(skill.documentId);
+
+          if (localGuides.nodes || localGuides.edges) {
+            const isGuidesSynced = areGuideNodesSynced(skill, localGuides);
+
+            if (isGuidesSynced) {
+              console.log(`✅ localStorage гайдов навыка ${skill.documentId} синхронизирован - очищаем`);
+              clearLocalGuides(skill.documentId);
+            } else {
+              console.log(`⚠️ localStorage гайдов навыка ${skill.documentId} НЕ синхронизирован - оставляем`);
+            }
+          }
+        });
       } catch (error) {
         console.error('Ошибка загрузки дерева:', error);
         setApiTree(null);
@@ -138,12 +170,41 @@ export default function SkillsPage() {
     return { title: '', thumbnail: '', skillCount: 0, guideCount: 0 };
   }, [apiTree]);
 
+  // Флаг для блокировки автосохранения во время начальной загрузки
+  const isInitialLoadRef = useRef(true);
+
+  // Сброс флага при смене дерева
+  useEffect(() => {
+    isInitialLoadRef.current = true;
+  }, [treeId]);
+
+  // Сброс флага после загрузки дерева
+  useEffect(() => {
+    if (apiTree) {
+      // Даём время на очистку синхронизированных данных из localStorage
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 500);
+    }
+  }, [apiTree]);
+
   // Слушатель изменений localStorage для реактивного обновления
   useEffect(() => {
     if (!treeId) return;
 
     const handleStorageChange = () => {
-      setLocalStorageVersion(v => v + 1);
+      // ✅ Игнорируем изменения localStorage во время начальной загрузки
+      // Это предотвращает цикл: загрузка → очистка synced данных → триггер автосохранения
+      if (isInitialLoadRef.current) {
+        console.log('🚫 Игнорируем localStorage событие во время начальной загрузки');
+        return;
+      }
+
+      // Используем queueMicrotask для отложенного обновления
+      // Это предотвращает ошибку "Cannot update a component while rendering a different component"
+      queueMicrotask(() => {
+        setLocalStorageVersion(v => v + 1);
+      });
     };
 
     // Слушаем события storage (работает между вкладками)
@@ -243,6 +304,7 @@ export default function SkillsPage() {
     setMode('view') // Всегда начинаем с режима просмотра
     setIsOwnTree(canEdit)
   }, [canEdit, treeId, setIsOwnTree])
+
 
   // Обновляем isEditMode в контексте при смене режима
   useEffect(() => {
@@ -425,22 +487,31 @@ export default function SkillsPage() {
         localGuides.edges || undefined
       );
 
-      if (result.success && result.tree) {
-        setApiTree(result.tree);
+      if (result.success) {
+        // ✅ НЕ обновляем apiTree после auto-save (optimistic updates как в Miro)
+        // Данные уже в localStorage, перерендер не нужен
+        // setApiTree(result.tree); // ❌ Убрали - это вызывало перерендер!
 
-        // Очищаем локальные черновики
-        if (hasTreeChanges) {
-          clearLocalDraft(treeId);
-        }
-        if (hasGuideChanges && currentSkillId) {
-          clearLocalGuides(currentSkillId);
-        }
+        // ✅ ВАРИАНТ 2 (Miro/Figma паттерн):
+        // НЕ очищаем localStorage сразу после сохранения!
+        // localStorage будет очищен при следующей загрузке страницы,
+        // когда данные из API совпадут с данными в localStorage.
+        // Это предотвращает race condition, когда apiTree еще не обновлен,
+        // но localStorage уже очищен, и при refresh показываются старые позиции.
 
+        // Сначала устанавливаем статус saved (чтобы useEffect не запустился снова)
         setSaveStatus('saved');
-        console.log('✅ Auto-save успешно выполнен');
+
+        // ❌ НЕ ОЧИЩАЕМ localStorage здесь!
+        // Очистка будет происходить при загрузке страницы, когда данные синхронизированы
+        // if (hasTreeChanges) {
+        //   clearLocalDraft(treeId);
+        // }
+        // if (hasGuideChanges && currentSkillId) {
+        //   clearLocalGuides(currentSkillId);
+        // }
       } else {
         setSaveStatus('error');
-        console.error('❌ Auto-save ошибка:', result.error);
       }
     } catch (error) {
       setSaveStatus('error');
@@ -466,12 +537,37 @@ export default function SkillsPage() {
     }
   }, [saveStatus, handleAutoSave])
 
-  // Проверка наличия несохраненных изменений
-  const hasUnsavedChanges = useMemo(() => {
-    if (!treeId) return false;
+  // Ref для отслеживания версии localStorage на момент входа в режим edit
+  const editModeStartVersionRef = useRef<number>(0);
+  const prevModeRef = useRef<Mode>('view');
 
+  // Сохраняем версию localStorage при входе в режим редактирования
+  useEffect(() => {
+    // Отслеживаем переход из 'view' в 'edit'
+    if (prevModeRef.current === 'view' && mode === 'edit') {
+      // Используем актуальное значение localStorageVersion
+      editModeStartVersionRef.current = localStorageVersion;
+      console.log('📝 Вход в режим edit, текущая версия localStorage:', localStorageVersion);
+    }
+
+    // Сохраняем текущий режим для следующей проверки
+    prevModeRef.current = mode;
+  }, [mode, localStorageVersion]); // ✅ Обе зависимости!
+
+  // Автосохранение с debounce (как в Miro/Figma) - запрос через 1.5 секунды ПОСЛЕ ПОСЛЕДНЕГО изменения
+  useEffect(() => {
+    if (mode !== 'edit' || !treeId) return;
+
+    // ✅ КРИТИЧЕСКИ ВАЖНО: Игнорируем автосохранение если localStorage не изменился после входа в режим edit
+    // Это предотвращает цикл: клик "Редактировать" → mode=edit → видим старые данные в localStorage → автосохранение
+    if (localStorageVersion <= editModeStartVersionRef.current) {
+      console.log('🚫 localStorage не изменился после входа в режим edit - пропускаем автосохранение');
+      return;
+    }
+
+    // Проверяем, есть ли несохраненные изменения в localStorage
     const localDraft = getLocalDraft(treeId);
-    let localGuides: { nodes: Node[] | null; edges: Edge[] | null } = { nodes: null, edges: null };
+    let localGuides = { nodes: null as any, edges: null as any };
 
     if (view.type === 'skill') {
       localGuides = getLocalGuides(view.skillId);
@@ -479,38 +575,56 @@ export default function SkillsPage() {
 
     const hasTreeChanges = localDraft.nodes || localDraft.edges;
     const hasGuideChanges = localGuides.nodes || localGuides.edges;
+    const hasChanges = hasTreeChanges || hasGuideChanges;
 
-    return Boolean(hasTreeChanges || hasGuideChanges);
-  }, [treeId, view, localStorageVersion]) // localStorageVersion триггерит перепроверку
-
-  // Обновляем статус при изменениях
-  useEffect(() => {
-    if (hasUnsavedChanges) {
-      setSaveStatus('unsaved');
+    if (!hasChanges) {
+      // Только обновляем статус, если он не 'saving'
+      setSaveStatus(prev => prev === 'saving' ? prev : 'saved');
+      return;
     }
-  }, [hasUnsavedChanges])
 
-  // Интеграция auto-save
-  useAutoSave({
-    onSave: handleAutoSave,
-    delay: 5000, // 5 секунд
-    hasChanges: hasUnsavedChanges,
-    enabled: mode === 'edit', // Только в режиме редактирования
-  })
+    // ✅ Debounce паттерн из Miro: при каждом новом изменении таймер СБРАСЫВАЕТСЯ
+    // Запрос делается только когда ПЕРЕСТАЛ вносить изменения на 1.5 секунды
+    setSaveStatus(prev => prev === 'saving' ? prev : 'unsaved');
+    console.log('⏳ Изменения обнаружены, ожидание 1.5 сек после ПОСЛЕДНЕГО изменения...');
+
+    const debounceTimer = setTimeout(() => {
+      console.log('💾 Запуск автосохранения (прошло 1.5 сек без изменений)');
+      handleAutoSave();
+    }, 1500); // 1.5 секунды - как в Miro
+
+    // ✅ КЛЮЧЕВОЙ МОМЕНТ: cleanup function сбрасывает таймер при новом изменении
+    // Это создаёт эффект "ждём 1.5 сек после ПОСЛЕДНЕГО изменения"
+    return () => {
+      clearTimeout(debounceTimer);
+    };
+  }, [localStorageVersion, mode, treeId, view, handleAutoSave])
 
   // Сохранение при закрытии браузера/выходе со страницы
   useEffect(() => {
     const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && mode === 'edit') {
-        // Показываем предупреждение пользователю
-        e.preventDefault()
-        e.returnValue = ''
+      if (mode === 'edit' && treeId) {
+        // Проверяем наличие несохраненных изменений
+        const localDraft = getLocalDraft(treeId);
+        let localGuides = { nodes: null as any, edges: null as any };
 
-        // Пытаемся сохранить изменения
-        try {
-          await handleAutoSave()
-        } catch (error) {
-          console.error('Ошибка сохранения перед закрытием:', error)
+        if (view.type === 'skill') {
+          localGuides = getLocalGuides(view.skillId);
+        }
+
+        const hasChanges = Boolean(localDraft.nodes || localDraft.edges || localGuides.nodes || localGuides.edges);
+
+        if (hasChanges) {
+          // Показываем предупреждение пользователю
+          e.preventDefault()
+          e.returnValue = ''
+
+          // Пытаемся сохранить изменения
+          try {
+            await handleAutoSave()
+          } catch (error) {
+            console.error('Ошибка сохранения перед закрытием:', error)
+          }
         }
       }
     }
@@ -520,7 +634,7 @@ export default function SkillsPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [hasUnsavedChanges, mode, handleAutoSave])
+  }, [mode, treeId, view, handleAutoSave])
 
   // Открыть диалог удаления
   const handleDeleteClick = useCallback(() => {
@@ -821,7 +935,7 @@ export default function SkillsPage() {
             initialNodes={treeNodes}
             initialEdges={treeEdges}
             mode={mode}
-            isCustomTree={!!apiTree}
+            isCustomTree={canEdit}
             onDelete={handleDeleteClick}
           />
         ) : (
@@ -838,6 +952,7 @@ export default function SkillsPage() {
             onDelete={handleDeleteClick}
             apiGuides={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guides}
             apiGuideEdges={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guideEdges}
+            apiGuidePositions={apiTree?.skills?.find(s => s.documentId === view.skillId)?.guidePositions}
           />
         )}
       </div>

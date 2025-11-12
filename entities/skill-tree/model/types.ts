@@ -39,6 +39,7 @@ export interface Skill {
   image?: Media // thumbnail в UI
   position: { x: number; y: number } // Позиция на канвасе
   guideEdges?: GuideEdge[] // Связи между гайдами
+  guidePositions?: Record<string, { x: number; y: number }> // Позиции гайдов по их documentId
   guides?: Guide[] // Связанные гайды
   skill_tree?: SkillTree // Обратная связь на дерево
   createdAt: string
@@ -110,6 +111,7 @@ export interface SkillNodeData extends Record<string, unknown> {
 // Данные node'а гайда в ReactFlow (для localStorage и UI)
 export interface GuideNodeData extends Record<string, unknown> {
   guideId: string // documentId гайда из Strapi или временный ID
+  numericId?: number // Numeric ID гайда для API операций (если из Strapi)
   title: string
   text?: string
   link?: string
